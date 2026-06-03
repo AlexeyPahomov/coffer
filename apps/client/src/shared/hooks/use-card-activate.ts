@@ -6,13 +6,30 @@ type UseCardActivateOptions = {
   ariaLabel?: string
 }
 
+function isCardActivateSuppressedTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) {
+    return false
+  }
+  return Boolean(
+    target.closest(
+      'button, a, input, textarea, select, [data-card-action]',
+    ),
+  )
+}
+
 export function useCardActivate(
   onActivate: () => void,
   { contextMenu = false, ariaLabel }: UseCardActivateOptions = {},
 ) {
-  const onClick = useCallback(() => {
-    onActivate()
-  }, [onActivate])
+  const onClick = useCallback(
+    (event: React.MouseEvent) => {
+      if (isCardActivateSuppressedTarget(event.target)) {
+        return
+      }
+      onActivate()
+    },
+    [onActivate],
+  )
 
   const onKeyDown = useCallback(
     (event: React.KeyboardEvent) => {

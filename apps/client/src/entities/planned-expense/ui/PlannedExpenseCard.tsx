@@ -1,4 +1,4 @@
-import { Lock, LockOpen, Pencil, Trash2 } from 'lucide-react'
+import { Check, Lock, LockOpen, Pencil, RotateCcw, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 
 import { cancelMenuItemClassName } from '@/shared/lib/cancelMenuItemLayout'
@@ -34,6 +34,8 @@ import {
   plannedExpenseReservedBadgeClassName,
   plannedExpenseReservedBadgeStaticClassName,
 } from '../lib/plannedExpenseCardLayout'
+import { canFinishPlannedExpense } from '../lib/canFinishPlannedExpense'
+import { canUnfinishPlannedExpense } from '../lib/canUnfinishPlannedExpense'
 import type { PlannedExpenseStatusMutationArgs } from '../lib/fullReserveMutationArgs'
 import { resolveIconColorTone } from '@/shared/lib/iconColorStyles'
 import { PLANNED_EXPENSE_STATUS_LABELS } from '../lib/plannedExpenseStatus'
@@ -50,8 +52,11 @@ export type PlannedExpenseCardProps = {
   onReserve?: (id: string) => void
   onCancelPlan?: (id: string) => void
   onUnreserve?: (id: string) => void
+  onFinish?: (item: PlannedExpense) => void
+  onUnfinish?: (id: string) => void
   onEdit?: (item: PlannedExpense) => void
   pendingStatusMutation?: PlannedExpenseStatusMutationArgs
+  pendingUnfinishId?: string
   className?: string
 }
 
@@ -60,8 +65,11 @@ export function PlannedExpenseCard({
   onReserve,
   onCancelPlan,
   onUnreserve,
+  onFinish,
+  onUnfinish,
   onEdit,
   pendingStatusMutation,
+  pendingUnfinishId,
   className,
 }: PlannedExpenseCardProps) {
   const [statusMenuOpen, setStatusMenuOpen] = useState(false)
@@ -81,6 +89,12 @@ export function PlannedExpenseCard({
     item.status === 'PLANNED' &&
     (showReserve || onEdit != null || showCancelPlan)
   const showUnreserveMenu = item.reserved_amount > 0 && onUnreserve != null
+  const showFinishMenu = canFinishPlannedExpense(item) && onFinish != null
+  const showUnfinishMenu = canUnfinishPlannedExpense(item) && onUnfinish != null
+  const showReservedMenu = showUnreserveMenu || showFinishMenu
+  const showCompletedMenu = showUnfinishMenu
+  const isUnfinishLoading = pendingUnfinishId === item.id
+  const actionPending = statusMutationPending || isUnfinishLoading
   const statusLabel = PLANNED_EXPENSE_STATUS_LABELS[item.status]
   const tone = resolveIconColorTone(item.icon_color)
   const currentAmount = item.reserved_amount
@@ -95,20 +109,22 @@ export function PlannedExpenseCard({
   const closeStatusMenu = () => setStatusMenuOpen(false)
 
   const statusBadgeClassName =
-    item.status === 'RESERVED' && showUnreserveMenu
+    item.status === 'RESERVED' && showReservedMenu
       ? plannedExpenseReservedBadgeClassName
-      : showPlannedMenu
-        ? plannedExpensePlannedBadgeClassName
-        : statusBadgeInteractiveClassName
+      : item.status === 'COMPLETED' && showCompletedMenu
+        ? plannedExpenseReservedBadgeClassName
+        : showPlannedMenu
+          ? plannedExpensePlannedBadgeClassName
+          : statusBadgeInteractiveClassName
 
   const statusBadge =
-    showPlannedMenu || showUnreserveMenu ? (
+    showPlannedMenu || showReservedMenu || showCompletedMenu ? (
       <Popover open={statusMenuOpen} onOpenChange={setStatusMenuOpen}>
         <PopoverTrigger asChild>
           <Badge asChild className={statusBadgeClassName}>
             <button
               type="button"
-              disabled={statusMutationPending}
+              disabled={actionPending}
               aria-label={`Статус: ${statusLabel}. Действия`}
             >
               {statusLabel}
@@ -122,7 +138,7 @@ export function PlannedExpenseCard({
               variant="ghost"
               size="sm"
               className={plannedExpenseReserveMenuItemClassName}
-              disabled={statusMutationPending}
+              disabled={actionPending}
               isLoading={isReserveLoading}
               onClick={() => {
                 closeStatusMenu()
@@ -139,7 +155,7 @@ export function PlannedExpenseCard({
               variant="ghost"
               size="sm"
               className="w-full justify-start gap-2"
-              disabled={statusMutationPending}
+              disabled={actionPending}
               onClick={() => {
                 closeStatusMenu()
                 onEdit(item)
@@ -155,7 +171,7 @@ export function PlannedExpenseCard({
               variant="ghost"
               size="sm"
               className={cancelMenuItemClassName}
-              disabled={statusMutationPending}
+              disabled={actionPending}
               isLoading={isCancelPlanLoading}
               onClick={() => {
                 closeStatusMenu()
@@ -172,7 +188,7 @@ export function PlannedExpenseCard({
               variant="ghost"
               size="sm"
               className={plannedExpenseUnreserveMenuItemClassName}
-              disabled={statusMutationPending}
+              disabled={actionPending}
               isLoading={isUnreserveLoading}
               onClick={() => {
                 closeStatusMenu()
@@ -181,6 +197,39 @@ export function PlannedExpenseCard({
             >
               <LockOpen className="size-4 shrink-0" />
               Снять резерв
+            </Button>
+          ) : null}
+          {showFinishMenu && !showPlannedMenu ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start gap-2"
+              disabled={actionPending}
+              onClick={() => {
+                closeStatusMenu()
+                onFinish(item)
+              }}
+            >
+              <Check className="size-4 shrink-0" />
+              Провести расход
+            </Button>
+          ) : null}
+          {showUnfinishMenu ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className={plannedExpenseUnreserveMenuItemClassName}
+              disabled={actionPending}
+              isLoading={isUnfinishLoading}
+              onClick={() => {
+                closeStatusMenu()
+                onUnfinish(item.id)
+              }}
+            >
+              <RotateCcw className="size-4 shrink-0" />
+              Отменить проведение
             </Button>
           ) : null}
         </PopoverContent>

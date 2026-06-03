@@ -83,6 +83,8 @@ model Expense {
   description String?
   date        DateTime
   created_at  DateTime @default(now())
+
+  completedFromPlan PlannedExpense?
 }
 
 model BudgetMonth {
@@ -119,6 +121,8 @@ model PlannedExpense {
   category        Category?            @relation(fields: [category_id], references: [id])
   budget_month_id String
   budgetMonth     BudgetMonth          @relation(fields: [budget_month_id], references: [id], onDelete: Cascade)
+  completed_expense_id String?         @unique @db.Uuid
+  completedExpense     Expense?        @relation(fields: [completed_expense_id], references: [id], onDelete: SetNull)
   created_at      DateTime             @default(now())
   updated_at      DateTime             @updatedAt
 

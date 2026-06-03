@@ -20,6 +20,7 @@ export type PlannedExpense = {
   budget_month_id: string
   /** Якорь планирования — `BudgetMonth` (YYYY-MM). */
   period_month: string
+  completed_expense_id?: string | null
   created_at: string
   updated_at: string
 }
@@ -46,4 +47,11 @@ export type UpdatePlannedExpensePayload = {
   status?: PlannedExpenseStatus
   reserved_amount?: number
   category_id?: string | null
+}
+
+export type FinishPlannedExpensePayload = {
+  category_id?: string
+  amount: number
+  description?: string
+  date: string
 }

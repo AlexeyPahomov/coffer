@@ -14,7 +14,16 @@ import {
 
 import { PlannedExpenseService } from './planned-expense.service';
 import { CreatePlannedExpenseDto } from './dto/create-planned-expense.dto';
+import { FinishPlannedExpenseDto } from './dto/finish-planned-expense.dto';
 import { UpdatePlannedExpenseDto } from './dto/update-planned-expense.dto';
+
+function requireUserId(userId: string | undefined): string {
+  const trimmed = userId?.trim() ?? '';
+  if (!trimmed) {
+    throw new BadRequestException('Query user_id is required');
+  }
+  return trimmed;
+}
 
 @Controller('planned-expense')
 export class PlannedExpenseController {
@@ -36,11 +45,24 @@ export class PlannedExpenseController {
     @Query('user_id') userId: string | undefined,
     @Body() dto: UpdatePlannedExpenseDto,
   ) {
-    const trimmedUserId = userId?.trim() ?? '';
-    if (!trimmedUserId) {
-      throw new BadRequestException('Query user_id is required');
-    }
-    return this.plannedExpenseService.update(id, trimmedUserId, dto);
+    return this.plannedExpenseService.update(id, requireUserId(userId), dto);
+  }
+
+  @Post(':id/finish')
+  finish(
+    @Param('id') id: string,
+    @Query('user_id') userId: string | undefined,
+    @Body() dto: FinishPlannedExpenseDto,
+  ) {
+    return this.plannedExpenseService.finish(id, requireUserId(userId), dto);
+  }
+
+  @Post(':id/unfinish')
+  unfinish(
+    @Param('id') id: string,
+    @Query('user_id') userId: string | undefined,
+  ) {
+    return this.plannedExpenseService.unfinish(id, requireUserId(userId));
   }
 
   @Delete(':id')
@@ -49,10 +71,6 @@ export class PlannedExpenseController {
     @Param('id') id: string,
     @Query('user_id') userId: string | undefined,
   ): Promise<void> {
-    const trimmedUserId = userId?.trim() ?? '';
-    if (!trimmedUserId) {
-      throw new BadRequestException('Query user_id is required');
-    }
-    await this.plannedExpenseService.remove(id, trimmedUserId);
+    await this.plannedExpenseService.remove(id, requireUserId(userId));
   }
 }

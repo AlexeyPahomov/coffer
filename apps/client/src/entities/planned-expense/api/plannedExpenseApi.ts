@@ -10,6 +10,7 @@ import { toMoneyNumber } from '@/shared/lib/money'
 
 import type {
   CreatePlannedExpensePayload,
+  FinishPlannedExpensePayload,
   PlannedExpense,
   PlannedExpenseStatus,
   UpdatePlannedExpensePayload,
@@ -37,6 +38,7 @@ type PlannedExpenseApiRow = {
   category_id: string | null
   budget_month_id: string
   budgetMonth?: BudgetMonthApiSlice
+  completed_expense_id?: string | null
   created_at: string
   updated_at: string
 }
@@ -66,6 +68,7 @@ function mapPlannedExpense(row: PlannedExpenseApiRow): PlannedExpense {
     category_id: row.category_id,
     budget_month_id: row.budget_month_id,
     period_month: periodMonthFromRow(row),
+    completed_expense_id: row.completed_expense_id ?? null,
     created_at: row.created_at,
     updated_at: row.updated_at,
   }
@@ -102,4 +105,23 @@ export function updatePlannedExpense(
 export function deletePlannedExpense(id: string): Promise<void> {
   const q = new URLSearchParams({ user_id: DEV_USER_ID })
   return apiDelete<void>(`${PLANNED_EXPENSE_PATH}/${encodeURIComponent(id)}?${q}`)
+}
+
+export function finishPlannedExpense(
+  id: string,
+  payload: FinishPlannedExpensePayload,
+): Promise<PlannedExpense> {
+  const q = new URLSearchParams({ user_id: DEV_USER_ID })
+  return apiPost<{ plannedExpense: PlannedExpenseApiRow }>(
+    `${PLANNED_EXPENSE_PATH}/${encodeURIComponent(id)}/finish?${q}`,
+    payload,
+  ).then((response) => mapPlannedExpense(response.plannedExpense))
+}
+
+export function unfinishPlannedExpense(id: string): Promise<PlannedExpense> {
+  const q = new URLSearchParams({ user_id: DEV_USER_ID })
+  return apiPost<PlannedExpenseApiRow>(
+    `${PLANNED_EXPENSE_PATH}/${encodeURIComponent(id)}/unfinish?${q}`,
+    {},
+  ).then(mapPlannedExpense)
 }

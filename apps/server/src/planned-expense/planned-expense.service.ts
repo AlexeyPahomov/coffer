@@ -1,14 +1,18 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { monthValueFromDate, parsePeriodMonthKey } from '@coffer/shared';
 
 import { BudgetMonthService } from '../budget/budget-month.service';
+import { BudgetProjectorService } from '../budget/budget-projector.service';
 import { DEV_USER_ID } from '../lib/dev-user';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreatePlannedExpenseDto } from './dto/create-planned-expense.dto';
+import { FinishPlannedExpenseDto } from './dto/finish-planned-expense.dto';
 import { UpdatePlannedExpenseDto } from './dto/update-planned-expense.dto';
 import {
   assertPlannedDateRange,
@@ -24,9 +28,12 @@ const PLANNED_EXPENSE_INCLUDE = {
 
 @Injectable()
 export class PlannedExpenseService {
+  private readonly logger = new Logger(PlannedExpenseService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly budgetMonthService: BudgetMonthService,
+    private readonly budgetProjector: BudgetProjectorService,
   ) {}
 
   private parsePeriodOrThrow(periodMonth: string) {
@@ -84,6 +91,33 @@ export class PlannedExpenseService {
     return row;
   }
 
+  /** Сначала план → RESERVED, потом удаление расхода (иначе остаётся COMPLETED при обрыве после DELETE). */
+  private async revertPlanToReserved(
+    planId: string,
+    amount: { toString(): string },
+  ): Promise<void> {
+    const reserved = Number(amount.toString());
+    await this.prisma.plannedExpense.update({
+      where: { id: planId },
+      data: {
+        status: 'RESERVED',
+        reserved_amount: reserved,
+        completed_expense_id: null,
+      },
+    });
+  }
+
+  private async findWithIncludes(id: string, userId: string) {
+    const row = await this.prisma.plannedExpense.findFirst({
+      where: { id, user_id: userId },
+      include: PLANNED_EXPENSE_INCLUDE,
+    });
+    if (!row) {
+      throw new NotFoundException();
+    }
+    return row;
+  }
+
   async create(dto: CreatePlannedExpenseDto) {
     await this.assertCategoryExists(dto.category_id);
 
@@ -113,7 +147,7 @@ export class PlannedExpenseService {
     });
   }
 
-  findAll(periodMonth?: string) {
+  async findAll(periodMonth?: string) {
     const where: {
       user_id: string;
       budgetMonth?: { year: number; month: number };
@@ -124,11 +158,21 @@ export class PlannedExpenseService {
       where.budgetMonth = { year, month };
     }
 
-    return this.prisma.plannedExpense.findMany({
+    const rows = await this.prisma.plannedExpense.findMany({
       where,
       include: PLANNED_EXPENSE_INCLUDE,
       orderBy: [{ planned_date: 'asc' }, { created_at: 'asc' }],
     });
+
+    for (const row of rows) {
+      if (row.status === 'COMPLETED' && row.completed_expense_id == null) {
+        await this.revertPlanToReserved(row.id, row.amount);
+        row.status = 'RESERVED';
+        row.reserved_amount = row.amount;
+      }
+    }
+
+    return rows;
   }
 
   private resolveReservedAmount(
@@ -222,16 +266,143 @@ export class PlannedExpenseService {
       },
     });
 
-    const row = await this.prisma.plannedExpense.findFirst({
-      where: { id, user_id: userId },
-      include: PLANNED_EXPENSE_INCLUDE,
-    });
+    return this.findWithIncludes(id, userId);
+  }
 
-    if (!row) {
-      throw new NotFoundException();
+  private assertCanFinish(plan: {
+    status: string;
+    reserved_amount: { toString(): string };
+  }): void {
+    if (plan.status === 'COMPLETED' || plan.status === 'CANCELLED') {
+      throw new BadRequestException('Planned expense is already closed');
     }
 
-    return row;
+    const reservedAmount = Number(plan.reserved_amount.toString());
+    if (reservedAmount <= 0 && plan.status !== 'RESERVED') {
+      throw new BadRequestException('Nothing reserved to finish');
+    }
+  }
+
+  private resolveFinishCategoryId(
+    dto: FinishPlannedExpenseDto,
+    plan: { category_id: string | null },
+  ): string {
+    const categoryId = dto.category_id?.trim() || plan.category_id;
+    if (!categoryId) {
+      throw new BadRequestException('category_id is required');
+    }
+    return categoryId;
+  }
+
+  private resolveFinishDescription(
+    dto: FinishPlannedExpenseDto,
+    plan: { description: string | null },
+  ): string | undefined {
+    return dto.description?.trim() || plan.description?.trim() || undefined;
+  }
+
+  async finish(id: string, userId: string, dto: FinishPlannedExpenseDto) {
+    const plan = await this.findOwned(id, userId);
+    this.assertCanFinish(plan);
+
+    if (dto.amount <= 0) {
+      throw new BadRequestException('amount must be greater than zero');
+    }
+
+    const categoryId = this.resolveFinishCategoryId(dto, plan);
+
+    const budgetMonth = await this.prisma.budgetMonth.findUnique({
+      where: { id: plan.budget_month_id },
+    });
+    if (!budgetMonth || budgetMonth.status !== 'OPEN') {
+      throw new ConflictException('Budget month is not open');
+    }
+
+    const expenseDate = new Date(dto.date);
+    const expensePeriodMonth = monthValueFromDate(expenseDate);
+    const planPeriodMonth = `${budgetMonth.year}-${String(budgetMonth.month).padStart(2, '0')}`;
+
+    if (expensePeriodMonth !== planPeriodMonth) {
+      await this.budgetMonthService.ensurePeriodOpen(userId, expensePeriodMonth);
+    }
+
+    const description = this.resolveFinishDescription(dto, plan);
+
+    const expense = await this.prisma.expense.create({
+      data: {
+        user_id: userId,
+        category_id: categoryId,
+        amount: dto.amount,
+        description,
+        date: expenseDate,
+      },
+    });
+
+    await this.prisma.plannedExpense.update({
+      where: { id },
+      data: {
+        status: 'COMPLETED',
+        reserved_amount: 0,
+        amount: dto.amount,
+        category_id: categoryId,
+        completed_expense_id: expense.id,
+      },
+    });
+
+    try {
+      await this.budgetProjector.onExpenseCreated(this.prisma, expense);
+    } catch (error: unknown) {
+      this.logger.warn(
+        'Budget snapshot projection failed (planned expense finish)',
+        error instanceof Error ? error.stack : String(error),
+      );
+    }
+
+    return {
+      expense,
+      plannedExpense: await this.findWithIncludes(id, userId),
+    };
+  }
+
+  async unfinish(id: string, userId: string) {
+    const plan = await this.findOwned(id, userId);
+
+    if (plan.status !== 'COMPLETED') {
+      throw new BadRequestException('Planned expense is not completed');
+    }
+
+    const budgetMonth = await this.prisma.budgetMonth.findUnique({
+      where: { id: plan.budget_month_id },
+    });
+    if (!budgetMonth || budgetMonth.status !== 'OPEN') {
+      throw new ConflictException('Budget month is not open');
+    }
+
+    if (!plan.completed_expense_id) {
+      await this.revertPlanToReserved(id, plan.amount);
+      return this.findWithIncludes(id, userId);
+    }
+
+    const expense = await this.prisma.expense.findFirst({
+      where: { id: plan.completed_expense_id, user_id: userId },
+    });
+
+    await this.revertPlanToReserved(id, plan.amount);
+
+    if (expense) {
+      try {
+        await this.budgetProjector.onExpenseRemoved(this.prisma, expense);
+      } catch (error: unknown) {
+        this.logger.warn(
+          'Budget snapshot projection failed (planned expense unfinish)',
+          error instanceof Error ? error.stack : String(error),
+        );
+      }
+
+      await this.prisma.expense.delete({ where: { id: expense.id } });
+    }
+
+    return this.findWithIncludes(id, userId);
   }
 
   async remove(id: string, userId: string): Promise<void> {

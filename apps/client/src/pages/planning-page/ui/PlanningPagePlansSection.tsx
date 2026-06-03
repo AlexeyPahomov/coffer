@@ -1,3 +1,5 @@
+import { canFinishPlannedExpense } from '@/entities/planned-expense/lib/canFinishPlannedExpense'
+import { canUnfinishPlannedExpense } from '@/entities/planned-expense/lib/canUnfinishPlannedExpense'
 import type { PlannedExpense } from '@/entities/planned-expense/model/types'
 import { PlannedExpenseCard } from '@/entities/planned-expense/ui/PlannedExpenseCard'
 import { PlannedExpensesList } from '@/entities/planned-expense/ui/PlannedExpensesList'
@@ -12,11 +14,13 @@ import type { usePlanningPage } from '../model/usePlanningPage'
 type PlanningPagePlansSectionProps = {
   page: ReturnType<typeof usePlanningPage>
   onEditPlanned: (item: PlannedExpense) => void
+  onFinishPlanned: (item: PlannedExpense) => void
 }
 
 export function PlanningPagePlansSection({
   page,
   onEditPlanned,
+  onFinishPlanned,
 }: PlanningPagePlansSectionProps) {
   return (
     <div className={planningPagePlansSectionClassName}>
@@ -38,10 +42,17 @@ export function PlanningPagePlansSection({
                 item.status === 'PLANNED' ? page.cancelPlan : undefined
               }
               onUnreserve={page.unreserve}
+              onFinish={
+                canFinishPlannedExpense(item) ? onFinishPlanned : undefined
+              }
+              onUnfinish={
+                canUnfinishPlannedExpense(item) ? page.unfinish : undefined
+              }
               onEdit={
                 item.status === 'PLANNED' ? onEditPlanned : undefined
               }
               pendingStatusMutation={page.pendingStatusMutation}
+              pendingUnfinishId={page.pendingUnfinishId}
             />
           ))}
         </PlannedExpensesList>

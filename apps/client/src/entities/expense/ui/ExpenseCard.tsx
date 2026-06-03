@@ -93,10 +93,12 @@ export function ExpenseCard({
           type="button"
           variant="ghost"
           size="icon-sm"
+          data-card-action
           className="shrink-0 text-zinc-400 hover:text-destructive"
           aria-label="Удалить расход"
           disabled={isDeleting}
           isLoading={isDeleting}
+          onPointerDown={(event) => event.stopPropagation()}
           onClick={(event) => {
             event.stopPropagation()
             onDelete()

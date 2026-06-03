@@ -10,6 +10,7 @@ import { PlanningPagePlansSection } from './PlanningPagePlansSection'
 type PlanningPageMonthViewsProps = {
   page: ReturnType<typeof usePlanningPage>
   onEditPlanned: (item: PlannedExpense) => void
+  onFinishPlanned: (item: PlannedExpense) => void
 }
 
 export function PlanningPageMonthMobileHeader({
@@ -33,6 +34,7 @@ export function PlanningPageMonthMobileHeader({
 export function PlanningPageMonthBody({
   page,
   onEditPlanned,
+  onFinishPlanned,
 }: PlanningPageMonthViewsProps) {
   if (page.isLoading) {
     return (
@@ -64,7 +66,11 @@ export function PlanningPageMonthBody({
         {...liquidityFlowProps}
       />
 
-      <PlanningPagePlansSection page={page} onEditPlanned={onEditPlanned} />
+      <PlanningPagePlansSection
+        page={page}
+        onEditPlanned={onEditPlanned}
+        onFinishPlanned={onFinishPlanned}
+      />
     </>
   )
 }

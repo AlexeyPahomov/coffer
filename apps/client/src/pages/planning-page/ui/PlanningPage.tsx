@@ -2,6 +2,7 @@ import { useState } from 'react'
 
 import type { PlannedExpense } from '@/entities/planned-expense/model/types'
 import { EditPlannedExpenseDialog } from '@/features/create-planned-expense/ui/EditPlannedExpenseDialog'
+import { FinishPlannedExpenseDialog } from '@/features/finish-planned-expense/ui/FinishPlannedExpenseDialog'
 import { useDesktopPageSectionTitle } from '@/shared/hooks/use-desktop-page-section-title'
 import { useIsMobile } from '@/shared/hooks/use-mobile'
 import { PageSection } from '@/shared/ui'
@@ -28,6 +29,8 @@ export function PlanningPage() {
   const [editingPlanned, setEditingPlanned] = useState<PlannedExpense | null>(
     null,
   )
+  const [finishingPlanned, setFinishingPlanned] =
+    useState<PlannedExpense | null>(null)
 
   return (
     <PageSection
@@ -51,6 +54,7 @@ export function PlanningPage() {
             <PlanningPageMonthBody
               page={page}
               onEditPlanned={setEditingPlanned}
+              onFinishPlanned={setFinishingPlanned}
             />
           </div>
         </PlanningPageMonthTransition>
@@ -64,6 +68,17 @@ export function PlanningPage() {
           }
         }}
         item={editingPlanned}
+      />
+
+      <FinishPlannedExpenseDialog
+        open={finishingPlanned != null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setFinishingPlanned(null)
+          }
+        }}
+        item={finishingPlanned}
+        categories={page.expenseCategories}
       />
     </PageSection>
   )

@@ -90,9 +90,11 @@ export function IncomeEntryCard({
           type="button"
           variant="ghost"
           size="icon-xs"
+          data-card-action
           className="shrink-0 text-zinc-400 hover:text-destructive"
           aria-label="Удалить доход"
           disabled={isDeleting}
+          onPointerDown={(event) => event.stopPropagation()}
           onClick={(event) => {
             event.stopPropagation()
             onDelete()

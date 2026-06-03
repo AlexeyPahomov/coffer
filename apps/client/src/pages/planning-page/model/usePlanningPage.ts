@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react'
 import { computeOperationalSummary } from '@/entities/budget/lib/computeOperationalSummary'
 import { monthProjectionFromSummary } from '@/entities/budget/lib/monthProjectionFromSummary'
 import { formatPlanningPeriodLabel } from '@/entities/budget/lib/periodLabels'
+import { filterExpenseCategories } from '@/entities/category/lib/filterExpenseCategories'
 import {
   fullReserveMutationArgs,
   unreservePlannedExpenseMutationArgs,
@@ -10,6 +11,7 @@ import {
 import { usePeriodBudgetCore } from '@/entities/budget/model/usePeriodBudgetCore'
 import { usePlannedExpensesQuery } from '@/entities/planned-expense/api/usePlannedExpensesQuery'
 import { usePlannedExpenseStatusMutation } from '@/entities/planned-expense/api/usePlannedExpenseStatusMutation'
+import { useUnfinishPlannedExpenseMutation } from '@/entities/planned-expense/api/useUnfinishPlannedExpenseMutation'
 import { buildPlanningTimelineMonths } from '@/entities/planned-expense/lib/buildPlanningTimelineMonths'
 import {
   collectPlannedExpenseSwatchesByPeriodMonth,
@@ -22,6 +24,7 @@ export function usePlanningPage() {
   const [periodMonth, setPeriodMonth] = useState(currentMonthInputValue)
   const plannedQuery = usePlannedExpensesQuery()
   const statusMutation = usePlannedExpenseStatusMutation()
+  const unfinishMutation = useUnfinishPlannedExpenseMutation()
 
   const core = usePeriodBudgetCore(periodMonth)
   const allPlanned = plannedQuery.data ?? []
@@ -72,6 +75,11 @@ export function usePlanningPage() {
     [allPlanned],
   )
 
+  const expenseCategories = useMemo(
+    () => filterExpenseCategories(core.categories),
+    [core.categories],
+  )
+
   return {
     periodMonth,
     setPeriodMonth,
@@ -81,14 +89,19 @@ export function usePlanningPage() {
     periodLabels,
     itemCounts,
     itemSwatches,
+    expenseCategories,
     reserve: (id: string, amount: number) =>
       statusMutation.mutate(fullReserveMutationArgs(id, amount)),
     cancelPlan: (id: string) =>
       statusMutation.mutate({ id, status: 'CANCELLED' }),
     unreserve: (id: string) =>
       statusMutation.mutate(unreservePlannedExpenseMutationArgs(id)),
+    unfinish: (id: string) => unfinishMutation.mutate(id),
     pendingStatusMutation: statusMutation.isPending
       ? statusMutation.variables
+      : undefined,
+    pendingUnfinishId: unfinishMutation.isPending
+      ? unfinishMutation.variables
       : undefined,
     incomeTotal: operationalSummary.incomeTotal,
     allocatedTotal: operationalSummary.allocatedTotal,

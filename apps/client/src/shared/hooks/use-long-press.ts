@@ -16,6 +16,17 @@ function triggerLongPressHaptic() {
   }
 }
 
+function isLongPressSuppressedTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) {
+    return false
+  }
+  return Boolean(
+    target.closest(
+      'button, a, input, textarea, select, [data-card-action]',
+    ),
+  )
+}
+
 export function useLongPress({
   onLongPress,
   delayMs = DEFAULT_DELAY_MS,
@@ -45,6 +56,10 @@ export function useLongPress({
   const onPointerDown = React.useCallback(
     (event: React.PointerEvent<HTMLElement>) => {
       if (disabled || !event.isPrimary) {
+        return
+      }
+
+      if (isLongPressSuppressedTarget(event.target)) {
         return
       }
 

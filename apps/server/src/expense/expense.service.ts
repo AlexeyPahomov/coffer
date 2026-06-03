@@ -235,23 +235,30 @@ export class ExpenseService {
 
 
   async remove(id: string, userId: string): Promise<void> {
-
     const expense = await this.findOwned(id, userId);
 
+    const linkedPlan = await this.prisma.plannedExpense.findFirst({
+      where: { completed_expense_id: id, user_id: userId },
+    });
 
+    if (linkedPlan) {
+      await this.prisma.plannedExpense.update({
+        where: { id: linkedPlan.id },
+        data: {
+          status: 'RESERVED',
+          reserved_amount: Number(linkedPlan.amount.toString()),
+          completed_expense_id: null,
+        },
+      });
+    }
 
     runBudgetProjection(
-
       this.logger,
-
       'remove',
-
       this.budgetProjector.onExpenseRemoved(this.prisma, expense),
-
     );
 
     await this.prisma.expense.delete({ where: { id } });
-
   }
 
 }
