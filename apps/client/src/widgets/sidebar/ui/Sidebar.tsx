@@ -28,6 +28,7 @@ import {
   CreditCard,
   DollarSign,
   PieChart,
+  SlidersHorizontal,
   Tag,
 } from 'lucide-react'
 
@@ -38,6 +39,7 @@ const iconByRouteId: Record<AppRouteId, IconFn> = {
   allocation: (props) => <PieChart {...props} />,
   expenses: (props) => <CreditCard {...props} />,
   planning: (props) => <CalendarDays {...props} />,
+  rules: (props) => <SlidersHorizontal {...props} />,
   categories: (props) => <Tag {...props} />,
 }
 

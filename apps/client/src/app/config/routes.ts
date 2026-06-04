@@ -4,6 +4,7 @@ export const APP_ROUTES = [
   { id: 'allocation', label: 'Бюджет', segment: 'allocation' },
   { id: 'expenses', label: 'Расход', segment: 'expenses' },
   { id: 'planning', label: 'Планирование', mobileLabel: 'План', segment: 'planning' },
+  { id: 'rules', label: 'Правила', segment: 'rules' },
   { id: 'categories', label: 'Категории', segment: 'categories' },
 ] as const
 

@@ -117,6 +117,32 @@ export class AllocationRuleService {
     };
   }
 
+  private async findOwnedRule(id: string) {
+    const rule = await this.prisma.allocationRule.findFirst({
+      where: { id, user_id: DEV_USER_ID },
+    });
+    if (!rule) {
+      throw new NotFoundException('Allocation rule not found');
+    }
+    return rule;
+  }
+
+  private findRuleById(id: string) {
+    return this.prisma.allocationRule.findUnique({
+      where: { id },
+      include: this.includeRuleRelations(),
+    });
+  }
+
+  private createRuleLines(ruleId: string, lines: AllocationRuleLineDto[]) {
+    return this.prisma.allocationRuleLine.createMany({
+      data: lines.map((line, index) => ({
+        rule_id: ruleId,
+        ...this.lineData(line, index),
+      })),
+    });
+  }
+
   private normalizeRequiredId(value: string | null | undefined, field: string) {
     const normalized = value?.trim() ?? '';
     if (!normalized) {
@@ -133,7 +159,7 @@ export class AllocationRuleService {
   async create(dto: CreateAllocationRuleDto) {
     await this.validateRuleDto(dto);
 
-    return this.prisma.allocationRule.create({
+    const rule = await this.prisma.allocationRule.create({
       data: {
         user_id: DEV_USER_ID,
         name: dto.name.trim(),
@@ -141,12 +167,19 @@ export class AllocationRuleService {
           dto.trigger_income_type,
         ),
         is_active: dto.is_active ?? true,
-        lines: {
-          create: dto.lines.map((line, index) => this.lineData(line, index)),
-        },
       },
-      include: this.includeRuleRelations(),
     });
+
+    try {
+      await this.createRuleLines(rule.id, dto.lines);
+    } catch (error) {
+      await this.prisma.allocationRule
+        .delete({ where: { id: rule.id } })
+        .catch(() => undefined);
+      throw error;
+    }
+
+    return this.findRuleById(rule.id);
   }
 
   findAll() {
@@ -160,12 +193,7 @@ export class AllocationRuleService {
   async update(id: string, dto: UpdateAllocationRuleDto) {
     await this.validateRuleDto(dto);
 
-    const existing = await this.prisma.allocationRule.findFirst({
-      where: { id, user_id: DEV_USER_ID },
-    });
-    if (!existing) {
-      throw new NotFoundException('Allocation rule not found');
-    }
+    await this.findOwnedRule(id);
 
     await this.prisma.allocationRule.update({
       where: { id },
@@ -178,17 +206,15 @@ export class AllocationRuleService {
       },
     });
     await this.prisma.allocationRuleLine.deleteMany({ where: { rule_id: id } });
-    await this.prisma.allocationRuleLine.createMany({
-      data: dto.lines.map((line, index) => ({
-        rule_id: id,
-        ...this.lineData(line, index),
-      })),
-    });
+    await this.createRuleLines(id, dto.lines);
 
-    return this.prisma.allocationRule.findUnique({
-      where: { id },
-      include: this.includeRuleRelations(),
-    });
+    return this.findRuleById(id);
+  }
+
+  async remove(id: string): Promise<void> {
+    await this.findOwnedRule(id);
+
+    await this.prisma.allocationRule.delete({ where: { id } });
   }
 
   private async requireIncome(incomeId: string) {

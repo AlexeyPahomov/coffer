@@ -1,4 +1,4 @@
-import { apiGet, apiPatch, apiPost } from '@/shared/api/client'
+import { apiDelete, apiGet, apiPatch, apiPost } from '@/shared/api/client'
 
 import type {
   AllocationRule,
@@ -28,6 +28,10 @@ export function updateAllocationRule(
     `${ALLOCATION_RULE_PATH}/${encodeURIComponent(id)}`,
     payload,
   )
+}
+
+export function deleteAllocationRule(id: string): Promise<void> {
+  return apiDelete<void>(`${ALLOCATION_RULE_PATH}/${encodeURIComponent(id)}`)
 }
 
 export function getAllocationRulePreview(

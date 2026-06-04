@@ -1,4 +1,15 @@
-import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Patch,
+  Post,
+  Query,
+} from '@nestjs/common';
 
 import { AllocationRuleService } from './allocation-rule.service';
 import { ApplyAllocationRuleDto } from './dto/apply-allocation-rule.dto';
@@ -35,5 +46,11 @@ export class AllocationRuleController {
   @Patch(':id')
   update(@Param('id') id: string, @Body() dto: UpdateAllocationRuleDto) {
     return this.allocationRuleService.update(id, dto);
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async remove(@Param('id') id: string): Promise<void> {
+    await this.allocationRuleService.remove(id);
   }
 }

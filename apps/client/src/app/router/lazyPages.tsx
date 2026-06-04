@@ -19,3 +19,9 @@ export const LazyIncomePage = lazy(async () =>
 export const LazyPlanningPage = lazy(async () =>
   import('@/pages/planning-page').then((m) => ({ default: m.PlanningPage })),
 )
+
+export const LazyAllocationRulesPage = lazy(async () =>
+  import('@/pages/allocation-rules-page').then((m) => ({
+    default: m.AllocationRulesPage,
+  })),
+)

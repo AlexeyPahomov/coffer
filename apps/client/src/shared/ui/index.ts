@@ -20,6 +20,7 @@ export type {
   ContentTransitionProps,
 } from './content-transition'
 export { Calendar, CalendarDayButton } from './calendar/Calendar'
+export { Checkbox } from './checkbox'
 export { IconPicker } from './icon-picker'
 export { IconColorAvatar } from './icon-color-avatar'
 export { InfoHint, getInfoHintLabel } from './info-hint'
@@ -124,6 +125,23 @@ export {
   DialogTitle,
   DialogTrigger,
 } from './dialog/Dialog'
+export {
+  DropdownMenu,
+  DropdownMenuPortal,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuLabel,
+  DropdownMenuItem,
+  DropdownMenuCheckboxItem,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuShortcut,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
+} from './dropdown-menu/DropdownMenu'
 export { ResponsiveFormDialog } from './responsive-form-dialog'
 export type { ResponsiveFormDialogProps } from './responsive-form-dialog'
 export {

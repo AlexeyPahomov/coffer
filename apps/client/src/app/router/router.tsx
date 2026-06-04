@@ -11,6 +11,7 @@ import {
 
 import {
   LazyAllocationPage,
+  LazyAllocationRulesPage,
   LazyCategoryPage,
   LazyExpensePage,
   LazyIncomePage,
@@ -22,6 +23,7 @@ const lazyPageByRouteId: Record<AppRouteId, LazyExoticComponent<ComponentType>> 
   allocation: LazyAllocationPage,
   expenses: LazyExpensePage,
   planning: LazyPlanningPage,
+  rules: LazyAllocationRulesPage,
   categories: LazyCategoryPage,
 }
 

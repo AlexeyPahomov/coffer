@@ -1,4 +1,11 @@
-import { CalendarDays, CreditCard, DollarSign, PieChart, Tag } from 'lucide-react'
+import {
+  CalendarDays,
+  CreditCard,
+  DollarSign,
+  PieChart,
+  SlidersHorizontal,
+  Tag,
+} from 'lucide-react'
 import { NavLink, useLocation } from 'react-router-dom'
 import type { ReactNode } from 'react'
 
@@ -17,6 +24,7 @@ const iconByRouteId: Record<AppRouteId, IconFn> = {
   allocation: (props) => <PieChart {...props} />,
   expenses: (props) => <CreditCard {...props} />,
   planning: (props) => <CalendarDays {...props} />,
+  rules: (props) => <SlidersHorizontal {...props} />,
   categories: (props) => <Tag {...props} />,
 }
 
@@ -25,7 +33,10 @@ export function MobileBottomNav() {
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-zinc-200 bg-white/95 backdrop-blur md:hidden">
-      <ul className="grid h-16 grid-cols-5 px-1 pb-[env(safe-area-inset-bottom)]">
+      <ul
+        className="grid h-16 px-1 pb-[env(safe-area-inset-bottom)]"
+        style={{ gridTemplateColumns: `repeat(${APP_ROUTES.length}, minmax(0, 1fr))` }}
+      >
         {APP_ROUTES.map((route) => {
           const to = appRouteHref(route.segment)
           const Icon = iconByRouteId[route.id]
