@@ -5,6 +5,7 @@ import { PlanningMonthMetrics } from '@/widgets/planning-month-metrics'
 
 import type { usePlanningPage } from '../model/usePlanningPage'
 
+import { PlanningEnvelopeForecastSection } from './PlanningEnvelopeForecastSection'
 import { PlanningPagePlansSection } from './PlanningPagePlansSection'
 
 type PlanningPageMonthViewsProps = {
@@ -64,6 +65,8 @@ export function PlanningPageMonthBody({
         className="hidden md:flex"
         {...liquidityFlowProps}
       />
+
+      <PlanningEnvelopeForecastSection forecast={page.envelopeForecast} />
 
       <PlanningPagePlansSection
         page={page}

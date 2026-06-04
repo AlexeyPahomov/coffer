@@ -6,7 +6,7 @@ import {
 import { contentTransitionOutletShellClassName } from '@/shared/ui/content-transition/contentTransitionLayout'
 import { mobileFabScrollReserveClassName } from '@/shared/ui/fab'
 
-/** Оболочка страницы: на мобилке скролл только у списка планов; на md — вся страница. */
+/** Оболочка страницы: на мобилке скролл у тела месяца; на md — вся страница. */
 export const planningPageShellClassName = cn(
   'flex min-h-0 min-w-0 flex-1 flex-col overflow-x-hidden',
   'max-md:overflow-hidden max-md:overscroll-none',
@@ -31,23 +31,24 @@ export const planningPageMonthTransitionClassName = cn(
   safariIosFlexFillClassName,
 )
 
-/** Тело месяца: на мобилке без внешнего скролла; на md растёт вместе со страницей. */
+/** Тело месяца: на мобилке общий scrollport для прогноза и списка планов. */
 export const planningPageMonthBodyClassName = cn(
   'flex min-h-0 flex-1 flex-col gap-4 max-md:min-h-0 max-md:gap-2',
-  'max-md:overflow-hidden max-md:overscroll-none',
+  'max-md:overflow-y-auto max-md:overscroll-y-auto',
+  'max-md:coffer-scroll-list max-md:[overflow-anchor:none]',
+  mobileFabScrollReserveClassName,
   'md:flex-none md:gap-6',
-  'max-md:pe-0',
+  'max-md:pe-2',
 )
 
-/** На мобилке — оставшаяся высота и скролл списка; на md — обычный блок в потоке страницы. */
+/** Секция планов теперь всегда живёт в потоке тела месяца. */
 export const planningPagePlansSectionClassName = cn(
-  'flex min-h-0 flex-1 flex-col overflow-hidden',
-  'max-md:min-h-0 max-md:basis-0',
+  'flex min-h-0 flex-col overflow-hidden',
+  'max-md:flex-none max-md:overflow-visible',
   'md:flex-none md:overflow-visible',
 )
 
 export const planningPagePlannedListBodyClassName = cn(
-  mobileFabScrollReserveClassName,
-  'max-md:min-h-0 max-md:flex-1',
+  'max-md:min-h-0 max-md:flex-none max-md:overflow-visible max-md:overscroll-auto',
   'md:max-h-none md:flex-none md:overflow-visible',
 )

@@ -9,6 +9,7 @@ import {
   unreservePlannedExpenseMutationArgs,
 } from '@/entities/planned-expense/lib/fullReserveMutationArgs'
 import { usePeriodBudgetCore } from '@/entities/budget/model/usePeriodBudgetCore'
+import { useAllocationRulesQuery } from '@/entities/allocation-rule/api/useAllocationRulesQuery'
 import { usePlannedExpensesQuery } from '@/entities/planned-expense/api/usePlannedExpensesQuery'
 import { usePlannedExpenseStatusMutation } from '@/entities/planned-expense/api/usePlannedExpenseStatusMutation'
 import { useUnfinishPlannedExpenseMutation } from '@/entities/planned-expense/api/useUnfinishPlannedExpenseMutation'
@@ -22,6 +23,7 @@ import {
 import { currentMonthInputValue } from '@/shared/lib/date'
 
 import { buildPlanningForecast } from '../lib/buildPlanningForecast'
+import { buildEnvelopeForecast } from '../lib/buildEnvelopeForecast'
 
 const EMPTY_PLANNED_EXPENSES: readonly [] = []
 
@@ -47,6 +49,7 @@ export function usePlanningPage() {
   )
   const periodMonth = pickedPeriodMonth ?? defaultPeriodMonth
   const plannedQuery = usePlannedExpensesQuery()
+  const allocationRulesQuery = useAllocationRulesQuery()
   const statusMutation = usePlannedExpenseStatusMutation()
   const unfinishMutation = useUnfinishPlannedExpenseMutation()
 
@@ -158,6 +161,16 @@ export function usePlanningPage() {
     () => filterExpenseCategories(core.categories),
     [core.categories],
   )
+  const envelopeForecast = useMemo(
+    () =>
+      buildEnvelopeForecast({
+        periodMonth,
+        incomes: core.incomes,
+        rules: allocationRulesQuery.data ?? [],
+        budgetItems: core.budgetItems,
+      }),
+    [allocationRulesQuery.data, core.budgetItems, core.incomes, periodMonth],
+  )
 
   return {
     periodMonth,
@@ -169,6 +182,7 @@ export function usePlanningPage() {
     forecast,
     forecastMonth,
     forecastMetadata: forecast.metadata,
+    envelopeForecast,
     expectedIncomeTotal: forecastMonth?.income ?? 0,
     periodLabels,
     itemCounts,
@@ -187,6 +201,9 @@ export function usePlanningPage() {
     pendingUnfinishId: unfinishMutation.isPending
       ? unfinishMutation.variables
       : undefined,
-    isLoading: plannedQuery.isPending || core.isCoreLoading,
+    isLoading:
+      plannedQuery.isPending ||
+      allocationRulesQuery.isPending ||
+      core.isCoreLoading,
   }
 }
