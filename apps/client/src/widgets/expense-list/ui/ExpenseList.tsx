@@ -11,7 +11,6 @@ import type { ItemsListLayout } from '@/shared/ui/items-list/ItemsList';
 import { itemsListInTabUlClassName } from '@/shared/ui/items-list/itemsListLayout';
 
 import { filterExpensesByCategoryAndMonth } from '../lib/filterExpenses';
-import { EXPENSE_LIST_PAGE_SIZE } from '../lib/expenseListPageSize';
 import type { ExpenseListItem } from '../model/types';
 
 import {
@@ -82,11 +81,6 @@ export function ExpenseList({
     [expenses, categoryFilter, monthFilter],
   );
 
-  const visibleExpenses = useMemo(
-    () => filteredExpenses.slice(0, EXPENSE_LIST_PAGE_SIZE),
-    [filteredExpenses],
-  );
-
   const viewSwitcher = (
     <ExpenseListToolbar viewMode={viewMode} onViewModeChange={setViewMode} />
   );
@@ -104,7 +98,7 @@ export function ExpenseList({
       isPending={isPending}
       isError={isError}
       error={error}
-      data={viewMode === 'list' ? visibleExpenses : []}
+      data={viewMode === 'list' ? filteredExpenses : []}
       isFetching={isFetching}
       title={hideListTitle ? undefined : 'История расходов'}
       headerEnd={hideHeaderViewSwitcher ? undefined : viewSwitcher}
