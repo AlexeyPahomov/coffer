@@ -139,7 +139,6 @@ export function AllocationPage() {
       ) : null}
 
       <AllocationFormSheets
-        isMobile={isMobile}
         categories={allocationCategories}
         noCategories={noCategories}
         createOpen={allocateSheetOpen}

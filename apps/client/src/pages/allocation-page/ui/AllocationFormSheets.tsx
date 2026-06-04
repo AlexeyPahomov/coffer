@@ -6,7 +6,6 @@ import { AllocationQuickForm } from '@/features/create-allocation/ui/AllocationQ
 import { ResponsiveFormDialog } from '@/shared/ui'
 
 type AllocationFormSheetsProps = {
-  isMobile: boolean
   categories: readonly Category[]
   noCategories: boolean
   createOpen: boolean
@@ -20,7 +19,6 @@ type AllocationFormSheetsProps = {
 }
 
 export function AllocationFormSheets({
-  isMobile,
   categories,
   noCategories,
   createOpen,
@@ -43,7 +41,6 @@ export function AllocationFormSheets({
         title="Быстрое распределение"
         description="Выберите категорию и сумму распределения"
         bodyClassName={allocationFormDialogBodyClassName}
-        showCloseButton={!isMobile}
         hideHeader
       >
         <AllocationQuickForm
@@ -65,7 +62,6 @@ export function AllocationFormSheets({
         title="Редактирование распределения"
         description="Измените категорию или сумму"
         bodyClassName={allocationFormDialogBodyClassName}
-        showCloseButton={false}
         hideHeader
       >
         <AllocationQuickForm

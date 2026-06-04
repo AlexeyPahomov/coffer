@@ -26,6 +26,13 @@ type RuleWithLines = Awaited<
 type PreviewLine = {
   category_id: string;
   category_name: string;
+  category: {
+    id: string;
+    name: string;
+    type: string;
+    icon: string;
+    icon_color: string;
+  };
   mode: AllocationRuleLineMode;
   amount: number;
   percent: number | null;
@@ -264,6 +271,13 @@ export class AllocationRuleService {
     return {
       category_id: line.category_id,
       category_name: line.category.name,
+      category: {
+        id: line.category.id,
+        name: line.category.name,
+        type: line.category.type,
+        icon: line.category.icon,
+        icon_color: line.category.icon_color,
+      },
       mode,
       amount,
       percent: line.percent == null ? null : toMoneyNumber(line.percent.toString()),
@@ -299,10 +313,14 @@ export class AllocationRuleService {
     );
     const income = await this.requireIncome(incomeId);
     const incomeAmount = toMoneyNumber(income.amount.toString());
-    const allocations = await this.prisma.allocation.findMany({
-      where: { income_id: normalizedIncomeId },
-    });
-    const alreadyAllocated = sumPrismaMoneyAmounts(allocations);
+    const alreadyAllocated =
+      income.status === 'RECEIVED'
+        ? sumPrismaMoneyAmounts(
+            await this.prisma.allocation.findMany({
+              where: { income_id: normalizedIncomeId },
+            }),
+          )
+        : 0;
     const rules = await this.findMatchingRules(income, ruleId);
 
     return {

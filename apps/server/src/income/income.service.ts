@@ -1,9 +1,4 @@
 import {
-  isIncomeStatus,
-  resolveIncomeStatus,
-  resolveIncomeType,
-} from '@coffer/shared';
-import {
   BadRequestException,
   Injectable,
   NotFoundException,
@@ -14,6 +9,47 @@ import { BudgetMonthService } from '../budget/budget-month.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateIncomeDto } from './dto/create-income.dto';
 import { UpdateIncomeDto } from './dto/update-income.dto';
+
+const DEFAULT_INCOME_TYPE = 'salary';
+const INCOME_TYPES = new Set([
+  'salary',
+  'freelance',
+  'interest',
+  'cashback',
+  'refund',
+  'investment',
+  'other',
+]);
+
+type IncomeStatusValue = 'RECEIVED' | 'EXPECTED';
+
+const DEFAULT_INCOME_STATUS: IncomeStatusValue = 'RECEIVED';
+
+function resolveDtoIncomeType(value: string | undefined): string {
+  if (value === undefined || value.trim() === '') {
+    return DEFAULT_INCOME_TYPE;
+  }
+  if (!INCOME_TYPES.has(value)) {
+    throw new BadRequestException('Invalid income type');
+  }
+  return value;
+}
+
+function isPrismaIncomeStatus(value: string): value is IncomeStatusValue {
+  return value === 'RECEIVED' || value === 'EXPECTED';
+}
+
+function resolveIncomeStatusValue(
+  value: string | undefined,
+): IncomeStatusValue {
+  if (value === undefined) {
+    return DEFAULT_INCOME_STATUS;
+  }
+  if (!isPrismaIncomeStatus(value)) {
+    throw new BadRequestException('Invalid income status');
+  }
+  return value;
+}
 
 @Injectable()
 export class IncomeService {
@@ -29,21 +65,21 @@ export class IncomeService {
         user_id: '00000000-0000-0000-0000-000000000001',
         amount: dto.amount,
         source: dto.source,
-        income_type: resolveIncomeType(dto.income_type),
-        status: resolveIncomeStatus(dto.status),
+        income_type: resolveDtoIncomeType(dto.income_type),
+        status: resolveIncomeStatusValue(dto.status),
         period_month: new Date(dto.period_month),
       },
     });
   }
 
-  private resolveNextStatus(dto: UpdateIncomeDto, existing: Income) {
+  private resolveNextStatus(
+    dto: UpdateIncomeDto,
+    existing: Income,
+  ): IncomeStatusValue {
     if (dto.status === undefined) {
-      return existing.status;
+      return resolveIncomeStatusValue(String(existing.status));
     }
-    if (!isIncomeStatus(dto.status)) {
-      throw new BadRequestException('Invalid income status');
-    }
-    return dto.status;
+    return resolveIncomeStatusValue(dto.status);
   }
 
   findAll(): Promise<Income[]> {
@@ -82,7 +118,7 @@ export class IncomeService {
       data: {
         amount: dto.amount,
         source: dto.source,
-        income_type: resolveIncomeType(dto.income_type),
+        income_type: resolveDtoIncomeType(dto.income_type),
         status: nextStatus,
         period_month: new Date(dto.period_month),
       },
@@ -101,6 +137,8 @@ export class IncomeService {
     if (existing.status === 'RECEIVED') {
       return existing;
     }
+
+    await this.prisma.allocation.deleteMany({ where: { income_id: id } });
 
     const updated = await this.prisma.income.update({
       where: { id },

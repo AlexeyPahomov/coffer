@@ -2,6 +2,7 @@ import { INCOME_TYPE_LABELS, formatMoneyAmount } from '@coffer/shared'
 import { MoreVertical, Pencil, Trash2 } from 'lucide-react'
 
 import type { AllocationRule } from '@/entities/allocation-rule/model/types'
+import { CategoryAmountChip } from '@/entities/category/ui/CategoryAmountChip'
 import { cn } from '@/shared/lib/utils'
 import {
   Button,
@@ -36,6 +37,21 @@ function lineValue(line: AllocationRule['lines'][number]): string {
     return `${formatMoneyAmount(line.percent ?? 0)}%`
   }
   return `${formatMoneyAmount(line.amount ?? 0)} ₽`
+}
+
+function AllocationRuleLineChip({
+  line,
+}: {
+  line: AllocationRule['lines'][number]
+}) {
+  return (
+    <CategoryAmountChip
+      category={line.category}
+      value={lineValue(line)}
+      className="border border-white/70 transition-colors hover:border-zinc-200"
+      focusable
+    />
+  )
 }
 
 function AllocationRuleCardActions({
@@ -120,19 +136,9 @@ export function AllocationRuleCard({
           isDeleting={isDeleting}
         />
       </CardHeader>
-      <CardContent className="space-y-2 pt-0">
+      <CardContent className="flex flex-wrap gap-2 pt-0">
         {rule.lines.map((line) => (
-          <div
-            key={line.id}
-            className="flex items-center justify-between gap-3 rounded-xl bg-zinc-50 px-3 py-2 text-sm"
-          >
-            <span className="min-w-0 truncate text-zinc-700">
-              {line.category.name}
-            </span>
-            <span className="shrink-0 font-semibold tabular-nums text-zinc-900">
-              {lineValue(line)}
-            </span>
-          </div>
+          <AllocationRuleLineChip key={line.id} line={line} />
         ))}
       </CardContent>
     </Card>

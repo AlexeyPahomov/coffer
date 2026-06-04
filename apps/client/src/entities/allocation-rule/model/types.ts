@@ -44,6 +44,7 @@ export type AllocationRulePayload = {
 export type AllocationRulePreviewLine = {
   category_id: string
   category_name: string
+  category: Pick<Category, 'id' | 'name' | 'type' | 'icon' | 'icon_color'>
   mode: AllocationRuleLineMode
   amount: number
   percent: number | null
