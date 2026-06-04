@@ -34,10 +34,10 @@ const railNodeKinds: LiquidityFlowRailNodeKind[] = [
 
 function liquidityFlowAmounts(
   projection: MonthBudgetProjection,
-  incomeTotal: number,
+  expectedIncomeTotal: number,
 ): Record<LiquidityFlowNodeKind, number> {
   return {
-    income: incomeTotal,
+    income: expectedIncomeTotal,
     pool: projection.available,
     planned: projection.plannedTotal,
     reserved: projection.reservedTotal,
@@ -50,7 +50,7 @@ function buildNodes<K extends LiquidityFlowNodeKind>(
   amounts: Record<LiquidityFlowNodeKind, number>,
 ): Array<LiquidityFlowNodeConfig & { kind: K; amount: number }> {
   return kinds.map((kind) => {
-    const { kind: _kind, ...config } = getLiquidityFlowNodeConfig(kind)
+    const config = getLiquidityFlowNodeConfig(kind)
     return {
       ...config,
       kind,
@@ -61,17 +61,20 @@ function buildNodes<K extends LiquidityFlowNodeKind>(
 
 export function buildLiquidityFlowNodes(
   projection: MonthBudgetProjection,
-  incomeTotal = 0,
+  expectedIncomeTotal = 0,
 ): LiquidityFlowNodeData[] {
-  return buildNodes(flowNodeKinds, liquidityFlowAmounts(projection, incomeTotal))
+  return buildNodes(
+    flowNodeKinds,
+    liquidityFlowAmounts(projection, expectedIncomeTotal),
+  )
 }
 
 export function buildLiquidityFlowRailNodes(
   projection: MonthBudgetProjection,
-  incomeTotal = 0,
+  expectedIncomeTotal = 0,
 ): LiquidityFlowRailNodeData[] {
   return buildNodes(
     railNodeKinds,
-    liquidityFlowAmounts(projection, incomeTotal),
+    liquidityFlowAmounts(projection, expectedIncomeTotal),
   )
 }

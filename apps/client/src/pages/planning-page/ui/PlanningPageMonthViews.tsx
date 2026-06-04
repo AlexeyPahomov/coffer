@@ -22,8 +22,7 @@ export function PlanningPageMonthMobileHeader({
 
   const liquidityFlowProps = {
     projection: page.projection,
-    incomeTotal: page.incomeTotal,
-    allocatedTotal: page.allocatedTotal,
+    expectedIncomeTotal: page.expectedIncomeTotal,
   }
 
   return (
@@ -49,8 +48,7 @@ export function PlanningPageMonthBody({
 
   const liquidityFlowProps = {
     projection: page.projection,
-    incomeTotal: page.incomeTotal,
-    allocatedTotal: page.allocatedTotal,
+    expectedIncomeTotal: page.expectedIncomeTotal,
   }
 
   return (
@@ -59,6 +57,7 @@ export function PlanningPageMonthBody({
         className="hidden md:grid"
         projection={page.projection}
         periodMonth={page.periodMonth}
+        expectedIncomeTotal={page.expectedIncomeTotal}
       />
 
       <MonthLiquidityFlow

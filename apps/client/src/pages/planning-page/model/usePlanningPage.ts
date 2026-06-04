@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
+import type { ForecastMonth, MonthBudgetProjection } from '@/processes/forecasting'
 
 import { computeOperationalSummary } from '@/entities/budget/lib/computeOperationalSummary'
-import { monthProjectionFromSummary } from '@/entities/budget/lib/monthProjectionFromSummary'
 import { formatPlanningPeriodLabel } from '@/entities/budget/lib/periodLabels'
 import { filterExpenseCategories } from '@/entities/category/lib/filterExpenseCategories'
 import {
@@ -21,6 +21,25 @@ import {
 } from '@/entities/planned-expense/lib/groupPlannedExpensesByPeriodMonth'
 import { currentMonthInputValue } from '@/shared/lib/date'
 
+import { buildPlanningForecast } from '../lib/buildPlanningForecast'
+
+const EMPTY_PLANNED_EXPENSES: readonly [] = []
+
+function forecastMonthToProjection(
+  month: ForecastMonth,
+): MonthBudgetProjection {
+  const currentPool = month.available - month.income
+
+  return {
+    available: currentPool,
+    spentTotal: 0,
+    plannedTotal: month.planned,
+    reservedTotal: month.reserved,
+    commitmentTotal: month.planned + month.reserved,
+    projectedFree: month.projectedFree,
+  }
+}
+
 export function usePlanningPage() {
   const [pickedPeriodMonth, setPickedPeriodMonth] = useState<string | null>(null)
   const [defaultPeriodMonth, setDefaultPeriodMonth] = useState(
@@ -32,14 +51,23 @@ export function usePlanningPage() {
   const unfinishMutation = useUnfinishPlannedExpenseMutation()
 
   const core = usePeriodBudgetCore(periodMonth)
-  const allPlanned = plannedQuery.data ?? []
+  const allPlanned = plannedQuery.data ?? EMPTY_PLANNED_EXPENSES
 
   useEffect(() => {
     if (pickedPeriodMonth !== null || core.incomesQuery.isPending) {
       return
     }
 
-    setDefaultPeriodMonth(resolveAccountingPeriodMonth(core.incomes))
+    let cancelled = false
+    queueMicrotask(() => {
+      if (!cancelled) {
+        setDefaultPeriodMonth(resolveAccountingPeriodMonth(core.incomes))
+      }
+    })
+
+    return () => {
+      cancelled = true
+    }
   }, [core.incomes, core.incomesQuery.isPending, pickedPeriodMonth])
 
   const periodPlanned = useMemo(
@@ -67,17 +95,55 @@ export function usePlanningPage() {
     ],
   )
 
+  const timelineMonths = useMemo(
+    () => buildPlanningTimelineMonths(periodMonth),
+    [periodMonth],
+  )
+  const forecastMonths = useMemo(
+    () => timelineMonths.filter((month) => month >= periodMonth),
+    [periodMonth, timelineMonths],
+  )
+  const forecast = useMemo(
+    () =>
+      buildPlanningForecast({
+        months: forecastMonths,
+        incomes: core.incomes,
+        plannedExpenses: allPlanned,
+        initialAvailable: operationalSummary.available,
+      }),
+    [allPlanned, core.incomes, forecastMonths, operationalSummary.available],
+  )
+  const forecastMonth = forecast.months.find(
+    (month) => month.month === periodMonth,
+  )
   const projection = useMemo(
-    () => monthProjectionFromSummary(operationalSummary),
-    [operationalSummary],
+    () =>
+      forecastMonth
+        ? forecastMonthToProjection(forecastMonth)
+        : {
+            available: operationalSummary.available,
+            spentTotal: 0,
+            plannedTotal: operationalSummary.plannedTotal,
+            reservedTotal: operationalSummary.reservedTotal,
+            commitmentTotal:
+              operationalSummary.plannedTotal + operationalSummary.reservedTotal,
+            projectedFree: operationalSummary.projectedFree,
+          },
+    [
+      forecastMonth,
+      operationalSummary.available,
+      operationalSummary.plannedTotal,
+      operationalSummary.projectedFree,
+      operationalSummary.reservedTotal,
+    ],
   )
 
   const periodLabels = useMemo(() => {
-    const months = buildPlanningTimelineMonths(periodMonth)
+    const months = timelineMonths
     return Object.fromEntries(
       months.map((month) => [month, formatPlanningPeriodLabel(month)]),
     )
-  }, [periodMonth])
+  }, [timelineMonths])
 
   const itemCounts = useMemo(
     () => countPlannedExpensesByPeriodMonth(allPlanned),
@@ -100,6 +166,10 @@ export function usePlanningPage() {
     periodLabel: operationalSummary.periodLabel,
     periodPlanned,
     projection,
+    forecast,
+    forecastMonth,
+    forecastMetadata: forecast.metadata,
+    expectedIncomeTotal: forecastMonth?.income ?? 0,
     periodLabels,
     itemCounts,
     itemSwatches,
@@ -117,8 +187,6 @@ export function usePlanningPage() {
     pendingUnfinishId: unfinishMutation.isPending
       ? unfinishMutation.variables
       : undefined,
-    incomeTotal: operationalSummary.incomeTotal,
-    allocatedTotal: operationalSummary.allocatedTotal,
     isLoading: plannedQuery.isPending || core.isCoreLoading,
   }
 }

@@ -24,11 +24,10 @@ export type MonthLiquidityFlowProps = LiquidityFlowDataProps & {
 
 export function MonthLiquidityFlow({
   projection,
-  incomeTotal = 0,
-  allocatedTotal,
+  expectedIncomeTotal = 0,
   className,
 }: MonthLiquidityFlowProps) {
-  const nodes = buildLiquidityFlowNodes(projection, incomeTotal)
+  const nodes = buildLiquidityFlowNodes(projection, expectedIncomeTotal)
 
   return (
     <section className={cn(liquidityFlowCardClassName, className)}>
@@ -39,8 +38,7 @@ export function MonthLiquidityFlow({
         <InfoHint label="Поток ликвидности" align="end" className="shrink-0">
           <LiquidityFlowDetails
             projection={projection}
-            incomeTotal={incomeTotal}
-            allocatedTotal={allocatedTotal}
+            expectedIncomeTotal={expectedIncomeTotal}
           />
         </InfoHint>
       </div>

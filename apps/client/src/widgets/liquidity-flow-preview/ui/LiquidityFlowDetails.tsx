@@ -2,15 +2,13 @@ import type { MonthBudgetProjection } from '@/processes/forecasting'
 import { formatAmount } from '@/shared/lib/format'
 
 import {
-  liquidityFlowAllocatedDetailLabel,
   liquidityFlowIncomeDetailLabel,
   liquidityFlowNodeLabels,
 } from '../lib/liquidityFlowCopy'
 
 export type LiquidityFlowDetailsProps = {
   projection: MonthBudgetProjection
-  incomeTotal: number
-  allocatedTotal?: number
+  expectedIncomeTotal: number
 }
 
 type DetailLine = {
@@ -21,24 +19,15 @@ type DetailLine = {
 
 function buildDetailLines(
   projection: MonthBudgetProjection,
-  incomeTotal: number,
-  allocatedTotal: number,
+  expectedIncomeTotal: number,
 ): DetailLine[] {
   const optionalLines: DetailLine[] = []
 
-  if (incomeTotal > 0) {
+  if (expectedIncomeTotal > 0) {
     optionalLines.push({
       label: liquidityFlowIncomeDetailLabel,
-      amount: incomeTotal,
+      amount: expectedIncomeTotal,
       sign: '+',
-    })
-  }
-
-  if (allocatedTotal > 0) {
-    optionalLines.push({
-      label: liquidityFlowAllocatedDetailLabel,
-      amount: allocatedTotal,
-      sign: '−',
     })
   }
 
@@ -57,16 +46,15 @@ function buildDetailLines(
 
 export function LiquidityFlowDetails({
   projection,
-  incomeTotal,
-  allocatedTotal = 0,
+  expectedIncomeTotal,
 }: LiquidityFlowDetailsProps) {
-  const lines = buildDetailLines(projection, incomeTotal, allocatedTotal)
+  const lines = buildDetailLines(projection, expectedIncomeTotal)
 
   return (
     <div className="space-y-2 text-sm">
       <p className="text-zinc-600">
-        Свободный пул минус обязательства по планам и резервам даёт прогноз
-        свободных средств на конец месяца.
+        Прогноз складывает доступные сейчас деньги и ожидаемые поступления,
+        затем вычитает планы и уже зарезервированные суммы.
       </p>
       <ul className="space-y-1.5 font-mono tabular-nums text-zinc-800">
         {lines.map((line) => (

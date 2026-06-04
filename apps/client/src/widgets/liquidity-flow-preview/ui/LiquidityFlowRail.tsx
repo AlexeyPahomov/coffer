@@ -23,9 +23,9 @@ export type LiquidityFlowRailProps = LiquidityFlowDataProps
 
 export function LiquidityFlowRail({
   projection,
-  incomeTotal = 0,
+  expectedIncomeTotal = 0,
 }: LiquidityFlowRailProps) {
-  const nodes = buildLiquidityFlowRailNodes(projection, incomeTotal)
+  const nodes = buildLiquidityFlowRailNodes(projection, expectedIncomeTotal)
 
   return (
     <div className={liquidityFlowRailClassName} aria-label="Поток ликвидности">

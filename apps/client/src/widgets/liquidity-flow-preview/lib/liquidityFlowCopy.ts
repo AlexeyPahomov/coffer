@@ -6,11 +6,11 @@ export type LiquidityFlowNodeKind =
   | 'forecast'
 
 export const liquidityFlowNodeLabels: Record<LiquidityFlowNodeKind, string> = {
-  income: 'Доход',
-  pool: 'Свободно',
+  income: 'Ожидается',
+  pool: 'Доступно сейчас',
   planned: 'В планах',
   reserved: 'Резерв',
-  forecast: 'Прогноз',
+  forecast: 'Ожидаемый остаток',
 }
 
 /** Короткие подписи для компактного mobile rail. */
@@ -24,5 +24,4 @@ export const liquidityFlowRailLabels: Record<
   forecast: liquidityFlowNodeLabels.forecast,
 }
 
-export const liquidityFlowIncomeDetailLabel = 'Доход за месяц'
-export const liquidityFlowAllocatedDetailLabel = 'Распределено'
+export const liquidityFlowIncomeDetailLabel = 'Ожидаемые доходы'

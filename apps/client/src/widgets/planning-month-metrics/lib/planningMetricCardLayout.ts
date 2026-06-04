@@ -3,6 +3,7 @@ import { cn } from '@/shared/lib/utils'
 export type PlanningMetricAccent =
   | 'forecast'
   | 'pool'
+  | 'income'
   | 'planned'
   | 'reserved'
   | 'savings'
@@ -11,6 +12,7 @@ export type PlanningMetricAccent =
 const accentBorderClassName: Record<PlanningMetricAccent, string> = {
   forecast: 'border-l-green',
   pool: 'border-l-teal',
+  income: 'border-l-green',
   planned: 'border-l-blue',
   reserved: 'border-l-orange',
   savings: 'border-l-green',
@@ -20,6 +22,7 @@ const accentBorderClassName: Record<PlanningMetricAccent, string> = {
 const accentValueClassName: Record<PlanningMetricAccent, string> = {
   forecast: 'text-green',
   pool: 'text-zinc-900',
+  income: 'text-green',
   planned: 'text-blue',
   reserved: 'text-orange',
   savings: 'text-green',

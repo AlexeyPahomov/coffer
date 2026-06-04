@@ -12,12 +12,14 @@ import { PlanningMetricCard } from './PlanningMetricCard'
 export type PlanningMonthMetricsProps = {
   projection: MonthBudgetProjection
   periodMonth: string
+  expectedIncomeTotal: number
   className?: string
 }
 
 export function PlanningMonthMetrics({
   projection,
   periodMonth,
+  expectedIncomeTotal,
   className,
 }: PlanningMonthMetricsProps) {
   const copy = PLANNING_METRIC_COPY
@@ -37,6 +39,13 @@ export function PlanningMonthMetrics({
         caption={copy.pool.caption}
         infoText={copy.pool.infoText}
         value={projection.available}
+      />
+      <PlanningMetricCard
+        accent="income"
+        title={copy.income.title}
+        caption={copy.income.caption}
+        infoText={copy.income.infoText}
+        value={expectedIncomeTotal}
       />
       <PlanningMetricCard
         accent="planned"
