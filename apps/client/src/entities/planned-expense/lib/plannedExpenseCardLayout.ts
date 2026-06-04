@@ -43,7 +43,7 @@ export const plannedExpenseCardDateClassName =
   'hidden shrink-0 text-sm text-zinc-500 md:block md:w-32 lg:w-36'
 
 export const plannedExpenseCardStatusClassName =
-  'shrink-0 sm:ml-0'
+  'shrink-0 sm:ml-0 sm:w-24'
 
 /** Пункт «Зарезервировать» в дропдауне карточки. */
 export const plannedExpenseReserveMenuItemClassName =

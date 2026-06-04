@@ -19,7 +19,8 @@ export const planningPageShellClassName = cn(
 /** Тулбар месяцев + «Новый план» — липнет к верху scrollport на десктопе. */
 export const planningPageToolbarStickyClassName = cn(
   'hidden shrink-0 md:sticky md:top-0 md:z-10 md:block',
-  'md:pb-4 md:pt-0.5',
+  'md:-mx-1 md:bg-background md:px-1 md:pb-4 md:pt-0.5',
+  "md:before:pointer-events-none md:before:absolute md:before:inset-x-0 md:before:-top-6 md:before:h-6 md:before:bg-background md:before:content-['']",
 )
 
 /** Смена месяца: на мобилке flex-область под шапкой; на md — блок в общем скролле. */
