@@ -34,6 +34,19 @@ type BuildEnvelopeForecastInput = {
   budgetItems: readonly CategoryBudgetItem[]
 }
 
+type BuildEnvelopeForecastChainInput = {
+  months: readonly string[]
+  selectedPeriodMonth: string
+  incomes: readonly Income[]
+  rules: readonly AllocationRule[]
+  initialBudgetItems: readonly CategoryBudgetItem[]
+}
+
+type CategoryForecastAmounts = Map<
+  string,
+  { category: Category; amount: number }
+>
+
 function isExpectedIncomeInPeriod(income: Income, periodMonth: string): boolean {
   return income.status === 'EXPECTED' && getIncomePeriodMonth(income) === periodMonth
 }
@@ -61,19 +74,27 @@ function lineForecastAmount(
   return toMoneyNumber(line.amount ?? 0)
 }
 
-export function buildEnvelopeForecast({
+function emptyEnvelopeForecast(): EnvelopeForecast {
+  return {
+    items: [],
+    expectedIncomeCount: 0,
+    matchedIncomeCount: 0,
+    unmatchedIncomeCount: 0,
+    warnings: [],
+  }
+}
+
+function buildForecastAmountsForMonth({
   periodMonth,
   incomes,
   rules,
-  budgetItems,
-}: BuildEnvelopeForecastInput): EnvelopeForecast {
-  const currentByCategoryId = new Map(
-    budgetItems.map((item) => [item.category.id, item]),
-  )
-  const forecastByCategoryId = new Map<
-    string,
-    { category: Category; amount: number }
-  >()
+}: Pick<
+  BuildEnvelopeForecastInput,
+  'periodMonth' | 'incomes' | 'rules'
+>): Omit<EnvelopeForecast, 'items'> & {
+  forecastByCategoryId: CategoryForecastAmounts
+} {
+  const forecastByCategoryId: CategoryForecastAmounts = new Map()
   const warnings: EnvelopeForecastIncomeWarning[] = []
   let expectedIncomeCount = 0
   let matchedIncomeCount = 0
@@ -124,9 +145,22 @@ export function buildEnvelopeForecast({
     }
   }
 
-  const items = [...forecastByCategoryId.values()]
+  return {
+    expectedIncomeCount,
+    matchedIncomeCount,
+    unmatchedIncomeCount: expectedIncomeCount - matchedIncomeCount,
+    warnings,
+    forecastByCategoryId,
+  }
+}
+
+function buildEnvelopeForecastItems(
+  forecastByCategoryId: CategoryForecastAmounts,
+  getCurrentRemaining: (categoryId: string) => number,
+): EnvelopeForecastItem[] {
+  return [...forecastByCategoryId.values()]
     .map(({ category, amount }) => {
-      const currentRemaining = currentByCategoryId.get(category.id)?.remaining ?? 0
+      const currentRemaining = getCurrentRemaining(category.id)
 
       return {
         category,
@@ -136,12 +170,88 @@ export function buildEnvelopeForecast({
       }
     })
     .sort((a, b) => b.forecastAmount - a.forecastAmount)
+}
 
-  return {
-    items,
+function buildMonthEnvelopeForecast(
+  periodMonth: string,
+  incomes: readonly Income[],
+  rules: readonly AllocationRule[],
+  getCurrentRemaining: (categoryId: string) => number,
+): EnvelopeForecast {
+  const {
+    forecastByCategoryId,
     expectedIncomeCount,
     matchedIncomeCount,
-    unmatchedIncomeCount: expectedIncomeCount - matchedIncomeCount,
+    unmatchedIncomeCount,
+    warnings,
+  } = buildForecastAmountsForMonth({ periodMonth, incomes, rules })
+
+  return {
+    items: buildEnvelopeForecastItems(forecastByCategoryId, getCurrentRemaining),
+    expectedIncomeCount,
+    matchedIncomeCount,
+    unmatchedIncomeCount,
     warnings,
   }
+}
+
+export function buildEnvelopeForecast({
+  periodMonth,
+  incomes,
+  rules,
+  budgetItems,
+}: BuildEnvelopeForecastInput): EnvelopeForecast {
+  return buildEnvelopeForecastChain({
+    months: [periodMonth],
+    selectedPeriodMonth: periodMonth,
+    incomes,
+    rules,
+    initialBudgetItems: budgetItems,
+  })
+}
+
+export function buildEnvelopeForecastChain({
+  months,
+  selectedPeriodMonth,
+  incomes,
+  rules,
+  initialBudgetItems,
+}: BuildEnvelopeForecastChainInput): EnvelopeForecast {
+  if (months.length === 0 || !months.includes(selectedPeriodMonth)) {
+    return emptyEnvelopeForecast()
+  }
+
+  const balanceByCategoryId = new Map<
+    string,
+    { category: Category; remaining: number }
+  >(
+    initialBudgetItems.map((item) => [
+      item.category.id,
+      { category: item.category, remaining: item.remaining },
+    ]),
+  )
+
+  let selectedForecast: EnvelopeForecast | null = null
+
+  for (const month of months) {
+    const monthForecast = buildMonthEnvelopeForecast(
+      month,
+      incomes,
+      rules,
+      (categoryId) => balanceByCategoryId.get(categoryId)?.remaining ?? 0,
+    )
+
+    for (const item of monthForecast.items) {
+      balanceByCategoryId.set(item.category.id, {
+        category: item.category,
+        remaining: item.projectedRemaining,
+      })
+    }
+
+    if (month === selectedPeriodMonth) {
+      selectedForecast = monthForecast
+    }
+  }
+
+  return selectedForecast ?? emptyEnvelopeForecast()
 }

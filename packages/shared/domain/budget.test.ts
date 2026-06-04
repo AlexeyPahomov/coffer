@@ -10,6 +10,7 @@ import {
   isOverspent,
   recomputeSnapshot,
 } from './budget.js'
+import { computeCategoryBudgetsForPeriod } from './budgetRebuild.js'
 
 describe('computeClosing', () => {
   it('matches envelope formula', () => {
@@ -53,5 +54,32 @@ describe('recomputeSnapshot', () => {
       spent: state.spent,
     })
     assert.equal(state.closingBalance, 59_000)
+  })
+})
+
+describe('computeCategoryBudgetsForPeriod', () => {
+  it('does not carry reset expense overspend into the next month', () => {
+    const [travel] = computeCategoryBudgetsForPeriod(
+      [{ id: 'travel', type: 'expense', carry_over_policy: 'RESET' }],
+      [],
+      [{ category_id: 'travel', amount: 8_000, date: '2026-05-30' }],
+      '2026-06',
+    )
+
+    assert.equal(travel?.openingBalance, 0)
+    assert.equal(travel?.spent, 0)
+    assert.equal(travel?.closingBalance, 0)
+  })
+
+  it('carries savings balance across months', () => {
+    const [savings] = computeCategoryBudgetsForPeriod(
+      [{ id: 'savings', type: 'savings', carry_over_policy: 'RESET' }],
+      [{ category_id: 'savings', amount: 100_000, period_month: '2026-05-01' }],
+      [],
+      '2026-06',
+    )
+
+    assert.equal(savings?.openingBalance, 100_000)
+    assert.equal(savings?.closingBalance, 100_000)
   })
 })

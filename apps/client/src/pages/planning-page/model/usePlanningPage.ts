@@ -23,7 +23,8 @@ import {
 import { currentMonthInputValue } from '@/shared/lib/date'
 
 import { buildPlanningForecast } from '../lib/buildPlanningForecast'
-import { buildEnvelopeForecast } from '../lib/buildEnvelopeForecast'
+import { buildEnvelopeForecastChain } from '../lib/buildEnvelopeForecast'
+import { resolveEnvelopeForecastInputs } from '../lib/resolveEnvelopeForecastInputs'
 
 const EMPTY_PLANNED_EXPENSES: readonly [] = []
 
@@ -161,15 +162,42 @@ export function usePlanningPage() {
     () => filterExpenseCategories(core.categories),
     [core.categories],
   )
-  const envelopeForecast = useMemo(
+  const envelopeForecastInputs = useMemo(
     () =>
-      buildEnvelopeForecast({
+      resolveEnvelopeForecastInputs({
         periodMonth,
+        forecastMonths,
+        categories: core.categories,
+        allocations: core.allocations,
+        expenses: core.expenses,
         incomes: core.incomes,
-        rules: allocationRulesQuery.data ?? [],
         budgetItems: core.budgetItems,
       }),
-    [allocationRulesQuery.data, core.budgetItems, core.incomes, periodMonth],
+    [
+      core.allocations,
+      core.budgetItems,
+      core.categories,
+      core.expenses,
+      core.incomes,
+      forecastMonths,
+      periodMonth,
+    ],
+  )
+  const envelopeForecast = useMemo(
+    () =>
+      buildEnvelopeForecastChain({
+        months: envelopeForecastInputs.months,
+        selectedPeriodMonth: periodMonth,
+        incomes: core.incomes,
+        rules: allocationRulesQuery.data ?? [],
+        initialBudgetItems: envelopeForecastInputs.initialBudgetItems,
+      }),
+    [
+      allocationRulesQuery.data,
+      core.incomes,
+      envelopeForecastInputs,
+      periodMonth,
+    ],
   )
 
   return {

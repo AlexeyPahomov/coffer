@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import {
   computeCategoryBudgetsForPeriod,
+  toBudgetRebuildCategory,
   type RebuiltCategoryBudget,
 } from '@coffer/shared';
 import type { Prisma } from '../generated/prisma/client';
@@ -27,6 +28,12 @@ export class BudgetRebuildService {
       }));
   }
 
+  private mapCategoriesForRebuild<
+    T extends { id: string; type: string; carry_over_policy: string },
+  >(categories: readonly T[]) {
+    return categories.map(toBudgetRebuildCategory);
+  }
+
   async loadRebuildInputs(userId: string) {
     const categories = await this.prisma.category.findMany({
       where: { user_id: userId },
@@ -40,7 +47,7 @@ export class BudgetRebuildService {
     });
 
     return {
-      categories: categories.map((c) => ({ id: c.id, type: c.type })),
+      categories: this.mapCategoriesForRebuild(categories),
       allocations: this.mapReceivedAllocations(allocations),
       expenses: expenses.map((e) => ({
         category_id: e.category_id,
@@ -80,7 +87,7 @@ export class BudgetRebuildService {
     });
 
     return computeCategoryBudgetsForPeriod(
-      categories.map((c) => ({ id: c.id, type: c.type })),
+      this.mapCategoriesForRebuild(categories),
       this.mapReceivedAllocations(allocations),
       expenses.map((e) => ({
         category_id: e.category_id,

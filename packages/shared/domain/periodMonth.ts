@@ -71,6 +71,22 @@ export function getNextPeriodMonth(
   return `${y}-${m}`
 }
 
+/** Непрерывный диапазон месяцев от start до end включительно. */
+export function buildPeriodMonthRange(
+  startMonth: string,
+  endMonth: string,
+): string[] {
+  const months: string[] = []
+  let current: string | undefined = startMonth
+
+  while (current && current <= endMonth) {
+    months.push(current)
+    current = getNextPeriodMonth(current)
+  }
+
+  return months
+}
+
 /** `YYYY-MM` из даты (локальный календарь). */
 export function monthValueFromDate(d: Date): string {
   const y = d.getFullYear()

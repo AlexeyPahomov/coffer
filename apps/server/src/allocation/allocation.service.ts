@@ -150,12 +150,7 @@ export class AllocationService {
       throw new NotFoundException();
     }
 
-    const beforeIncome = await this.prisma.income.findUnique({
-      where: { id: beforeRow.income_id },
-    });
-    if (!beforeIncome) {
-      throw new NotFoundException();
-    }
+    const beforeIncome = await this.requireIncome(beforeRow.income_id);
 
     const before = { ...beforeRow, income: beforeIncome };
 

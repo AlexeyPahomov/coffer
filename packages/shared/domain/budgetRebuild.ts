@@ -1,10 +1,27 @@
 import { computeRemaining, type CategoryMonthSnapshotState } from './budget.js'
+import type { CarryOverPolicy } from './category.js'
 import { getMonthKeyFromIso, isBeforePeriodMonth, isSamePeriodMonth } from './periodMonth.js'
 import { toMoneyNumber, type MoneyInput } from '../lib/money.js'
 
 export type BudgetRebuildCategory = {
   id: string
   type: string
+  carry_over_policy?: CarryOverPolicy | string | null
+}
+
+export type CategoryBudgetRebuildInput = Pick<
+  BudgetRebuildCategory,
+  'id' | 'type' | 'carry_over_policy'
+>
+
+export function toBudgetRebuildCategory(
+  category: CategoryBudgetRebuildInput,
+): BudgetRebuildCategory {
+  return {
+    id: category.id,
+    type: category.type,
+    carry_over_policy: category.carry_over_policy,
+  }
 }
 
 export type BudgetRebuildAllocation = {
@@ -33,6 +50,10 @@ function sumByCategoryId(rows: readonly AmountRow[]): Map<string, number> {
     totals.set(row.category_id, prev + toMoneyNumber(row.amount))
   }
   return totals
+}
+
+function shouldCarryOpeningBalance(category: BudgetRebuildCategory): boolean {
+  return category.type === 'savings' || category.carry_over_policy === 'CARRY'
 }
 
 function getAllocationPeriodMonthKey(allocation: BudgetRebuildAllocation): string | undefined {
@@ -98,8 +119,10 @@ export function computeCategoryBudgetsForPeriod(
     .filter((category) => category.type !== 'income')
     .map((category) => {
       const openingBalance =
-        (carriedFromAlloc.get(category.id) ?? 0) -
-        (spentBefore.get(category.id) ?? 0)
+        shouldCarryOpeningBalance(category)
+          ? (carriedFromAlloc.get(category.id) ?? 0) -
+            (spentBefore.get(category.id) ?? 0)
+          : 0
       const allocated = allocatedByCategory.get(category.id) ?? 0
       const spent = spentByCategory.get(category.id) ?? 0
       const closingBalance = computeRemaining(openingBalance, allocated, spent)

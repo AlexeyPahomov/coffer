@@ -1,6 +1,11 @@
-import type { CategoryIconKey, CategoryType, IconColorKey } from '@coffer/shared'
+import type {
+  CarryOverPolicy,
+  CategoryIconKey,
+  CategoryType,
+  IconColorKey,
+} from '@coffer/shared'
 
-export type { CategoryType, CategoryIconKey, IconColorKey }
+export type { CategoryType, CategoryIconKey, IconColorKey, CarryOverPolicy }
 
 export type Category = {
   id: string
@@ -9,6 +14,7 @@ export type Category = {
   type: CategoryType
   icon: CategoryIconKey
   icon_color: IconColorKey
+  carry_over_policy: CarryOverPolicy
   created_at: string
 }
 
