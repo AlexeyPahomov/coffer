@@ -6,8 +6,8 @@ import {
 import {
   Building2,
   Car,
+  Dog,
   Gift,
-  GraduationCap,
   HeartPulse,
   Home,
   Kayak,
@@ -39,7 +39,7 @@ export const PLANNED_EXPENSE_ICON_COMPONENTS: Record<
   utensils: Utensils,
   'shopping-cart': ShoppingCart,
   'building-2': Building2,
-  'graduation-cap': GraduationCap,
+  dog: Dog,
   smartphone: Smartphone,
   shield: Shield,
   sparkles: Sparkles,

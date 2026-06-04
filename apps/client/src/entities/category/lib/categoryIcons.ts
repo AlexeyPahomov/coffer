@@ -4,11 +4,19 @@ import {
   isCategoryIconKey,
 } from '@coffer/shared'
 import {
+  Baby,
+  BookOpen,
   Building2,
   Car,
+  Dog,
+  Dumbbell,
+  Gift,
+  HeartPulse,
   Home,
   Landmark,
+  Plane,
   ShoppingCart,
+  Shirt,
   Trees,
   Utensils,
   Wallet,
@@ -24,6 +32,14 @@ export const CATEGORY_ICON_COMPONENTS: Record<CategoryIconKey, LucideIcon> = {
   landmark: Landmark,
   car: Car,
   trees: Trees,
+  dog: Dog,
+  health: HeartPulse,
+  shirt: Shirt,
+  dumbbell: Dumbbell,
+  gift: Gift,
+  plane: Plane,
+  'book-open': BookOpen,
+  baby: Baby,
 }
 
 const LEGACY_ICON_KEY_BY_NAME: Partial<Record<string, CategoryIconKey>> = {

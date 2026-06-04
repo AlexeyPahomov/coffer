@@ -7,11 +7,19 @@ export const CATEGORY_ICON_KEYS = [
   'landmark',
   'car',
   'trees',
-] as const
+  'dog',
+  'health',
+  'shirt',
+  'dumbbell',
+  'gift',
+  'plane',
+  'book-open',
+  'baby',
+] as const;
 
-export type CategoryIconKey = (typeof CATEGORY_ICON_KEYS)[number]
+export type CategoryIconKey = (typeof CATEGORY_ICON_KEYS)[number];
 
-export const DEFAULT_CATEGORY_ICON_KEY: CategoryIconKey = 'shopping-cart'
+export const DEFAULT_CATEGORY_ICON_KEY: CategoryIconKey = 'shopping-cart';
 
 export const CATEGORY_ICON_LABELS: Record<CategoryIconKey, string> = {
   'shopping-cart': 'Корзина',
@@ -22,8 +30,16 @@ export const CATEGORY_ICON_LABELS: Record<CategoryIconKey, string> = {
   landmark: 'Накопления',
   car: 'Авто',
   trees: 'Природа',
-}
+  dog: 'Животные',
+  health: 'Здоровье',
+  shirt: 'Одежда',
+  dumbbell: 'Спорт',
+  gift: 'Подарки',
+  plane: 'Путешествия',
+  'book-open': 'Обучение',
+  baby: 'Дети',
+};
 
 export function isCategoryIconKey(value: string): value is CategoryIconKey {
-  return (CATEGORY_ICON_KEYS as readonly string[]).includes(value)
+  return (CATEGORY_ICON_KEYS as readonly string[]).includes(value);
 }

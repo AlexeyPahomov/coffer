@@ -2,8 +2,10 @@ import type { ChangeEvent, ReactNode } from 'react';
 
 import type { Allocation } from '@/entities/allocation/model/types';
 import type { Category } from '@/entities/category/model/types';
+import { CategorySelect } from '@/entities/category/ui/CategorySelect';
 import type { Expense } from '@/entities/expense/model/types';
 import type { Income } from '@/entities/income/model/types';
+import { formLabelClassName } from '@/shared/config/formUi';
 import { bindMoneyAmountField } from '@/shared/lib/moneyInput';
 import { cn } from '@/shared/lib/utils';
 import {
@@ -14,7 +16,6 @@ import {
   DatePicker,
   Input,
   MoneyInput,
-  Select,
 } from '@/shared/ui';
 
 import { buildSavingsTransferHint } from '../lib/savingsTransferHint';
@@ -65,11 +66,6 @@ function CreateExpenseFormFields({
   variant: CreateExpenseFormVariant;
   onCancelEdit?: () => void;
 }) {
-  const categoryOptions = categories.map((category) => ({
-    value: category.id,
-    label: category.name,
-  }));
-
   const noCategories = categories.length === 0;
   const onFieldChange = fieldChangeHandler(form.handleChange);
   const showOverBudgetWarning = form.budgetPreview?.isOverBudget === true;
@@ -85,19 +81,23 @@ function CreateExpenseFormFields({
         void form.handleSubmit();
       }}
     >
-      <Select
-        id="expense-category"
-        label="Категория"
-        value={form.values.category_id}
-        onValueChange={(category_id) => {
-          form.handleChange('category_id', category_id);
-        }}
-        options={categoryOptions}
-        placeholder={
-          noCategories ? 'Нет категорий расходов' : 'Выберите категорию'
-        }
-        disabled={form.isBusy || noCategories}
-      />
+      <div className="space-y-2">
+        <label htmlFor="expense-category" className={formLabelClassName}>
+          Категория
+        </label>
+        <CategorySelect
+          id="expense-category"
+          value={form.values.category_id}
+          onValueChange={(category_id) => {
+            form.handleChange('category_id', category_id);
+          }}
+          categories={categories}
+          placeholder={
+            noCategories ? 'Нет категорий расходов' : 'Выберите категорию'
+          }
+          disabled={form.isBusy || noCategories}
+        />
+      </div>
 
       <MoneyInput
         id="expense-amount"
