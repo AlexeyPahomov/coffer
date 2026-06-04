@@ -4,7 +4,6 @@ import { invalidateBudgetMonthCache } from '@/entities/budget-month/api/invalida
 import { expenseQueryKeys } from '@/entities/expense/api/expenseQueryKeys'
 
 import type { PlannedExpense } from '../model/types'
-import { invalidatePlannedExpenseCache } from './invalidatePlannedExpenseCache'
 import { plannedExpenseQueryKeys } from './plannedExpenseQueryKeys'
 import { unfinishPlannedExpense } from './plannedExpenseApi'
 
@@ -21,7 +20,6 @@ export function useUnfinishPlannedExpenseMutation() {
             item.id === plannedExpense.id ? plannedExpense : item,
           ),
       )
-      invalidatePlannedExpenseCache(queryClient)
       void queryClient.invalidateQueries({ queryKey: expenseQueryKeys.all })
       invalidateBudgetMonthCache(queryClient)
     },

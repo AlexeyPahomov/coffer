@@ -6,22 +6,20 @@ function appendPostgresOption(url: URL, option: string): void {
   url.searchParams.set('options', current ? `${current} ${option}` : option);
 }
 
-/** Supabase pooler (:6543) + Prisma: `pgbouncer=true` в строке подключения. */
+/** Supabase transaction pooler (:6543) + Prisma: `pgbouncer=true` в строке подключения. */
 function normalizePoolerUrl(raw: string): string {
   try {
     const url = new URL(raw);
-    const isPooler =
-      url.port === '6543' || url.hostname.includes('pooler.');
+    const isTransactionPooler = url.port === '6543';
 
-    if (isPooler && !url.searchParams.has('pgbouncer')) {
+    if (isTransactionPooler && !url.searchParams.has('pgbouncer')) {
       url.searchParams.set('pgbouncer', 'true');
     }
 
-    // Обрыв Node во время materializeMonth оставлял idle in transaction и блокировал PATCH.
-    appendPostgresOption(
-      url,
-      '-c idle_in_transaction_session_timeout=60s',
-    );
+    if (isTransactionPooler) {
+      // Обрыв Node во время materializeMonth оставлял idle in transaction и блокировал PATCH.
+      appendPostgresOption(url, '-c idle_in_transaction_session_timeout=60s');
+    }
 
     return url.toString();
   } catch {

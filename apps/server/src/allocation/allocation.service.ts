@@ -103,26 +103,58 @@ export class AllocationService {
     return allocation;
   }
 
-  findAll(incomeId?: string) {
-    return this.prisma.allocation.findMany({
+  async findAll(incomeId?: string) {
+    const rows = await this.prisma.allocation.findMany({
       where: incomeId ? { income_id: incomeId } : undefined,
-      include: {
-        category: true,
-        income: true,
-      },
       orderBy: { created_at: 'desc' },
+    });
+
+    if (rows.length === 0) {
+      return [];
+    }
+
+    const categoryIds = [...new Set(rows.map((row) => row.category_id))];
+    const incomeIds = [...new Set(rows.map((row) => row.income_id))];
+    const categories = await this.prisma.category.findMany({
+      where: { id: { in: categoryIds } },
+    });
+    const incomes = await this.prisma.income.findMany({
+      where: { id: { in: incomeIds } },
+    });
+
+    const categoryById = new Map(
+      categories.map((category) => [category.id, category]),
+    );
+    const incomeById = new Map(incomes.map((income) => [income.id, income]));
+
+    return rows.map((row) => {
+      const category = categoryById.get(row.category_id);
+      const income = incomeById.get(row.income_id);
+      if (!category || !income) {
+        throw new NotFoundException();
+      }
+
+      return { ...row, category, income };
     });
   }
 
   async update(id: string, dto: UpdateAllocationDto) {
-    const before = await this.prisma.allocation.findUnique({
+    const beforeRow = await this.prisma.allocation.findUnique({
       where: { id },
-      include: { income: true },
     });
 
-    if (!before) {
+    if (!beforeRow) {
       throw new NotFoundException();
     }
+
+    const beforeIncome = await this.prisma.income.findUnique({
+      where: { id: beforeRow.income_id },
+    });
+    if (!beforeIncome) {
+      throw new NotFoundException();
+    }
+
+    const before = { ...beforeRow, income: beforeIncome };
 
     await this.requireCategory(dto.category_id);
     await this.assertAllocationFitsIncome(
@@ -137,17 +169,25 @@ export class AllocationService {
       monthValueFromDate(before.period_month),
     );
 
-    const after = await this.prisma.allocation.update({
+    const afterRow = await this.prisma.allocation.update({
       where: { id },
       data: {
         category_id: dto.category_id,
         amount: dto.amount,
       },
-      include: {
-        category: true,
-        income: true,
-      },
     });
+
+    const afterCategory = await this.prisma.category.findUnique({
+      where: { id: afterRow.category_id },
+    });
+    const afterIncome = await this.prisma.income.findUnique({
+      where: { id: afterRow.income_id },
+    });
+    if (!afterCategory || !afterIncome) {
+      throw new NotFoundException();
+    }
+
+    const after = { ...afterRow, category: afterCategory, income: afterIncome };
 
     runBudgetProjection(
       this.logger,

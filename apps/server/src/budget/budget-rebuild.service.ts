@@ -11,11 +11,15 @@ export class BudgetRebuildService {
   constructor(private readonly prisma: PrismaService) {}
 
   async loadRebuildInputs(userId: string) {
-    const [categories, allocations, expenses] = await Promise.all([
-      this.prisma.category.findMany({ where: { user_id: userId } }),
-      this.prisma.allocation.findMany({ where: { user_id: userId } }),
-      this.prisma.expense.findMany({ where: { user_id: userId } }),
-    ]);
+    const categories = await this.prisma.category.findMany({
+      where: { user_id: userId },
+    });
+    const allocations = await this.prisma.allocation.findMany({
+      where: { user_id: userId },
+    });
+    const expenses = await this.prisma.expense.findMany({
+      where: { user_id: userId },
+    });
 
     return {
       categories: categories.map((c) => ({ id: c.id, type: c.type })),
@@ -50,11 +54,15 @@ export class BudgetRebuildService {
     userId: string,
     periodMonth: string,
   ): Promise<RebuiltCategoryBudget[]> {
-    const [categories, allocations, expenses] = await Promise.all([
-      tx.category.findMany({ where: { user_id: userId } }),
-      tx.allocation.findMany({ where: { user_id: userId } }),
-      tx.expense.findMany({ where: { user_id: userId } }),
-    ]);
+    const categories = await tx.category.findMany({
+      where: { user_id: userId },
+    });
+    const allocations = await tx.allocation.findMany({
+      where: { user_id: userId },
+    });
+    const expenses = await tx.expense.findMany({
+      where: { user_id: userId },
+    });
 
     return computeCategoryBudgetsForPeriod(
       categories.map((c) => ({ id: c.id, type: c.type })),

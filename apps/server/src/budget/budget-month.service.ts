@@ -13,6 +13,7 @@ import {
   parsePeriodMonthKey,
   type ParsedPeriodMonth,
 } from '../lib/period-month';
+import { withTransientDbRetry } from '../prisma/db-retry';
 import { PrismaService } from '../prisma/prisma.service';
 import { BudgetRebuildService } from './budget-rebuild.service';
 import type { BudgetDbClient } from './budget-db';
@@ -27,7 +28,10 @@ import type {
 } from './budget-month.view.dto';
 import type { RebuiltCategoryBudget } from '@coffer/shared';
 
-export type { BudgetMonthViewDto, CategorySnapshotDto } from './budget-month.view.dto';
+export type {
+  BudgetMonthViewDto,
+  CategorySnapshotDto,
+} from './budget-month.view.dto';
 
 function isUniqueConstraintError(error: unknown): boolean {
   return (
@@ -110,7 +114,7 @@ export class BudgetMonthService {
   ): Promise<BudgetMonthWithSnapshots | null> {
     const parsed = this.parsePeriodOrThrow(periodMonth);
 
-    return await this.prisma.budgetMonth.findUnique({
+    const month = await this.prisma.budgetMonth.findUnique({
       where: {
         user_id_year_month: {
           user_id: userId,
@@ -118,33 +122,60 @@ export class BudgetMonthService {
           month: parsed.month,
         },
       },
-      include: {
-        snapshots: {
-          include: { category: true },
-          orderBy: { category: { name: 'asc' } },
-        },
-      },
     });
+
+    if (!month) {
+      return null;
+    }
+
+    const snapshots = await this.prisma.categoryMonthSnapshot.findMany({
+      where: { budget_month_id: month.id },
+    });
+
+    const categoryIds = [...new Set(snapshots.map((snap) => snap.category_id))];
+    const categories =
+      categoryIds.length > 0
+        ? await this.prisma.category.findMany({
+            where: { id: { in: categoryIds } },
+          })
+        : [];
+    const categoryById = new Map(
+      categories.map((category) => [category.id, category]),
+    );
+
+    const snapshotsWithCategory = snapshots
+      .map((snap) => {
+        const category = categoryById.get(snap.category_id);
+        if (!category) {
+          throw new NotFoundException('Category not found');
+        }
+        return { ...snap, category };
+      })
+      .sort((a, b) => a.category.name.localeCompare(b.category.name));
+
+    return { ...month, snapshots: snapshotsWithCategory };
   }
 
   async getView(
     userId: string,
     periodMonth: string,
   ): Promise<BudgetMonthViewDto> {
-    const row = await this.findBudgetMonthRow(userId, periodMonth);
-    if (!row) {
-      throw new NotFoundException('Budget month not found');
-    }
+    return withTransientDbRetry(async () => {
+      const row = await this.findBudgetMonthRow(userId, periodMonth);
+      if (!row) {
+        throw new NotFoundException('Budget month not found');
+      }
 
-    const parsed = this.parsePeriodOrThrow(periodMonth);
+      const parsed = this.parsePeriodOrThrow(periodMonth);
 
-    return {
-      periodMonth,
-      year: parsed.year,
-      month: parsed.month,
-      status: row.status,
-      snapshots: row.snapshots.map((snap) => this.mapSnapshot(snap)),
-    };
+      return {
+        periodMonth,
+        year: parsed.year,
+        month: parsed.month,
+        status: row.status,
+        snapshots: row.snapshots.map((snap) => this.mapSnapshot(snap)),
+      };
+    });
   }
 
   async open(userId: string, periodMonth: string): Promise<BudgetMonthViewDto> {
@@ -298,10 +329,15 @@ export class BudgetMonthService {
 
       if (rebuilt.length > 0) {
         await this.prisma.categoryMonthSnapshot.createMany({
-          data: this.snapshotRowsForCreate(monthRow.id, userId, {
-            year: monthRow.year,
-            month: monthRow.month,
-          }, rebuilt),
+          data: this.snapshotRowsForCreate(
+            monthRow.id,
+            userId,
+            {
+              year: monthRow.year,
+              month: monthRow.month,
+            },
+            rebuilt,
+          ),
         });
       }
     }

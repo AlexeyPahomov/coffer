@@ -142,24 +142,33 @@ export class ExpenseService {
 
 
 
-  findAll() {
-
-    return this.prisma.expense.findMany({
-
-      include: {
-
-        category: true,
-
-      },
-
+  async findAll() {
+    const rows = await this.prisma.expense.findMany({
       orderBy: {
-
         date: 'desc',
-
       },
-
     });
 
+    if (rows.length === 0) {
+      return [];
+    }
+
+    const categoryIds = [...new Set(rows.map((row) => row.category_id))];
+    const categories = await this.prisma.category.findMany({
+      where: { id: { in: categoryIds } },
+    });
+    const categoryById = new Map(
+      categories.map((category) => [category.id, category]),
+    );
+
+    return rows.map((row) => {
+      const category = categoryById.get(row.category_id);
+      if (!category) {
+        throw new NotFoundException('Category not found');
+      }
+
+      return { ...row, category };
+    });
   }
 
 
