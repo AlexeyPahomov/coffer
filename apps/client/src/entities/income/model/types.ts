@@ -9,6 +9,7 @@ export type Income = {
   income_type: IncomeType
   status: IncomeStatus
   period_month: string
+  received_at: string | null
   created_at: string
 }
 

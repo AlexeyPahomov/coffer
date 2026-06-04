@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 
-import { invalidateBudgetMonthCache } from '@/entities/budget-month/api/invalidateBudgetMonthCache'
+import { invalidateDerivedBudgetCaches } from '@/entities/budget'
 
 import type { Expense } from '../model/types'
 import { deleteExpense } from './expenseApi'
@@ -16,7 +16,7 @@ export function useDeleteExpenseMutation() {
         old?.filter((expense) => expense.id !== id),
       )
       void queryClient.invalidateQueries({ queryKey: expenseQueryKeys.all })
-      invalidateBudgetMonthCache(queryClient)
+      invalidateDerivedBudgetCaches(queryClient)
     },
   })
 }

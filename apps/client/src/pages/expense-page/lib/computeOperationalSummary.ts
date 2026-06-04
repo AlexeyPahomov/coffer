@@ -1,1 +1,1 @@
-export { computeOperationalSummary } from '@/entities/budget/lib/computeOperationalSummary'
+export { computeOperationalSummary } from '@/entities/budget'

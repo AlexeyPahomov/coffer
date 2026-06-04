@@ -16,7 +16,10 @@ import {
   getEnvelopeBalanceLabel,
   getEnvelopeBalanceTone,
 } from '../lib/envelopeBalanceTone';
-import { getEnvelopeBudgetTotal } from '@/entities/budget/lib/envelope';
+import {
+  getEnvelopeBudgetTotal,
+  hasEnvelopeLimit,
+} from '@/entities/budget/lib/envelope';
 
 import { getEnvelopeUsage } from '../lib/envelopeUsage';
 import type { CategoryBudgetListItem } from '../model/types';
@@ -56,14 +59,17 @@ export function CategoryBudgetCard({
   }
 
   const envelopeTotal = getEnvelopeBudgetTotal(item);
+  const fromFreePool = !hasEnvelopeLimit(item) && spent > 0;
   const tone = getEnvelopeBalanceTone(
     envelopeTotal,
     remaining,
     stressOverBudget,
   );
   const usage = getEnvelopeUsage(envelopeTotal, spent);
-  const balanceLabel = getEnvelopeBalanceLabel(isSavings);
-  const usageCaption = 'использовано из фактического конверта';
+  const balanceLabel = fromFreePool ? 'Источник' : getEnvelopeBalanceLabel(isSavings);
+  const usageCaption = fromFreePool
+    ? 'траты из свободных средств'
+    : 'использовано из фактического конверта';
 
   return (
     <Card
@@ -101,8 +107,12 @@ export function CategoryBudgetCard({
           <div className="shrink-0 text-right text-sm tabular-nums leading-snug">
             <p className="font-medium text-zinc-900">
               {formatAmount(spent)}
-              <span className="mx-1 font-normal text-zinc-400">/</span>
-              {formatAmount(envelopeTotal)}
+              {fromFreePool ? null : (
+                <>
+                  <span className="mx-1 font-normal text-zinc-400">/</span>
+                  {formatAmount(envelopeTotal)}
+                </>
+              )}
             </p>
             <p
               className={cn(
@@ -110,7 +120,7 @@ export function CategoryBudgetCard({
                 envelopeBalanceToneClassName(tone),
               )}
             >
-              {usage.displayPercent}%
+              {fromFreePool ? 'свободные средства' : `${usage.displayPercent}%`}
             </p>
           </div>
         </div>
@@ -132,7 +142,7 @@ export function CategoryBudgetCard({
               envelopeBalanceToneClassName(tone),
             )}
           >
-            {formatEnvelopeBalance(remaining)}
+            {fromFreePool ? 'Свободные средства' : formatEnvelopeBalance(remaining)}
           </span>
         </div>
       </CardContent>

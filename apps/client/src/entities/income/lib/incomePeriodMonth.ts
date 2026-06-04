@@ -1,51 +1,25 @@
 import { getMonthKeyFromIso } from '@coffer/shared'
 
 import type { Income } from '@/entities/income/model/types'
-import { dateInputValueFromDate, monthValueFromDate } from '@/shared/lib/date'
-import { isReceivedIncome } from './incomeStatus'
+import { monthValueFromDate } from '@/shared/lib/date'
 
 export function getIncomePeriodMonth(income: Income): string {
   return getMonthKeyFromIso(income.period_month) ?? income.period_month
 }
 
-function previousMonthValue(value: string): string {
-  const [yearPart, monthPart] = value.split('-')
-  const year = Number(yearPart)
-  const month = Number(monthPart)
-  const date = new Date(year, month - 2, 1)
-
-  return monthValueFromDate(date)
-}
-
-function incomeDateInputValue(income: Income): string | null {
-  const value = income.period_month.slice(0, 10)
-
-  return /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : null
-}
-
-export function resolveAccountingPeriodMonth(
-  incomes: readonly Income[],
+/** Календарный месяц для пикеров: `YYYY-MM` от текущей (или переданной) даты. */
+export function resolveCurrentCalendarPeriodMonth(
   referenceDate: Date = new Date(),
 ): string {
-  const currentMonth = monthValueFromDate(referenceDate)
-  if (incomes.length === 0) {
-    return currentMonth
-  }
+  return monthValueFromDate(referenceDate)
+}
 
-  const today = dateInputValueFromDate(referenceDate)
-  const hasCurrentMonthIncome = incomes.some((income) => {
-    if (!isReceivedIncome(income)) {
-      return false
-    }
-
-    const incomeDate = incomeDateInputValue(income)
-
-    return (
-      incomeDate !== null &&
-      getIncomePeriodMonth(income) === currentMonth &&
-      incomeDate <= today
-    )
-  })
-
-  return hasCurrentMonthIncome ? currentMonth : previousMonthValue(currentMonth)
+/**
+ * @deprecated Используйте `resolveCurrentCalendarPeriodMonth`. Первый аргумент не используется.
+ */
+export function resolveAccountingPeriodMonth(
+  _incomes?: readonly Income[],
+  referenceDate: Date = new Date(),
+): string {
+  return resolveCurrentCalendarPeriodMonth(referenceDate)
 }

@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 
 import { allocationKeys } from '@/entities/allocation/api/allocationQueryKeys'
-import { invalidateBudgetMonthCache } from '@/entities/budget-month/api/invalidateBudgetMonthCache'
+import { invalidateDerivedBudgetCaches } from '@/entities/budget'
 
 import type {
   ApplyAllocationRulePayload,
@@ -22,7 +22,7 @@ export function useApplyAllocationRuleMutation() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: allocationRuleKeys.all })
       void queryClient.invalidateQueries({ queryKey: allocationKeys.all })
-      invalidateBudgetMonthCache(queryClient)
+      invalidateDerivedBudgetCaches(queryClient)
     },
   })
 }

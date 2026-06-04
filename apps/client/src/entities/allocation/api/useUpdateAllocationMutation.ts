@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 
-import { invalidateBudgetMonthCache } from '@/entities/budget-month/api/invalidateBudgetMonthCache'
+import { invalidateDerivedBudgetCaches } from '@/entities/budget'
 
 import type { Allocation, UpdateAllocationPayload } from '../model/types'
 import { updateAllocation } from './allocationApi'
@@ -18,7 +18,7 @@ export function useUpdateAllocationMutation() {
     mutationFn: ({ id, payload }) => updateAllocation(id, payload),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: allocationKeys.all })
-      invalidateBudgetMonthCache(queryClient)
+      invalidateDerivedBudgetCaches(queryClient)
     },
   })
 }

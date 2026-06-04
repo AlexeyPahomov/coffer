@@ -58,3 +58,19 @@ export function computeRemaining(
 ): number {
   return computeClosing(openingBalance, allocated, spent)
 }
+
+/**
+ * Траты списываются с конверта только при ненулевом лимите (opening + allocated).
+ * Иначе они идут из свободного пула, а не создают «минус» на карточке категории.
+ */
+export function shouldAttributeExpenseToEnvelope(
+  categoryType: string,
+  openingBalance: number,
+  allocated: number,
+): boolean {
+  if (categoryType === 'savings') {
+    return true
+  }
+
+  return openingBalance > 0 || allocated > 0
+}

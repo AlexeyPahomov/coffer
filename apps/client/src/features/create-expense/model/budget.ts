@@ -41,10 +41,11 @@ export function computeExpenseBudgetPreview(
   }
 
   const replacedExpenseAmount = options?.replacedExpenseAmount ?? 0
+  const envelopeLimit = budget.carriedFromPrevious + budget.allocated
   const remainingBefore = budget.remaining
   const remainingAfter =
     remainingBefore + replacedExpenseAmount - amount
-  const isOverBudget = remainingAfter < 0
+  const isOverBudget = envelopeLimit > 0 && remainingAfter < 0
 
   return {
     categoryId: budget.categoryId,

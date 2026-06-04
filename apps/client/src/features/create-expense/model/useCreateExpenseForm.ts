@@ -203,7 +203,7 @@ export function useCreateExpenseForm({
       const income = pickIncomeForTopUp(incomes, allocations, topUpAmount)
       if (!income) {
         setTopUpError(
-          'Недостаточно фактических нераспределённых средств. Получите доход или освободите деньги на странице распределения.',
+          'Недостаточно свободных средств. Получите доход или освободите деньги на странице распределения.',
         )
         return
       }

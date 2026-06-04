@@ -1,20 +1,21 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import type { ForecastMonth, MonthBudgetProjection } from '@/processes/forecasting'
 
-import { computeOperationalSummary } from '@/entities/budget/lib/computeOperationalSummary'
-import { formatPlanningPeriodLabel } from '@/entities/budget/lib/periodLabels'
+import {
+  computeOperationalSummary,
+  formatPlanningPeriodLabel,
+} from '@/entities/budget'
 import { filterExpenseCategories } from '@/entities/category/lib/filterExpenseCategories'
 import {
   fullReserveMutationArgs,
   unreservePlannedExpenseMutationArgs,
 } from '@/entities/planned-expense/lib/fullReserveMutationArgs'
-import { usePeriodBudgetCore } from '@/entities/budget/model/usePeriodBudgetCore'
+import { usePeriodBudgetCore } from '@/entities/budget'
 import { useAllocationRulesQuery } from '@/entities/allocation-rule/api/useAllocationRulesQuery'
 import { usePlannedExpensesQuery } from '@/entities/planned-expense/api/usePlannedExpensesQuery'
 import { usePlannedExpenseStatusMutation } from '@/entities/planned-expense/api/usePlannedExpenseStatusMutation'
 import { useUnfinishPlannedExpenseMutation } from '@/entities/planned-expense/api/useUnfinishPlannedExpenseMutation'
 import { buildPlanningTimelineMonths } from '@/entities/planned-expense/lib/buildPlanningTimelineMonths'
-import { resolveAccountingPeriodMonth } from '@/entities/income/lib/incomePeriodMonth'
 import {
   collectPlannedExpenseSwatchesByPeriodMonth,
   countPlannedExpensesByPeriodMonth,
@@ -45,10 +46,7 @@ function forecastMonthToProjection(
 
 export function usePlanningPage() {
   const [pickedPeriodMonth, setPickedPeriodMonth] = useState<string | null>(null)
-  const [defaultPeriodMonth, setDefaultPeriodMonth] = useState(
-    currentMonthInputValue,
-  )
-  const periodMonth = pickedPeriodMonth ?? defaultPeriodMonth
+  const periodMonth = pickedPeriodMonth ?? currentMonthInputValue()
   const plannedQuery = usePlannedExpensesQuery()
   const allocationRulesQuery = useAllocationRulesQuery()
   const statusMutation = usePlannedExpenseStatusMutation()
@@ -56,23 +54,6 @@ export function usePlanningPage() {
 
   const core = usePeriodBudgetCore(periodMonth)
   const allPlanned = plannedQuery.data ?? EMPTY_PLANNED_EXPENSES
-
-  useEffect(() => {
-    if (pickedPeriodMonth !== null || core.incomesQuery.isPending) {
-      return
-    }
-
-    let cancelled = false
-    queueMicrotask(() => {
-      if (!cancelled) {
-        setDefaultPeriodMonth(resolveAccountingPeriodMonth(core.incomes))
-      }
-    })
-
-    return () => {
-      cancelled = true
-    }
-  }, [core.incomes, core.incomesQuery.isPending, pickedPeriodMonth])
 
   const periodPlanned = useMemo(
     () => filterPlannedExpensesByPeriodMonth(allPlanned, periodMonth),
@@ -83,14 +64,18 @@ export function usePlanningPage() {
     () =>
       computeOperationalSummary(
         core.budgetItems,
-        core.incomes,
-        core.allocations,
-        core.expenses,
+        {
+          categories: core.categories,
+          incomes: core.incomes,
+          allocations: core.allocations,
+          expenses: core.expenses,
+        },
         periodMonth,
         periodPlanned,
       ),
     [
       core.budgetItems,
+      core.categories,
       core.incomes,
       core.allocations,
       core.expenses,

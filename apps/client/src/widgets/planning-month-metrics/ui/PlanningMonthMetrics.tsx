@@ -4,7 +4,7 @@ import { cn } from '@/shared/lib/utils'
 import {
   PLANNING_METRIC_COPY,
   planningForecastMetricTitle,
-} from '../lib/planningMetricCopy'
+} from '@/entities/budget'
 import { planningMonthMetricsGridClassName } from '../lib/planningMonthMetricsLayout'
 
 import { PlanningMetricCard } from './PlanningMetricCard'

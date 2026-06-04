@@ -8,6 +8,7 @@ import {
   isAllocationRuleLineMode,
   isIncomeType,
 } from '@coffer/shared';
+import { formatPeriodMonthKeyFromDate } from '../lib/period-month';
 
 import type { AllocationRuleLineMode } from '../generated/prisma/client';
 import { DEV_USER_ID } from '../lib/dev-user';
@@ -384,7 +385,7 @@ export class AllocationRuleService {
 
     await this.prisma.allocation.createMany({ data: allocationRows });
 
-    const periodMonth = income.period_month.toISOString().slice(0, 7);
+    const periodMonth = formatPeriodMonthKeyFromDate(income.period_month);
     await this.budgetMonthService.rebuildFrom(income.user_id, periodMonth);
 
     return this.prisma.allocation.findMany({

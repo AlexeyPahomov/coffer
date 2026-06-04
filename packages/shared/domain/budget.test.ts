@@ -58,6 +58,18 @@ describe('recomputeSnapshot', () => {
 })
 
 describe('computeCategoryBudgetsForPeriod', () => {
+  it('does not attribute unallocated category spend to the envelope', () => {
+    const [travel] = computeCategoryBudgetsForPeriod(
+      [{ id: 'travel', type: 'expense', carry_over_policy: 'RESET' }],
+      [],
+      [{ category_id: 'travel', amount: 8_000, date: '2026-05-30' }],
+      '2026-05',
+    )
+
+    assert.equal(travel?.spent, 8_000)
+    assert.equal(travel?.closingBalance, 0)
+  })
+
   it('does not carry reset expense overspend into the next month', () => {
     const [travel] = computeCategoryBudgetsForPeriod(
       [{ id: 'travel', type: 'expense', carry_over_policy: 'RESET' }],

@@ -1,3 +1,5 @@
+import { BUDGET_METRIC_LABELS } from '@/entities/budget'
+
 export type LiquidityFlowNodeKind =
   | 'income'
   | 'pool'
@@ -6,11 +8,11 @@ export type LiquidityFlowNodeKind =
   | 'forecast'
 
 export const liquidityFlowNodeLabels: Record<LiquidityFlowNodeKind, string> = {
-  income: 'Ожидается',
-  pool: 'Доступно сейчас',
-  planned: 'В планах',
-  reserved: 'Резерв',
-  forecast: 'Ожидаемый остаток',
+  income: BUDGET_METRIC_LABELS.expectedIncome,
+  pool: BUDGET_METRIC_LABELS.poolAvailableNow,
+  planned: BUDGET_METRIC_LABELS.planned,
+  reserved: BUDGET_METRIC_LABELS.reserved,
+  forecast: BUDGET_METRIC_LABELS.forecastRemainder,
 }
 
 /** Короткие подписи для компактного mobile rail. */

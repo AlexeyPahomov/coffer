@@ -8,6 +8,7 @@ import {
   PrismaClient,
   type BudgetMonth,
 } from '../generated/prisma/client';
+import { isOverspent } from '@coffer/shared';
 import { toMoneyNumber } from '../lib/money';
 import {
   parsePeriodMonthKey,
@@ -298,6 +299,91 @@ export class BudgetMonthService {
 
       throw error;
     }
+  }
+
+  /** Закрыть учётный месяц: снимок конвертов фиксируется, месяц исключается из активного цикла. */
+  async close(userId: string, periodMonth: string): Promise<BudgetMonthViewDto> {
+    await this.open(userId, periodMonth);
+    await this.rebuildFrom(userId, periodMonth);
+
+    const parsed = this.parsePeriodOrThrow(periodMonth);
+    const row = await this.findBudgetMonthRow(userId, periodMonth);
+    if (!row) {
+      throw new NotFoundException('Budget month not found');
+    }
+
+    if (row.status === 'CLOSED') {
+      return this.getView(userId, periodMonth);
+    }
+
+    const periodStart = new Date(parsed.year, parsed.month - 1, 1);
+    const periodEnd = new Date(parsed.year, parsed.month, 1);
+
+    const periodIncomes = await this.prisma.income.findMany({
+      where: {
+        user_id: userId,
+        status: 'RECEIVED',
+        period_month: { gte: periodStart, lt: periodEnd },
+      },
+    });
+
+    const incomeTotal = periodIncomes.reduce(
+      (sum, income) => sum + toMoneyNumber(income.amount.toString()),
+      0,
+    );
+
+    let spentTotal = 0;
+    let carryForwardTotal = 0;
+    let overspentTotal = 0;
+
+    for (const snap of row.snapshots) {
+      const spent = toMoneyNumber(snap.spent.toString());
+      const closing = toMoneyNumber(snap.closing_balance.toString());
+      spentTotal += spent;
+      if (closing > 0) {
+        carryForwardTotal += closing;
+      } else if (isOverspent(closing)) {
+        overspentTotal += Math.abs(closing);
+      }
+    }
+
+    const reservedTotal = await this.prisma.plannedExpense.aggregate({
+      where: {
+        user_id: userId,
+        budget_month_id: row.id,
+        status: 'RESERVED',
+      },
+      _sum: { reserved_amount: true },
+    });
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.monthCloseReport.deleteMany({
+        where: { budget_month_id: row.id },
+      });
+
+      await tx.monthCloseReport.create({
+        data: {
+          budget_month_id: row.id,
+          income_total: incomeTotal,
+          spent_total: spentTotal,
+          reserved_total: toMoneyNumber(
+            reservedTotal._sum.reserved_amount?.toString() ?? '0',
+          ),
+          overspent_total: overspentTotal,
+          carry_forward_total: carryForwardTotal,
+        },
+      });
+
+      await tx.budgetMonth.update({
+        where: { id: row.id },
+        data: {
+          status: 'CLOSED',
+          closed_at: new Date(),
+        },
+      });
+    });
+
+    return this.getView(userId, periodMonth);
   }
 
   /** Детерминированный rebuild OPEN месяца и всех последующих (для reopen / repair). */

@@ -1,4 +1,8 @@
-import { computeRemaining, type CategoryMonthSnapshotState } from './budget.js'
+import {
+  computeRemaining,
+  shouldAttributeExpenseToEnvelope,
+  type CategoryMonthSnapshotState,
+} from './budget.js'
 import type { CarryOverPolicy } from './category.js'
 import { getMonthKeyFromIso, isBeforePeriodMonth, isSamePeriodMonth } from './periodMonth.js'
 import { toMoneyNumber, type MoneyInput } from '../lib/money.js'
@@ -124,15 +128,70 @@ export function computeCategoryBudgetsForPeriod(
             (spentBefore.get(category.id) ?? 0)
           : 0
       const allocated = allocatedByCategory.get(category.id) ?? 0
-      const spent = spentByCategory.get(category.id) ?? 0
-      const closingBalance = computeRemaining(openingBalance, allocated, spent)
+      const rawSpent = spentByCategory.get(category.id) ?? 0
+      const envelopeSpent = shouldAttributeExpenseToEnvelope(
+        category.type,
+        openingBalance,
+        allocated,
+      )
+        ? rawSpent
+        : 0
+      const closingBalance = computeRemaining(
+        openingBalance,
+        allocated,
+        envelopeSpent,
+      )
 
       return {
         categoryId: category.id,
         openingBalance,
         allocated,
-        spent,
+        spent: rawSpent,
         closingBalance,
       }
     })
+}
+
+/** Сумма трат за месяц по категориям без лимита конверта (свободный пул). */
+export function computeFreePoolExpensesForPeriod(
+  categories: readonly BudgetRebuildCategory[],
+  allocations: readonly BudgetRebuildAllocation[],
+  expenses: readonly BudgetRebuildExpense[],
+  periodMonth: string,
+): number {
+  const priorAllocations = filterAllocationsBeforePeriod(allocations, periodMonth)
+  const priorExpenses = filterExpensesBeforePeriod(expenses, periodMonth)
+  const periodAllocations = filterAllocationsByPeriod(allocations, periodMonth)
+  const periodExpenses = filterExpensesByPeriod(expenses, periodMonth)
+
+  const carriedFromAlloc = sumByCategoryId(priorAllocations)
+  const spentBefore = sumByCategoryId(priorExpenses)
+  const allocatedByCategory = sumByCategoryId(periodAllocations)
+  const categoryById = new Map(categories.map((category) => [category.id, category]))
+
+  let total = 0
+  for (const expense of periodExpenses) {
+    const category = categoryById.get(expense.category_id)
+    if (!category || category.type === 'income') {
+      continue
+    }
+
+    const openingBalance = shouldCarryOpeningBalance(category)
+      ? (carriedFromAlloc.get(category.id) ?? 0) -
+        (spentBefore.get(category.id) ?? 0)
+      : 0
+    const allocated = allocatedByCategory.get(category.id) ?? 0
+
+    if (
+      !shouldAttributeExpenseToEnvelope(
+        category.type,
+        openingBalance,
+        allocated,
+      )
+    ) {
+      total += toMoneyNumber(expense.amount)
+    }
+  }
+
+  return total
 }

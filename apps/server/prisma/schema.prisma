@@ -49,6 +49,7 @@ model Income {
   income_type  String       @default("salary")
   status       IncomeStatus @default(RECEIVED)
   period_month DateTime
+  received_at  DateTime?
   created_at   DateTime     @default(now())
 
   allocations Allocation[]

@@ -48,7 +48,7 @@ export function getEnvelopeDisplayToneSortIndex(
 }
 
 export function getEnvelopeBalanceLabel(isSavings: boolean): string {
-  return isSavings ? 'В резерве' : 'Остаток'
+  return isSavings ? 'Накопления' : 'Остаток'
 }
 
 export function formatEnvelopeBalance(remaining: number): string {

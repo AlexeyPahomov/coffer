@@ -44,12 +44,8 @@ export function useAllocationPage() {
 
   const selectedPeriodMonth = useMemo(
     () =>
-      resolveSelectedAllocationPeriodMonth(
-        incomeCards,
-        incomes,
-        pickedPeriodMonth,
-      ),
-    [incomeCards, incomes, pickedPeriodMonth],
+      resolveSelectedAllocationPeriodMonth(incomeCards, pickedPeriodMonth),
+    [incomeCards, pickedPeriodMonth],
   )
 
   const incomesInSelectedMonth = useMemo(

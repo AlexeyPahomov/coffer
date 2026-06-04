@@ -50,4 +50,13 @@ export class BudgetMonthController {
   ): Promise<void> {
     await this.budgetMonthService.rebuildFrom(this.resolveUserId(userId), period);
   }
+
+  @Post(':period/close')
+  @HttpCode(HttpStatus.OK)
+  close(
+    @Param('period') period: string,
+    @Query('user_id') userId: string | undefined,
+  ) {
+    return this.budgetMonthService.close(this.resolveUserId(userId), period);
+  }
 }

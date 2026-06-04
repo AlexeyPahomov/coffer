@@ -1,7 +1,13 @@
+import {
+  BUDGET_METRIC_LABELS,
+  FREE_FUNDS_LABEL,
+} from '@/entities/budget'
 import { formatAmount } from '@/shared/lib/format'
 
+export const CURRENT_BUDGET_AVAILABLE_LABEL = FREE_FUNDS_LABEL
+
 export const CURRENT_BUDGET_AVAILABLE_INFO =
-  'Полученные доходы за вычетом денег, уже разложенных по конвертам. Ожидаемые поступления сюда не входят. При перерасходе конверта свободный остаток уменьшается.'
+  'Полученные доходы за вычетом денег, уже разложенных по конвертам. Ожидаемые поступления сюда не входят. При перерасходе конверта остаток свободных средств уменьшается.'
 
 export function buildCurrentBudgetAvailableInfo(
   carryForwardTotal: number,
@@ -17,26 +23,22 @@ export function buildCurrentBudgetAvailableInfo(
 }
 
 export const CURRENT_BUDGET_RESERVE_INFO =
-  'Резервные средства. Используйте только для целей накопления.'
-
-export const CURRENT_BUDGET_RESERVE_LABEL = 'В резерве'
-
-export const CURRENT_BUDGET_RESERVE_MOBILE_LABEL = 'Накопления'
+  'Средства в категориях накоплений. Используйте только для целей накопления.'
 
 export const CURRENT_BUDGET_METRIC_COPY = {
   available: {
-    title: 'Нераспределено',
-    caption: 'Фактический свободный пул',
+    title: CURRENT_BUDGET_AVAILABLE_LABEL,
+    caption: 'Фактический остаток',
   },
   reserve: {
-    desktopTitle: CURRENT_BUDGET_RESERVE_LABEL,
-    mobileTitle: CURRENT_BUDGET_RESERVE_MOBILE_LABEL,
-    caption: 'Резерв и накопления',
+    desktopTitle: BUDGET_METRIC_LABELS.reserve,
+    mobileTitle: BUDGET_METRIC_LABELS.reserve,
+    caption: 'Остаток по накоплениям',
     infoText: CURRENT_BUDGET_RESERVE_INFO,
   },
   spent: {
-    desktopTitle: 'Фактически потрачено',
-    mobileTitle: 'Потрачено',
+    desktopTitle: BUDGET_METRIC_LABELS.spentFact,
+    mobileTitle: BUDGET_METRIC_LABELS.spentShort,
     caption: 'Фактические расходы',
     infoText: 'Сумма проведённых трат за выбранный месяц.',
   },

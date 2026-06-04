@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 
-import type { CurrentBudgetSummaryView } from '@/entities/budget/model/currentBudgetSummaryView'
+import type { CurrentBudgetSummaryView } from '@/entities/budget'
 import { ResponsiveLabel } from '@/shared/ui/responsive-label/ResponsiveLabel'
 import type { PlanningMetricCardProps } from '@/widgets/planning-month-metrics'
 
@@ -20,10 +20,8 @@ export function buildCurrentBudgetSummaryCards({
   spentThisMonth,
   carryForwardTotal = 0,
   previousPeriodLabel,
-  reserveCategory,
 }: CurrentBudgetSummaryView): CurrentBudgetSummaryCardProps[] {
   const copy = CURRENT_BUDGET_METRIC_COPY
-  const reserveTitle = reserveCategory?.name ?? copy.reserve.desktopTitle
 
   return [
     {
@@ -38,7 +36,10 @@ export function buildCurrentBudgetSummaryCards({
     },
     {
       accent: 'savings',
-      title: metricResponsiveTitle(copy.reserve.mobileTitle, reserveTitle),
+      title: metricResponsiveTitle(
+        copy.reserve.mobileTitle,
+        copy.reserve.desktopTitle,
+      ),
       caption: copy.reserve.caption,
       infoText: copy.reserve.infoText,
       value: inReserve,

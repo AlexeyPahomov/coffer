@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 
-import { computeOperationalSummary } from '@/entities/budget/lib/computeOperationalSummary'
-import { toCurrentBudgetSummaryView } from '@/entities/budget/lib/toCurrentBudgetSummaryView'
-import { usePeriodBudgetCore } from '@/entities/budget/model/usePeriodBudgetCore'
-import { filterExpenseEnvelopeBudgetItems } from '@/entities/budget/lib/filterExpenseEnvelopeBudgetItems'
+import {
+  toCurrentBudgetSummaryView,
+  useActiveCycleBudgetCore,
+  useExpensePeriodBudget,
+} from '@/entities/budget'
 import { filterExpenseCategories } from '@/entities/category/lib/filterExpenseCategories'
-import { resolveAccountingPeriodMonth } from '@/entities/income/lib/incomePeriodMonth'
 import { currentMonthInputValue } from '@/shared/lib/date'
 
 import {
@@ -19,39 +19,25 @@ export function useExpensePage() {
   )
 
   const [pickedPeriodMonth, setPickedPeriodMonth] = useState<string | null>(null)
-  const [defaultPeriodMonth, setDefaultPeriodMonth] = useState(
-    currentMonthInputValue,
-  )
-  const periodMonth = pickedPeriodMonth ?? defaultPeriodMonth
+  const periodMonth = pickedPeriodMonth ?? currentMonthInputValue()
 
-  const core = usePeriodBudgetCore(periodMonth)
+  const core = useActiveCycleBudgetCore()
 
-  useEffect(() => {
-    if (pickedPeriodMonth !== null || core.incomesQuery.isPending) {
-      return
-    }
-
-    let cancelled = false
-    queueMicrotask(() => {
-      if (!cancelled) {
-        setDefaultPeriodMonth(resolveAccountingPeriodMonth(core.incomes))
-      }
-    })
-
-    return () => {
-      cancelled = true
-    }
-  }, [core.incomes, core.incomesQuery.isPending, pickedPeriodMonth])
+  const periodBudget = useExpensePeriodBudget({
+    periodMonth,
+    categories: core.categories,
+    incomes: core.incomes,
+    allocations: core.allocations,
+    expenses: core.expenses,
+    budgetCycle: core.budgetCycle,
+  })
 
   const expenseCategories = useMemo(
     () => filterExpenseCategories(core.categories),
     [core.categories],
   )
 
-  const budgetItems = useMemo(
-    () => filterExpenseEnvelopeBudgetItems(core.budgetItems),
-    [core.budgetItems],
-  )
+  const budgetItems = periodBudget.budgetItems
 
   useEffect(() => {
     if (
@@ -73,27 +59,12 @@ export function useExpensePage() {
     }
   }, [budgetItems, selectedCategoryId])
 
-  const operationalSummary = useMemo(
-    () =>
-      computeOperationalSummary(
-        core.budgetItems,
-        core.incomes,
-        core.allocations,
-        core.expenses,
-        periodMonth,
-      ),
-    [
-      core.budgetItems,
-      core.incomes,
-      core.allocations,
-      core.expenses,
-      periodMonth,
-    ],
-  )
-
   const currentBudgetView = useMemo(
-    () => toCurrentBudgetSummaryView(operationalSummary),
-    [operationalSummary],
+    () =>
+      periodBudget.operationalSummary
+        ? toCurrentBudgetSummaryView(periodBudget.operationalSummary)
+        : null,
+    [periodBudget.operationalSummary],
   )
 
   const sortedExpenses = useMemo(() => {
@@ -106,28 +77,28 @@ export function useExpensePage() {
     core.incomesQuery.isPending ||
     core.allocationsQuery.isPending ||
     core.expensesQuery.isPending ||
-    (core.budgetMonthQuery.isPending &&
-      core.budgetMonthQuery.data === undefined)
+    (core.budgetCycleQuery.isPending && core.budgetCycleQuery.data === undefined)
 
   const isBudgetError =
     core.categoriesQuery.isError ||
     core.incomesQuery.isError ||
     core.allocationsQuery.isError ||
-    core.expensesQuery.isError
+    core.expensesQuery.isError ||
+    core.budgetCycleQuery.isError
 
   const budgetError =
     core.categoriesQuery.error ??
     core.incomesQuery.error ??
     core.allocationsQuery.error ??
-    core.expensesQuery.error
+    core.expensesQuery.error ??
+    core.budgetCycleQuery.error
 
   const isBudgetFetching =
     core.categoriesQuery.isFetching ||
     core.incomesQuery.isFetching ||
     core.allocationsQuery.isFetching ||
     core.expensesQuery.isFetching ||
-    (core.budgetMonthQuery.isFetching &&
-      core.budgetMonthQuery.data === undefined)
+    core.budgetCycleQuery.isFetching
 
   return {
     selectedCategoryId,
@@ -138,19 +109,19 @@ export function useExpensePage() {
     expenseCategories,
     incomes: core.incomes,
     allocations: core.allocations,
-    allBudgetItems: core.budgetItems,
+    allBudgetItems: periodBudget.allBudgetItems,
     budgetItems,
     currentBudgetView,
+    cycleCaption: periodBudget.caption,
     sortedExpenses,
     isBudgetPending,
     isBudgetError,
     budgetError,
     isBudgetFetching,
-    budgetMonthStatus: core.budgetMonthQuery.data?.status,
     categoriesQuery: core.categoriesQuery,
     incomesQuery: core.incomesQuery,
     allocationsQuery: core.allocationsQuery,
     expensesQuery: core.expensesQuery,
-    budgetMonthQuery: core.budgetMonthQuery,
+    budgetCycleQuery: core.budgetCycleQuery,
   }
 }

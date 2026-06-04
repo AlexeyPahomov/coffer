@@ -1,16 +1,12 @@
 import type { Income } from '@/entities/income/model/types'
-import {
-  getIncomePeriodMonth,
-  resolveAccountingPeriodMonth,
-} from '@/entities/income/lib/incomePeriodMonth'
+import { getIncomePeriodMonth, resolveCurrentCalendarPeriodMonth } from '@/entities/income/lib/incomePeriodMonth'
 
 import type { IncomeCardView } from './allocationIncomeCard'
 
 export function resolveDefaultAllocationPeriodMonth(
   incomeCards: IncomeCardView[],
-  incomes: readonly Income[],
 ): string {
-  const currentMonth = resolveAccountingPeriodMonth(incomes)
+  const currentMonth = resolveCurrentCalendarPeriodMonth()
   const currentMonthCard = incomeCards.find((card) => card.id === currentMonth)
   if (currentMonthCard) {
     return currentMonthCard.id
@@ -28,7 +24,6 @@ export function resolveDefaultAllocationPeriodMonth(
 
 export function resolveSelectedAllocationPeriodMonth(
   incomeCards: IncomeCardView[],
-  incomes: readonly Income[],
   pickedPeriodMonth: string | null,
 ): string | null {
   if (incomeCards.length === 0) {
@@ -40,7 +35,7 @@ export function resolveSelectedAllocationPeriodMonth(
   ) {
     return pickedPeriodMonth
   }
-  return resolveDefaultAllocationPeriodMonth(incomeCards, incomes)
+  return resolveDefaultAllocationPeriodMonth(incomeCards)
 }
 
 export function filterIncomesByPeriodMonth(

@@ -16,8 +16,8 @@ export type CategoryBudgetItem = {
   carriedFromPrevious: number
   /** Распределено в этом месяце. */
   allocated: number
-  /** Потрачено в этом месяце. */
+  /** Потрачено за период/цикл (все траты по категории, для отображения). */
   spent: number
-  /** carriedFromPrevious + allocated − spent */
+  /** Остаток конверта; при тратах без лимита остаётся 0 (деньги из свободного пула). */
   remaining: number
 }

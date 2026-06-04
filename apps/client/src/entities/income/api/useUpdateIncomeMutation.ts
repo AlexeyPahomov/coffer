@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 
 import { allocationKeys } from '@/entities/allocation/api/allocationQueryKeys'
-import { invalidateBudgetMonthCache } from '@/entities/budget-month/api/invalidateBudgetMonthCache'
+import { invalidateDerivedBudgetCaches } from '@/entities/budget'
 import type { Income, UpdateIncomePayload } from '@/entities/income/model/types'
 import { updateIncome } from './incomeApi'
 import { incomeKeys } from './incomeQueryKeys'
@@ -19,7 +19,7 @@ export function useUpdateIncomeMutation() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: incomeKeys.lists() })
       void queryClient.invalidateQueries({ queryKey: allocationKeys.all })
-      invalidateBudgetMonthCache(queryClient)
+      invalidateDerivedBudgetCaches(queryClient)
     },
   })
 }

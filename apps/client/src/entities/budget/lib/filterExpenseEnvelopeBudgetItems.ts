@@ -10,7 +10,7 @@ function hasEnvelopeActivity(item: CategoryBudgetItem): boolean {
   )
 }
 
-/** Конверты расходных категорий (без накоплений — они в сводке «В резерве»). */
+/** Конверты расходных категорий (без накоплений — они в сводке «Накопления»). */
 export function filterExpenseEnvelopeBudgetItems(
   items: readonly CategoryBudgetItem[],
 ): CategoryBudgetItem[] {

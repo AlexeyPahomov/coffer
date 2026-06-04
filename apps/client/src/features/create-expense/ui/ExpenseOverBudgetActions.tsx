@@ -75,7 +75,7 @@ export function ExpenseOverBudgetActions({
         <p className="text-sm text-red">{topUpError}</p>
       ) : !canTopUp && !savingsTransfer ? (
         <p className="text-sm text-orange">
-          Нет фактических нераспределённых средств для быстрого пополнения.
+          Нет свободных средств для быстрого пополнения.
         </p>
       ) : null}
     </div>

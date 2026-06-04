@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 
-import { invalidateBudgetMonthCache } from '@/entities/budget-month/api/invalidateBudgetMonthCache'
+import { invalidateDerivedBudgetCaches } from '@/entities/budget'
 
 import type { CreateExpensePayload, Expense } from '../model/types'
 import { createExpense } from './expenseApi'
@@ -13,7 +13,7 @@ export function useCreateExpenseMutation() {
     mutationFn: createExpense,
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: expenseQueryKeys.all })
-      invalidateBudgetMonthCache(queryClient)
+      invalidateDerivedBudgetCaches(queryClient)
     },
   })
 }

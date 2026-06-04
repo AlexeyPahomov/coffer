@@ -51,6 +51,13 @@ function resolveIncomeStatusValue(
   return value;
 }
 
+/** Ключ учётного месяца `YYYY-MM` из Prisma `DateTime` (локальный календарь). */
+function periodMonthKeyFromPrismaDate(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  return `${year}-${month}`;
+}
+
 @Injectable()
 export class IncomeService {
   constructor(
@@ -59,6 +66,7 @@ export class IncomeService {
   ) {}
 
   create(dto: CreateIncomeDto): Promise<Income> {
+    const status = resolveIncomeStatusValue(dto.status);
     return this.prisma.income.create({
       data: {
         // TODO убрать хардкод после добавления пользователей
@@ -66,8 +74,9 @@ export class IncomeService {
         amount: dto.amount,
         source: dto.source,
         income_type: resolveDtoIncomeType(dto.income_type),
-        status: resolveIncomeStatusValue(dto.status),
+        status,
         period_month: new Date(dto.period_month),
+        received_at: status === 'RECEIVED' ? new Date() : null,
       },
     });
   }
@@ -113,6 +122,7 @@ export class IncomeService {
       }
     }
 
+    const wasReceived = existing.status === 'RECEIVED';
     const updated = await this.prisma.income.update({
       where: { id },
       data: {
@@ -121,12 +131,20 @@ export class IncomeService {
         income_type: resolveDtoIncomeType(dto.income_type),
         status: nextStatus,
         period_month: new Date(dto.period_month),
+        received_at:
+          nextStatus === 'RECEIVED' && !wasReceived
+            ? new Date()
+            : nextStatus === 'EXPECTED'
+              ? null
+              : undefined,
       },
     });
 
     if (existing.status !== updated.status && updated.status === 'RECEIVED') {
-      const periodMonth = updated.period_month.toISOString().slice(0, 7);
-      await this.budgetMonthService.rebuildFrom(updated.user_id, periodMonth);
+      await this.budgetMonthService.rebuildFrom(
+        updated.user_id,
+        periodMonthKeyFromPrismaDate(updated.period_month),
+      );
     }
 
     return updated;
@@ -142,11 +160,16 @@ export class IncomeService {
 
     const updated = await this.prisma.income.update({
       where: { id },
-      data: { status: 'RECEIVED' },
+      data: {
+        status: 'RECEIVED',
+        received_at: new Date(),
+      },
     });
 
-    const periodMonth = updated.period_month.toISOString().slice(0, 7);
-    await this.budgetMonthService.rebuildFrom(updated.user_id, periodMonth);
+    await this.budgetMonthService.rebuildFrom(
+      updated.user_id,
+      periodMonthKeyFromPrismaDate(updated.period_month),
+    );
 
     return updated;
   }

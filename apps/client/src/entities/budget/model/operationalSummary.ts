@@ -4,11 +4,11 @@ import type { ReserveCategorySummary } from './types'
 export type OperationalSummary = {
   periodMonth: string
   periodLabel: string
-  /** Не распределено по конвертам (минус перерасход расходных категорий). */
+  /** Свободные средства (пул без конверта, с переносом между месяцами). */
   available: number
   /** Остаток по категориям накоплений (sinking / savings). */
   inReserve: number
-  /** Категория накоплений для блока «В резерве». */
+  /** Категория накоплений для блока «Накопления». */
   reserveCategory?: ReserveCategorySummary
   /** Сумма доходов с датой в этом месяце. */
   incomeTotal: number
