@@ -36,6 +36,11 @@ enum IncomeStatus {
   EXPECTED
 }
 
+enum AllocationRuleLineMode {
+  FIXED
+  PERCENT
+}
+
 model Income {
   id           String       @id @default(uuid())
   user_id      String
@@ -62,9 +67,40 @@ model Category {
   created_at        DateTime        @default(now())
 
   allocations            Allocation[]
+  allocationRuleLines    AllocationRuleLine[]
   expenses               Expense[]
   plannedExpenses        PlannedExpense[]
   categoryMonthSnapshots CategoryMonthSnapshot[]
+}
+
+model AllocationRule {
+  id                  String   @id @default(uuid())
+  user_id             String
+  name                String
+  trigger_income_type String?
+  is_active           Boolean  @default(true)
+  created_at          DateTime @default(now())
+  updated_at          DateTime @updatedAt
+
+  lines AllocationRuleLine[]
+
+  @@index([user_id, is_active])
+}
+
+model AllocationRuleLine {
+  id          String                 @id @default(uuid())
+  rule_id     String
+  rule        AllocationRule         @relation(fields: [rule_id], references: [id], onDelete: Cascade)
+  category_id String
+  category    Category               @relation(fields: [category_id], references: [id])
+  mode        AllocationRuleLineMode
+  amount      Decimal?
+  percent     Decimal?
+  position    Int                    @default(0)
+  created_at  DateTime               @default(now())
+
+  @@index([rule_id, position])
+  @@index([category_id])
 }
 
 model Allocation {

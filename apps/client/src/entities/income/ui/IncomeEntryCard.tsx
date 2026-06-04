@@ -1,5 +1,5 @@
 import { useCallback } from 'react'
-import { Trash2 } from 'lucide-react'
+import { Check, Trash2 } from 'lucide-react'
 
 import type { Income } from '@/entities/income/model/types'
 import {
@@ -22,14 +22,18 @@ import { Button } from '@/shared/ui'
 type IncomeEntryCardProps = {
   income: Income
   onEdit?: (income: Income) => void
+  onReceive?: () => void
   onDelete: () => void
+  isReceiving?: boolean
   isDeleting?: boolean
 }
 
 export function IncomeEntryCard({
   income,
   onEdit,
+  onReceive,
   onDelete,
+  isReceiving = false,
   isDeleting = false,
 }: IncomeEntryCardProps) {
   const incomeType = resolveIncomeType(income.income_type)
@@ -95,6 +99,26 @@ export function IncomeEntryCard({
         </p>
       </div>
 
+      {isExpected && onReceive ? (
+        <Button
+          type="button"
+          variant="secondary"
+          size="xs"
+          data-card-action
+          className="shrink-0"
+          isLoading={isReceiving}
+          disabled={isDeleting}
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={(event) => {
+            event.stopPropagation()
+            onReceive()
+          }}
+        >
+          <Check />
+          Получить
+        </Button>
+      ) : null}
+
       {onDelete ? (
         <Button
           type="button"
@@ -103,7 +127,7 @@ export function IncomeEntryCard({
           data-card-action
           className="shrink-0 text-zinc-400 hover:text-destructive"
           aria-label="Удалить доход"
-          disabled={isDeleting}
+          disabled={isDeleting || isReceiving}
           onPointerDown={(event) => event.stopPropagation()}
           onClick={(event) => {
             event.stopPropagation()

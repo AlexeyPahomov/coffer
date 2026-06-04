@@ -52,13 +52,18 @@ export class IncomeService {
     });
   }
 
-  async update(id: string, dto: UpdateIncomeDto): Promise<Income> {
-    const existing = await this.prisma.income.findFirst({
-      where: { id, user_id: dto.user_id },
+  private async findOwned(id: string, userId: string): Promise<Income> {
+    const income = await this.prisma.income.findFirst({
+      where: { id, user_id: userId },
     });
-    if (!existing) {
+    if (!income) {
       throw new NotFoundException();
     }
+    return income;
+  }
+
+  async update(id: string, dto: UpdateIncomeDto): Promise<Income> {
+    const existing = await this.findOwned(id, dto.user_id);
 
     const nextStatus = this.resolveNextStatus(dto, existing);
     if (nextStatus === 'EXPECTED') {
@@ -91,13 +96,25 @@ export class IncomeService {
     return updated;
   }
 
-  async remove(id: string, userId: string): Promise<void> {
-    const existing = await this.prisma.income.findFirst({
-      where: { id, user_id: userId },
-    });
-    if (!existing) {
-      throw new NotFoundException();
+  async receive(id: string, userId: string): Promise<Income> {
+    const existing = await this.findOwned(id, userId);
+    if (existing.status === 'RECEIVED') {
+      return existing;
     }
+
+    const updated = await this.prisma.income.update({
+      where: { id },
+      data: { status: 'RECEIVED' },
+    });
+
+    const periodMonth = updated.period_month.toISOString().slice(0, 7);
+    await this.budgetMonthService.rebuildFrom(updated.user_id, periodMonth);
+
+    return updated;
+  }
+
+  async remove(id: string, userId: string): Promise<void> {
+    await this.findOwned(id, userId);
     await this.prisma.allocation.deleteMany({ where: { income_id: id } });
     await this.prisma.income.delete({ where: { id } });
   }

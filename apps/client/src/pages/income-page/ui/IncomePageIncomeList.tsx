@@ -1,6 +1,7 @@
 import type { Income } from '@/entities/income/model/types'
 import { IncomeEntryCard } from '@/entities/income/ui/IncomeEntryCard'
 import { useDeleteIncomeMutation } from '@/entities/income/api/useDeleteIncomeMutation'
+import { useReceiveIncomeMutation } from '@/entities/income/api/useReceiveIncomeMutation'
 import {
   incomePageListEmptyClassName,
   incomePageListUlClassName,
@@ -25,6 +26,7 @@ export function IncomePageIncomeList({
   onEdit,
 }: IncomePageIncomeListProps) {
   const deleteMutation = useDeleteIncomeMutation()
+  const receiveMutation = useReceiveIncomeMutation()
 
   if (isPending) {
     return (
@@ -55,6 +57,11 @@ export function IncomePageIncomeList({
           {getErrorMessage(deleteMutation.error, 'Не удалось удалить доход')}
         </p>
       ) : null}
+      {receiveMutation.isError ? (
+        <p className="mb-3 text-sm text-destructive">
+          {getErrorMessage(receiveMutation.error, 'Не удалось получить доход')}
+        </p>
+      ) : null}
 
       <ul
         className={cn(
@@ -67,10 +74,18 @@ export function IncomePageIncomeList({
             <IncomeEntryCard
               income={income}
               onEdit={onEdit}
+              isReceiving={
+                receiveMutation.isPending &&
+                receiveMutation.variables === income.id
+              }
               isDeleting={
                 deleteMutation.isPending &&
                 deleteMutation.variables === income.id
               }
+              onReceive={() => {
+                receiveMutation.reset()
+                receiveMutation.mutate(income.id)
+              }}
               onDelete={() => {
                 deleteMutation.reset()
                 deleteMutation.mutate(income.id)

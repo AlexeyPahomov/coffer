@@ -1,4 +1,5 @@
 export * from './domain/allocationType.js'
+export * from './domain/allocationRule.js'
 export * from './domain/budget.js'
 export * from './domain/budgetRebuild.js'
 export * from './domain/category.js'

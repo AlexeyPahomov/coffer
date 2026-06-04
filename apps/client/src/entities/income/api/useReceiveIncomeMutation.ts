@@ -2,20 +2,17 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 
 import { allocationKeys } from '@/entities/allocation/api/allocationQueryKeys'
 import { invalidateBudgetMonthCache } from '@/entities/budget-month/api/invalidateBudgetMonthCache'
-import type { Income, UpdateIncomePayload } from '@/entities/income/model/types'
-import { updateIncome } from './incomeApi'
+import { DEV_USER_ID } from '@/shared/lib/constants'
+
+import type { Income } from '../model/types'
 import { incomeKeys } from './incomeQueryKeys'
+import { receiveIncome } from './incomeApi'
 
-type UpdateIncomeVariables = {
-  id: string
-  payload: UpdateIncomePayload
-}
-
-export function useUpdateIncomeMutation() {
+export function useReceiveIncomeMutation() {
   const queryClient = useQueryClient()
 
-  return useMutation<Income, Error, UpdateIncomeVariables>({
-    mutationFn: ({ id, payload }) => updateIncome(id, payload),
+  return useMutation<Income, Error, string>({
+    mutationFn: (id) => receiveIncome(id, DEV_USER_ID),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: incomeKeys.lists() })
       void queryClient.invalidateQueries({ queryKey: allocationKeys.all })

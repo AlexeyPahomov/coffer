@@ -20,6 +20,14 @@ import { IncomeService } from './income.service';
 export class IncomeController {
   constructor(private readonly incomeService: IncomeService) {}
 
+  private resolveUserId(userId: string | undefined): string {
+    const trimmedUserId = userId?.trim() ?? '';
+    if (!trimmedUserId) {
+      throw new BadRequestException('Query user_id is required');
+    }
+    return trimmedUserId;
+  }
+
   @Post()
   create(@Body() dto: CreateIncomeDto): Promise<Income> {
     return this.incomeService.create(dto);
@@ -38,16 +46,20 @@ export class IncomeController {
     return this.incomeService.update(id, dto);
   }
 
+  @Patch(':id/receive')
+  receive(
+    @Param('id') id: string,
+    @Query('user_id') userId: string | undefined,
+  ): Promise<Income> {
+    return this.incomeService.receive(id, this.resolveUserId(userId));
+  }
+
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   async deleteById(
     @Param('id') id: string,
     @Query('user_id') userId: string | undefined,
   ): Promise<void> {
-    const trimmedUserId = userId?.trim() ?? '';
-    if (!trimmedUserId) {
-      throw new BadRequestException('Query user_id is required');
-    }
-    await this.incomeService.remove(id, trimmedUserId);
+    await this.incomeService.remove(id, this.resolveUserId(userId));
   }
 }

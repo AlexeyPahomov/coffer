@@ -32,6 +32,14 @@ export function updateIncome(
   return apiPatch<Income>(`${INCOME_PATH}/${encodeURIComponent(id)}`, payload)
 }
 
+export function receiveIncome(id: string, userId: string): Promise<Income> {
+  const q = new URLSearchParams({ user_id: userId })
+  return apiPatch<Income>(
+    `${INCOME_PATH}/${encodeURIComponent(id)}/receive?${q}`,
+    {},
+  )
+}
+
 export function deleteIncome(id: string, userId: string): Promise<void> {
   const q = new URLSearchParams({ user_id: userId })
   return apiDelete<void>(`${INCOME_PATH}/${encodeURIComponent(id)}?${q}`)
