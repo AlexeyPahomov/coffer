@@ -1,6 +1,5 @@
-import { getMonthKeyFromIso } from '@coffer/shared'
-
 import { formatPeriodMonthLabel } from '@/entities/budget/lib/periodLabels'
+import { getIncomePeriodMonth } from '@/entities/income/lib/incomePeriodMonth'
 import type { Income } from '@/entities/income/model/types'
 import { toMoneyNumber } from '@/shared/lib/money'
 
@@ -8,10 +7,6 @@ import {
   resolveIncomeCardTone,
   type IncomeCardView,
 } from './allocationIncomeCard'
-
-export function getIncomePeriodMonth(income: Income): string {
-  return getMonthKeyFromIso(income.period_month) ?? income.period_month
-}
 
 export function buildAllocationIncomeCards(
   incomes: readonly Income[],

@@ -1,9 +1,11 @@
 import { formatPeriodMonthLabel } from '@/entities/budget/lib/periodLabels'
 import type { Income } from '@/entities/income/model/types'
-import { currentMonthInputValue } from '@/shared/lib/date'
 import { toMoneyNumber } from '@/shared/lib/money'
 
-import { getIncomePeriodMonth } from './incomePeriodMonth'
+import {
+  getIncomePeriodMonth,
+  resolveAccountingPeriodMonth,
+} from './incomePeriodMonth'
 
 export type IncomeMonthCardView = {
   id: string
@@ -70,12 +72,13 @@ export function countIncomesByPeriodMonth(
 
 export function resolveDefaultIncomePeriodMonth(
   monthCards: IncomeMonthCardView[],
+  incomes: readonly Income[],
 ): string | null {
   if (monthCards.length === 0) {
     return null
   }
 
-  const currentMonth = currentMonthInputValue()
+  const currentMonth = resolveAccountingPeriodMonth(incomes)
   const currentMonthCard = monthCards.find((card) => card.id === currentMonth)
   if (currentMonthCard) {
     return currentMonthCard.id
@@ -93,11 +96,15 @@ export function resolveDefaultIncomePeriodMonth(
 
 export function resolveSelectedIncomePeriodMonth(
   monthCards: IncomeMonthCardView[],
+  incomes: readonly Income[],
   pickedPeriodMonth: string | null,
 ): string {
   if (pickedPeriodMonth) {
     return pickedPeriodMonth
   }
 
-  return resolveDefaultIncomePeriodMonth(monthCards) ?? currentMonthInputValue()
+  return (
+    resolveDefaultIncomePeriodMonth(monthCards, incomes) ??
+    resolveAccountingPeriodMonth(incomes)
+  )
 }

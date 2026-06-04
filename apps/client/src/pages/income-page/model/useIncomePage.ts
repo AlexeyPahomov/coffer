@@ -25,8 +25,9 @@ export function useIncomePage() {
   const monthCards = useMemo(() => buildIncomeMonthCards(incomes), [incomes])
 
   const selectedPeriodMonth = useMemo(
-    () => resolveSelectedIncomePeriodMonth(monthCards, pickedPeriodMonth),
-    [monthCards, pickedPeriodMonth],
+    () =>
+      resolveSelectedIncomePeriodMonth(monthCards, incomes, pickedPeriodMonth),
+    [monthCards, incomes, pickedPeriodMonth],
   )
 
   const metrics = useMemo(

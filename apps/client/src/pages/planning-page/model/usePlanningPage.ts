@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import { computeOperationalSummary } from '@/entities/budget/lib/computeOperationalSummary'
 import { monthProjectionFromSummary } from '@/entities/budget/lib/monthProjectionFromSummary'
@@ -13,6 +13,7 @@ import { usePlannedExpensesQuery } from '@/entities/planned-expense/api/usePlann
 import { usePlannedExpenseStatusMutation } from '@/entities/planned-expense/api/usePlannedExpenseStatusMutation'
 import { useUnfinishPlannedExpenseMutation } from '@/entities/planned-expense/api/useUnfinishPlannedExpenseMutation'
 import { buildPlanningTimelineMonths } from '@/entities/planned-expense/lib/buildPlanningTimelineMonths'
+import { resolveAccountingPeriodMonth } from '@/entities/income/lib/incomePeriodMonth'
 import {
   collectPlannedExpenseSwatchesByPeriodMonth,
   countPlannedExpensesByPeriodMonth,
@@ -21,13 +22,25 @@ import {
 import { currentMonthInputValue } from '@/shared/lib/date'
 
 export function usePlanningPage() {
-  const [periodMonth, setPeriodMonth] = useState(currentMonthInputValue)
+  const [pickedPeriodMonth, setPickedPeriodMonth] = useState<string | null>(null)
+  const [defaultPeriodMonth, setDefaultPeriodMonth] = useState(
+    currentMonthInputValue,
+  )
+  const periodMonth = pickedPeriodMonth ?? defaultPeriodMonth
   const plannedQuery = usePlannedExpensesQuery()
   const statusMutation = usePlannedExpenseStatusMutation()
   const unfinishMutation = useUnfinishPlannedExpenseMutation()
 
   const core = usePeriodBudgetCore(periodMonth)
   const allPlanned = plannedQuery.data ?? []
+
+  useEffect(() => {
+    if (pickedPeriodMonth !== null || core.incomesQuery.isPending) {
+      return
+    }
+
+    setDefaultPeriodMonth(resolveAccountingPeriodMonth(core.incomes))
+  }, [core.incomes, core.incomesQuery.isPending, pickedPeriodMonth])
 
   const periodPlanned = useMemo(
     () => filterPlannedExpensesByPeriodMonth(allPlanned, periodMonth),
@@ -82,7 +95,8 @@ export function usePlanningPage() {
 
   return {
     periodMonth,
-    setPeriodMonth,
+    setPeriodMonth: (nextPeriodMonth: string) =>
+      setPickedPeriodMonth(nextPeriodMonth),
     periodLabel: operationalSummary.periodLabel,
     periodPlanned,
     projection,

@@ -4,7 +4,7 @@ import { mergeBudgetMonthWithDerived } from '@/entities/budget-month/lib/mergeBu
 import type { BudgetMonthView } from '@/entities/budget-month/model/types'
 import type { Expense } from '@/entities/expense/model/types'
 import type { Income } from '@/entities/income/model/types'
-import { monthValueFromDate } from '@coffer/shared'
+import { resolveAccountingPeriodMonth } from '@/entities/income/lib/incomePeriodMonth'
 
 import type { CategoryBudgetItem } from '../model/types'
 
@@ -16,8 +16,9 @@ import {
 function dropCarryForwardForFuturePeriods(
   items: readonly CategoryBudgetItem[],
   periodMonth: string,
+  incomes: readonly Income[],
 ): CategoryBudgetItem[] {
-  const currentPeriodMonth = monthValueFromDate(new Date())
+  const currentPeriodMonth = resolveAccountingPeriodMonth(incomes)
   if (periodMonth <= currentPeriodMonth) {
     return [...items]
   }
@@ -51,7 +52,11 @@ export function resolveExpensePageBudgetItems(
     categories,
     periodMonth,
   )
-  const normalized = dropCarryForwardForFuturePeriods(resolved, periodMonth)
+  const normalized = dropCarryForwardForFuturePeriods(
+    resolved,
+    periodMonth,
+    incomes,
+  )
 
   return sortBudgetItemsForDisplay(normalized)
 }

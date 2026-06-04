@@ -8,7 +8,7 @@ import { mobileFabScrollReserveClassName } from '@/shared/ui/fab'
 
 /** Оболочка страницы: на мобилке скролл только у списка планов; на md — вся страница. */
 export const planningPageShellClassName = cn(
-  'flex min-h-0 flex-1 flex-col',
+  'flex min-h-0 min-w-0 flex-1 flex-col overflow-x-hidden',
   'max-md:overflow-hidden max-md:overscroll-none',
   'md:gap-6 md:overflow-y-auto md:overscroll-y-auto',
   'md:coffer-scroll-list md:[overflow-anchor:none]',
@@ -18,7 +18,7 @@ export const planningPageShellClassName = cn(
 
 /** Тулбар месяцев + «Новый план» — липнет к верху scrollport на десктопе. */
 export const planningPageToolbarStickyClassName = cn(
-  'hidden shrink-0 md:sticky md:top-0 md:z-10 md:block',
+  'relative hidden min-w-0 shrink-0 md:sticky md:top-0 md:z-10 md:block',
   'md:-mx-1 md:bg-background md:px-1 md:pb-4 md:pt-0.5',
   "md:before:pointer-events-none md:before:absolute md:before:inset-x-0 md:before:-top-6 md:before:h-6 md:before:bg-background md:before:content-['']",
 )

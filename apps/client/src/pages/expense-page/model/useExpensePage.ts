@@ -6,6 +6,7 @@ import { usePeriodBudgetCore } from '@/entities/budget/model/usePeriodBudgetCore
 import { filterExpenseEnvelopeBudgetItems } from '@/entities/budget/lib/filterExpenseEnvelopeBudgetItems'
 import { filterExpenseCategories } from '@/entities/category/lib/filterExpenseCategories'
 import { usePlannedExpensesQuery } from '@/entities/planned-expense/api/usePlannedExpensesQuery'
+import { resolveAccountingPeriodMonth } from '@/entities/income/lib/incomePeriodMonth'
 import { currentMonthInputValue } from '@/shared/lib/date'
 
 import {
@@ -18,10 +19,22 @@ export function useExpensePage() {
     null,
   )
 
-  const [periodMonth, setPeriodMonth] = useState(currentMonthInputValue)
+  const [pickedPeriodMonth, setPickedPeriodMonth] = useState<string | null>(null)
+  const [defaultPeriodMonth, setDefaultPeriodMonth] = useState(
+    currentMonthInputValue,
+  )
+  const periodMonth = pickedPeriodMonth ?? defaultPeriodMonth
 
   const core = usePeriodBudgetCore(periodMonth)
   const plannedExpensesQuery = usePlannedExpensesQuery(periodMonth)
+
+  useEffect(() => {
+    if (pickedPeriodMonth !== null || core.incomesQuery.isPending) {
+      return
+    }
+
+    setDefaultPeriodMonth(resolveAccountingPeriodMonth(core.incomes))
+  }, [core.incomes, core.incomesQuery.isPending, pickedPeriodMonth])
 
   const expenseCategories = useMemo(
     () => filterExpenseCategories(core.categories),
@@ -104,7 +117,8 @@ export function useExpensePage() {
     selectedCategoryId,
     setSelectedCategoryId,
     periodMonth,
-    setPeriodMonth,
+    setPeriodMonth: (nextPeriodMonth: string) =>
+      setPickedPeriodMonth(nextPeriodMonth),
     expenseCategories,
     incomes: core.incomes,
     allocations: core.allocations,
