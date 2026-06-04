@@ -27,6 +27,8 @@ import {
   plannedExpenseCardStatusClassName,
   plannedExpenseCardTextClassName,
   plannedExpenseCardTitleClassName,
+  plannedExpenseCompletedBadgeClassName,
+  plannedExpenseCompletedBadgeStaticClassName,
   plannedExpensePlannedBadgeClassName,
   plannedExpensePlannedBadgeStaticClassName,
   plannedExpenseReserveMenuItemClassName,
@@ -112,7 +114,7 @@ export function PlannedExpenseCard({
     item.status === 'RESERVED' && showReservedMenu
       ? plannedExpenseReservedBadgeClassName
       : item.status === 'COMPLETED' && showCompletedMenu
-        ? plannedExpenseReservedBadgeClassName
+        ? plannedExpenseCompletedBadgeClassName
         : showPlannedMenu
           ? plannedExpensePlannedBadgeClassName
           : statusBadgeInteractiveClassName
@@ -241,7 +243,9 @@ export function PlannedExpenseCard({
             ? plannedExpenseReservedBadgeStaticClassName
             : item.status === 'PLANNED'
               ? plannedExpensePlannedBadgeStaticClassName
-              : statusBadgeStaticClassName
+              : item.status === 'COMPLETED'
+                ? plannedExpenseCompletedBadgeStaticClassName
+                : statusBadgeStaticClassName
         }
       >
         {statusLabel}

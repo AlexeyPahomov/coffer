@@ -68,3 +68,11 @@ export const plannedExpenseReservedBadgeClassName =
 /** Неактивный тег «Резерв». */
 export const plannedExpenseReservedBadgeStaticClassName =
   'rounded-md bg-orange-subtle text-orange'
+
+/** Кликабельный тег статуса «Выполнено». */
+export const plannedExpenseCompletedBadgeClassName =
+  'rounded-md bg-green-subtle text-green hover:bg-green-muted disabled:pointer-events-none disabled:opacity-50'
+
+/** Неактивный тег «Выполнено». */
+export const plannedExpenseCompletedBadgeStaticClassName =
+  'rounded-md bg-green-subtle text-green'
