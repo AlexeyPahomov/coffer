@@ -54,9 +54,19 @@ export function useCreateExpenseForm({
   const editingExpenseId = editingExpense?.id ?? null
 
   useEffect(() => {
-    setValues(resolveCreateExpenseFormValues(editingExpense))
-    setValidationError(null)
-    setTopUpError(null)
+    let cancelled = false
+    queueMicrotask(() => {
+      if (cancelled) {
+        return
+      }
+      setValues(resolveCreateExpenseFormValues(editingExpense))
+      setValidationError(null)
+      setTopUpError(null)
+    })
+
+    return () => {
+      cancelled = true
+    }
   }, [editingExpenseId, editingExpense])
 
   const budgetByCategoryId = useMemo(
@@ -90,12 +100,16 @@ export function useCreateExpenseForm({
   ])
 
   const onStressCategoryChangeRef = useRef(onStressCategoryChange)
-  onStressCategoryChangeRef.current = onStressCategoryChange
+  useEffect(() => {
+    onStressCategoryChangeRef.current = onStressCategoryChange
+  }, [onStressCategoryChange])
 
   const previewStressKey = budgetPreviewStressKey(budgetPreview)
 
   const budgetPreviewRef = useRef(budgetPreview)
-  budgetPreviewRef.current = budgetPreview
+  useEffect(() => {
+    budgetPreviewRef.current = budgetPreview
+  }, [budgetPreview])
 
   useEffect(() => {
     const frameId = requestAnimationFrame(() => {
@@ -189,7 +203,7 @@ export function useCreateExpenseForm({
       const income = pickIncomeForTopUp(incomes, allocations, topUpAmount)
       if (!income) {
         setTopUpError(
-          'Недостаточно свободных средств в доходах. Добавьте доход или освободите лимит на странице «Бюджет».',
+          'Недостаточно фактических нераспределённых средств. Получите доход или освободите деньги на странице распределения.',
         )
         return
       }
@@ -202,7 +216,7 @@ export function useCreateExpenseForm({
         })
       } catch (err) {
         setTopUpError(
-          getErrorMessage(err, 'Не удалось увеличить лимит категории'),
+          getErrorMessage(err, 'Не удалось пополнить конверт'),
         )
       }
     },

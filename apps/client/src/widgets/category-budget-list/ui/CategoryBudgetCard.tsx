@@ -63,7 +63,7 @@ export function CategoryBudgetCard({
   );
   const usage = getEnvelopeUsage(envelopeTotal, spent);
   const balanceLabel = getEnvelopeBalanceLabel(isSavings);
-  const usageCaption = 'использовано бюджета';
+  const usageCaption = 'использовано из фактического конверта';
 
   return (
     <Card

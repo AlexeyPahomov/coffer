@@ -21,7 +21,7 @@ const accentBorderClassName: Record<PlanningMetricAccent, string> = {
 
 const accentValueClassName: Record<PlanningMetricAccent, string> = {
   forecast: 'text-green',
-  pool: 'text-zinc-900',
+  pool: 'text-teal',
   income: 'text-green',
   planned: 'text-blue',
   reserved: 'text-orange',

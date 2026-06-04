@@ -1,7 +1,7 @@
 import { formatAmount } from '@/shared/lib/format'
 
 export const CURRENT_BUDGET_AVAILABLE_INFO =
-  'Доходы за месяц за вычетом уже распределённых по категориям сумм. При перерасходе конверта свободный остаток уменьшается.'
+  'Полученные доходы за вычетом денег, уже разложенных по конвертам. Ожидаемые поступления сюда не входят. При перерасходе конверта свободный остаток уменьшается.'
 
 export function buildCurrentBudgetAvailableInfo(
   carryForwardTotal: number,
@@ -25,8 +25,8 @@ export const CURRENT_BUDGET_RESERVE_MOBILE_LABEL = 'Накопления'
 
 export const CURRENT_BUDGET_METRIC_COPY = {
   available: {
-    title: 'Доступно',
-    caption: 'Свободный остаток в месяце',
+    title: 'Нераспределено',
+    caption: 'Фактический свободный пул',
   },
   reserve: {
     desktopTitle: CURRENT_BUDGET_RESERVE_LABEL,
@@ -35,7 +35,7 @@ export const CURRENT_BUDGET_METRIC_COPY = {
     infoText: CURRENT_BUDGET_RESERVE_INFO,
   },
   spent: {
-    desktopTitle: 'Потрачено в месяце',
+    desktopTitle: 'Фактически потрачено',
     mobileTitle: 'Потрачено',
     caption: 'Фактические расходы',
     infoText: 'Сумма проведённых трат за выбранный месяц.',

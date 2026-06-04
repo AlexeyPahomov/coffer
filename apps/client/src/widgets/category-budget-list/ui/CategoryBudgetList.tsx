@@ -70,10 +70,10 @@ export function CategoryBudgetList({
       error={error}
       data={budgetItems}
       isFetching={isFetching}
-      title={hideListTitle ? undefined : 'По категориям'}
+      title={hideListTitle ? undefined : 'Конверты'}
       headerEnd={headerEnd}
       emptyMessage="Нет категорий расходов."
-      errorFallback="Не удалось загрузить бюджет"
+      errorFallback="Не удалось загрузить конверты"
     >
       {(items) =>
         items.map((item) => {

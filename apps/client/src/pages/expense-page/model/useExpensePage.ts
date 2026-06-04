@@ -5,7 +5,6 @@ import { toCurrentBudgetSummaryView } from '@/entities/budget/lib/toCurrentBudge
 import { usePeriodBudgetCore } from '@/entities/budget/model/usePeriodBudgetCore'
 import { filterExpenseEnvelopeBudgetItems } from '@/entities/budget/lib/filterExpenseEnvelopeBudgetItems'
 import { filterExpenseCategories } from '@/entities/category/lib/filterExpenseCategories'
-import { usePlannedExpensesQuery } from '@/entities/planned-expense/api/usePlannedExpensesQuery'
 import { resolveAccountingPeriodMonth } from '@/entities/income/lib/incomePeriodMonth'
 import { currentMonthInputValue } from '@/shared/lib/date'
 
@@ -26,14 +25,22 @@ export function useExpensePage() {
   const periodMonth = pickedPeriodMonth ?? defaultPeriodMonth
 
   const core = usePeriodBudgetCore(periodMonth)
-  const plannedExpensesQuery = usePlannedExpensesQuery(periodMonth)
 
   useEffect(() => {
     if (pickedPeriodMonth !== null || core.incomesQuery.isPending) {
       return
     }
 
-    setDefaultPeriodMonth(resolveAccountingPeriodMonth(core.incomes))
+    let cancelled = false
+    queueMicrotask(() => {
+      if (!cancelled) {
+        setDefaultPeriodMonth(resolveAccountingPeriodMonth(core.incomes))
+      }
+    })
+
+    return () => {
+      cancelled = true
+    }
   }, [core.incomes, core.incomesQuery.isPending, pickedPeriodMonth])
 
   const expenseCategories = useMemo(
@@ -48,10 +55,21 @@ export function useExpensePage() {
 
   useEffect(() => {
     if (
-      selectedCategoryId != null &&
-      !budgetItems.some((item) => item.category.id === selectedCategoryId)
+      selectedCategoryId == null ||
+      budgetItems.some((item) => item.category.id === selectedCategoryId)
     ) {
-      setSelectedCategoryId(null)
+      return
+    }
+
+    let cancelled = false
+    queueMicrotask(() => {
+      if (!cancelled) {
+        setSelectedCategoryId(null)
+      }
+    })
+
+    return () => {
+      cancelled = true
     }
   }, [budgetItems, selectedCategoryId])
 
@@ -63,7 +81,6 @@ export function useExpensePage() {
         core.allocations,
         core.expenses,
         periodMonth,
-        plannedExpensesQuery.data ?? [],
       ),
     [
       core.budgetItems,
@@ -71,7 +88,6 @@ export function useExpensePage() {
       core.allocations,
       core.expenses,
       periodMonth,
-      plannedExpensesQuery.data,
     ],
   )
 

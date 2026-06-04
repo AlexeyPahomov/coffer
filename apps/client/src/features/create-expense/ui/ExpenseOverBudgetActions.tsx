@@ -50,14 +50,14 @@ export function ExpenseOverBudgetActions({
                   variant="outline"
                   size="default"
                   disabled={!canTopUp || actionsDisabled}
-                  aria-label={`Добавить к лимиту: +${formatAmount(amount)}`}
+                  aria-label={`Пополнить конверт: +${formatAmount(amount)}`}
                   onClick={() => onQuickTopUp(amount)}
                 >
                   +{formatAmount(amount)}
                 </Button>
               </span>
             </TooltipTrigger>
-            <TooltipContent>Добавить к лимиту</TooltipContent>
+            <TooltipContent>Пополнить конверт</TooltipContent>
           </Tooltip>
         ))}
         <Button
@@ -67,7 +67,7 @@ export function ExpenseOverBudgetActions({
           disabled={actionsDisabled}
           asChild
         >
-          <Link to={appRouteHref('allocation')}>Изменить лимит</Link>
+          <Link to={appRouteHref('allocation')}>Пополнить конверт</Link>
         </Button>
       </div>
 
@@ -75,7 +75,7 @@ export function ExpenseOverBudgetActions({
         <p className="text-sm text-red">{topUpError}</p>
       ) : !canTopUp && !savingsTransfer ? (
         <p className="text-sm text-orange">
-          Нет свободных средств в доходах для быстрого пополнения.
+          Нет фактических нераспределённых средств для быстрого пополнения.
         </p>
       ) : null}
     </div>

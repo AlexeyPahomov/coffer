@@ -4,7 +4,7 @@ import { sumAllocatedByIncome } from '@/entities/allocation/lib/sumAllocatedByIn
 import { toMoneyNumber } from '@/shared/lib/money'
 import { isReceivedIncome } from '@/entities/income/lib/incomeStatus'
 
-/** Доход с максимальным свободным остатком, достаточным для пополнения лимита. */
+/** Полученный доход с максимальным свободным остатком для пополнения конверта. */
 export function pickIncomeForTopUp(
   incomes: readonly Income[],
   allocations: readonly Allocation[],

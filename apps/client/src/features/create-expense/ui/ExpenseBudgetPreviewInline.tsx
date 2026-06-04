@@ -27,7 +27,7 @@ export function ExpenseBudgetPreviewInline({
     >
       <p className="text-muted-foreground">После операции:</p>
       <p className="mt-0.5 font-medium text-zinc-900">
-        Остаток категории:{' '}
+        Фактический остаток:{' '}
         <span
           className={cn(
             'tabular-nums font-bold',
