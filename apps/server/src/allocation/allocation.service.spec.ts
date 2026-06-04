@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { Test, TestingModule } from '@nestjs/testing';
+import { BudgetMonthService } from '../budget/budget-month.service';
+import { BudgetProjectorService } from '../budget/budget-projector.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { AllocationService } from './allocation.service';
 
@@ -18,6 +20,19 @@ describe('AllocationService', () => {
               findMany: jest.fn(),
               create: jest.fn(),
             },
+          },
+        },
+        {
+          provide: BudgetMonthService,
+          useValue: {
+            ensurePeriodOpen: jest.fn(),
+          },
+        },
+        {
+          provide: BudgetProjectorService,
+          useValue: {
+            onAllocationCreated: jest.fn(),
+            onAllocationUpdated: jest.fn(),
           },
         },
       ],

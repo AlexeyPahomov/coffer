@@ -1,4 +1,4 @@
-import { isIncomeType, parseMoneyInput } from '@coffer/shared'
+import { isIncomeStatus, isIncomeType, parseMoneyInput } from '@coffer/shared'
 
 import { parseDateInputValue } from '@/shared/lib/date'
 
@@ -23,12 +23,17 @@ export function validateIncomeForm(
     return { ok: false as const, error: 'Выберите тип дохода' }
   }
 
+  if (!isIncomeStatus(values.status)) {
+    return { ok: false as const, error: 'Выберите статус дохода' }
+  }
+
   return {
     ok: true as const,
     payload: {
       amount: parsed,
       source: values.source.trim() || undefined,
       income_type: values.income_type,
+      status: values.status,
       period_month,
     },
   }

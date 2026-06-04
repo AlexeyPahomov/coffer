@@ -1,4 +1,4 @@
-import type { IncomeType } from '@coffer/shared'
+import type { IncomeStatus, IncomeType } from '@coffer/shared'
 
 /** Ответ API (Prisma Decimal в JSON приходит строкой). */
 export type Income = {
@@ -7,6 +7,7 @@ export type Income = {
   amount: string
   source: string | null
   income_type: IncomeType
+  status: IncomeStatus
   period_month: string
   created_at: string
 }
@@ -17,6 +18,7 @@ export type CreateIncomePayload = {
   amount: number
   source?: string
   income_type?: IncomeType
+  status?: IncomeStatus
   period_month: string
 }
 

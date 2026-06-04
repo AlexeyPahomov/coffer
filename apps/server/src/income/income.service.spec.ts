@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { Test, TestingModule } from '@nestjs/testing';
+import { BudgetMonthService } from '../budget/budget-month.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { IncomeService } from './income.service';
 
@@ -17,9 +18,11 @@ describe('IncomeService', () => {
               create: jest.fn(),
               findMany: jest.fn(),
               findFirst: jest.fn(),
+              update: jest.fn(),
               delete: jest.fn(),
             },
             allocation: {
+              count: jest.fn(),
               deleteMany: jest.fn(),
             },
             $transaction: jest.fn(
@@ -35,6 +38,12 @@ describe('IncomeService', () => {
                 return fn(tx);
               },
             ),
+          },
+        },
+        {
+          provide: BudgetMonthService,
+          useValue: {
+            rebuildFrom: jest.fn(),
           },
         },
       ],

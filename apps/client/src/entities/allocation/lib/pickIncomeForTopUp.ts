@@ -2,6 +2,7 @@ import type { Allocation } from '@/entities/allocation/model/types'
 import type { Income } from '@/entities/income/model/types'
 import { sumAllocatedByIncome } from '@/entities/allocation/lib/sumAllocatedByIncome'
 import { toMoneyNumber } from '@/shared/lib/money'
+import { isReceivedIncome } from '@/entities/income/lib/incomeStatus'
 
 /** Доход с максимальным свободным остатком, достаточным для пополнения лимита. */
 export function pickIncomeForTopUp(
@@ -17,6 +18,10 @@ export function pickIncomeForTopUp(
   let best: { incomeId: string; remaining: number } | null = null
 
   for (const income of incomes) {
+    if (!isReceivedIncome(income)) {
+      continue
+    }
+
     const remaining =
       toMoneyNumber(income.amount) - (allocatedByIncome.get(income.id) ?? 0)
     if (remaining >= topUpAmount) {

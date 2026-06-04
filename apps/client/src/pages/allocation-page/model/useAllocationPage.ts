@@ -9,6 +9,7 @@ import { sumAllocationAmounts } from '@/entities/allocation/model/calculations'
 import { useCategoriesQuery } from '@/entities/category/api/useCategoriesQuery'
 import { isBudgetEnvelopeCategory } from '@/entities/category/lib/categoryKind'
 import { useIncomesQuery } from '@/entities/income/api/useIncomesQuery'
+import { filterReceivedIncomes } from '@/entities/income/lib/incomeStatus'
 import { buildAllocationIncomeCards } from '@/pages/allocation-page/lib/buildAllocationIncomeCards'
 import {
   filterIncomesByPeriodMonth,
@@ -26,7 +27,10 @@ export function useAllocationPage() {
   const allAllocationsQuery = useAllAllocationsQuery()
   const categoriesQuery = useCategoriesQuery()
 
-  const incomes = incomesQuery.data ?? []
+  const incomes = useMemo(
+    () => filterReceivedIncomes(incomesQuery.data ?? []),
+    [incomesQuery.data],
+  )
 
   const allocatedByIncome = useMemo(
     () => sumAllocatedByIncome(allAllocationsQuery.data ?? []),

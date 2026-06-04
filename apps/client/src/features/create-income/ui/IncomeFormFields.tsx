@@ -12,6 +12,7 @@ import {
 import type { IncomeFormController } from '../model/useIncomeForm'
 
 import { IncomeFormDatePicker } from './IncomeFormDatePicker'
+import { IncomeFormStatusSelect } from './IncomeFormStatusSelect'
 import { IncomeFormTypeSelect } from './IncomeFormTypeSelect'
 
 export type IncomeFormFieldsProps = {
@@ -49,6 +50,12 @@ export function IncomeFormFields({
         onChange={(income_type) =>
           form.patchValues({ income_type })
         }
+        disabled={form.submitting}
+      />
+
+      <IncomeFormStatusSelect
+        value={form.values.status}
+        onChange={(status) => form.patchValues({ status })}
         disabled={form.submitting}
       />
 

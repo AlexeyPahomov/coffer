@@ -33,6 +33,9 @@ export class AllocationService {
     if (!income) {
       throw new BadRequestException('Income not found');
     }
+    if (income.status !== 'RECEIVED') {
+      throw new BadRequestException('Expected income cannot be allocated');
+    }
 
     return income;
   }

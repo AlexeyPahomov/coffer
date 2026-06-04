@@ -41,4 +41,13 @@ export class BudgetMonthController {
   ) {
     return this.budgetMonthService.open(this.resolveUserId(userId), period);
   }
+
+  @Post(':period/rebuild-from')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async rebuildFrom(
+    @Param('period') period: string,
+    @Query('user_id') userId: string | undefined,
+  ): Promise<void> {
+    await this.budgetMonthService.rebuildFrom(this.resolveUserId(userId), period);
+  }
 }

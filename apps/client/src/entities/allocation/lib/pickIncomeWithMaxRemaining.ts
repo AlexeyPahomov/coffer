@@ -1,5 +1,6 @@
 import type { Income } from '@/entities/income/model/types'
 import { toMoneyNumber } from '@/shared/lib/money'
+import { isReceivedIncome } from '@/entities/income/lib/incomeStatus'
 
 /** Доход с наибольшим нераспределённым остатком. */
 export function pickIncomeWithMaxRemaining(
@@ -10,10 +11,14 @@ export function pickIncomeWithMaxRemaining(
     return null
   }
 
-  let bestId = incomes[0].id
+  let bestId: string | null = null
   let bestRemaining = -Infinity
 
   for (const income of incomes) {
+    if (!isReceivedIncome(income)) {
+      continue
+    }
+
     const remaining =
       toMoneyNumber(income.amount) - (allocatedByIncome.get(income.id) ?? 0)
 

@@ -1,5 +1,6 @@
 import type { Allocation } from '@/entities/allocation/model/types'
 import { toMoneyNumber } from '@/shared/lib/money'
+import { isReceivedIncome } from '@/entities/income/lib/incomeStatus'
 
 import { isAllocationAlignedWithIncome } from './getAllocationPeriodMonthKey'
 
@@ -12,6 +13,10 @@ export function sumAllocatedByIncome(
   const totals = new Map<string, number>()
 
   for (const row of allocations) {
+    if (!isReceivedIncome(row.income)) {
+      continue
+    }
+
     if (!isAllocationAlignedWithIncome(row)) {
       continue
     }

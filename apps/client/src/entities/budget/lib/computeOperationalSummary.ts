@@ -7,6 +7,8 @@ import type { Income } from '@/entities/income/model/types'
 import type { PlannedExpense } from '@/entities/planned-expense/model/types'
 import { buildMonthProjection } from '@coffer/planning-core'
 import { sumMoneyAmounts } from '@coffer/shared'
+import { filterReceivedIncomes } from '@/entities/income/lib/incomeStatus'
+import { filterReceivedAllocations } from '@/entities/allocation/lib/filterReceivedAllocations'
 
 import type { CategoryBudgetItem } from '../model/types'
 import type { OperationalSummary } from '../model/operationalSummary'
@@ -43,8 +45,12 @@ export function computeOperationalSummary(
   periodMonth: string,
   plannedExpenses: readonly PlannedExpense[] = [],
 ): OperationalSummary {
-  const periodIncomes = filterIncomesByPeriod(incomes, periodMonth)
-  const periodAllocations = filterAllocationsByPeriod(allocations, periodMonth)
+  const periodIncomes = filterReceivedIncomes(
+    filterIncomesByPeriod(incomes, periodMonth),
+  )
+  const periodAllocations = filterReceivedAllocations(
+    filterAllocationsByPeriod(allocations, periodMonth),
+  )
   const periodExpenses = filterExpensesByPeriod(expenses, periodMonth)
 
   const incomeTotal = sumMoneyAmounts(

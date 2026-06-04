@@ -6,9 +6,26 @@ import {
 import type { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
+type AllocationRebuildRow = {
+  category_id: string;
+  amount: { toString(): string };
+  period_month: Date;
+  income: { status: string };
+};
+
 @Injectable()
 export class BudgetRebuildService {
   constructor(private readonly prisma: PrismaService) {}
+
+  private mapReceivedAllocations(allocations: readonly AllocationRebuildRow[]) {
+    return allocations
+      .filter((a) => a.income.status === 'RECEIVED')
+      .map((a) => ({
+        category_id: a.category_id,
+        amount: a.amount.toString(),
+        period_month: a.period_month.toISOString(),
+      }));
+  }
 
   async loadRebuildInputs(userId: string) {
     const categories = await this.prisma.category.findMany({
@@ -16,6 +33,7 @@ export class BudgetRebuildService {
     });
     const allocations = await this.prisma.allocation.findMany({
       where: { user_id: userId },
+      include: { income: true },
     });
     const expenses = await this.prisma.expense.findMany({
       where: { user_id: userId },
@@ -23,11 +41,7 @@ export class BudgetRebuildService {
 
     return {
       categories: categories.map((c) => ({ id: c.id, type: c.type })),
-      allocations: allocations.map((a) => ({
-        category_id: a.category_id,
-        amount: a.amount.toString(),
-        period_month: a.period_month.toISOString(),
-      })),
+      allocations: this.mapReceivedAllocations(allocations),
       expenses: expenses.map((e) => ({
         category_id: e.category_id,
         amount: e.amount.toString(),
@@ -59,6 +73,7 @@ export class BudgetRebuildService {
     });
     const allocations = await tx.allocation.findMany({
       where: { user_id: userId },
+      include: { income: true },
     });
     const expenses = await tx.expense.findMany({
       where: { user_id: userId },
@@ -66,11 +81,7 @@ export class BudgetRebuildService {
 
     return computeCategoryBudgetsForPeriod(
       categories.map((c) => ({ id: c.id, type: c.type })),
-      allocations.map((a) => ({
-        category_id: a.category_id,
-        amount: a.amount.toString(),
-        period_month: a.period_month.toISOString(),
-      })),
+      this.mapReceivedAllocations(allocations),
       expenses.map((e) => ({
         category_id: e.category_id,
         amount: e.amount.toString(),

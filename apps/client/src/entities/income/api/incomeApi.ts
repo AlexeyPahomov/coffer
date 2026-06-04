@@ -1,4 +1,4 @@
-import { resolveIncomeType } from '@coffer/shared'
+import { resolveIncomeStatus, resolveIncomeType } from '@coffer/shared'
 import type {
   CreateIncomePayload,
   Income,
@@ -12,6 +12,7 @@ function normalizeIncome(income: Income): Income {
   return {
     ...income,
     income_type: resolveIncomeType(income.income_type),
+    status: resolveIncomeStatus(income.status),
   }
 }
 

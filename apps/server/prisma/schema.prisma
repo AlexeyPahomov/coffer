@@ -31,22 +31,30 @@ enum CarryOverPolicy {
   TRANSFER_TO_FREE
 }
 
+enum IncomeStatus {
+  RECEIVED
+  EXPECTED
+}
+
 model Income {
-  id            String   @id @default(uuid())
-  user_id       String
-  amount        Decimal
-  source        String?
-  income_type   String   @default("salary")
-  period_month  DateTime
-  created_at    DateTime @default(now())
+  id           String       @id @default(uuid())
+  user_id      String
+  amount       Decimal
+  source       String?
+  income_type  String       @default("salary")
+  status       IncomeStatus @default(RECEIVED)
+  period_month DateTime
+  created_at   DateTime     @default(now())
 
   allocations Allocation[]
+
+  @@index([user_id, status])
 }
 
 model Category {
-  id         String   @id @default(uuid())
-  user_id    String
-  name       String
+  id                String          @id @default(uuid())
+  user_id           String
+  name              String
   type              String
   icon              String          @default("shopping-cart")
   icon_color        String          @default("purple")
@@ -60,16 +68,16 @@ model Category {
 }
 
 model Allocation {
-  id            String         @id @default(uuid())
-  user_id       String
-  income_id     String
-  income        Income         @relation(fields: [income_id], references: [id])
-  category_id   String
-  category      Category       @relation(fields: [category_id], references: [id])
-  amount        Decimal
-  type          AllocationType @default(INCOME_ASSIGNMENT)
-  period_month  DateTime
-  created_at    DateTime       @default(now())
+  id           String         @id @default(uuid())
+  user_id      String
+  income_id    String
+  income       Income         @relation(fields: [income_id], references: [id])
+  category_id  String
+  category     Category       @relation(fields: [category_id], references: [id])
+  amount       Decimal
+  type         AllocationType @default(INCOME_ASSIGNMENT)
+  period_month DateTime
+  created_at   DateTime       @default(now())
 
   @@index([user_id, period_month])
 }
@@ -106,46 +114,46 @@ model BudgetMonth {
 }
 
 model PlannedExpense {
-  id              String               @id @default(uuid())
-  user_id         String
-  title           String
-  description     String?
-  icon_name       String               @default("gift")
-  icon_color      String               @default("purple")
-  amount          Decimal
-  reserved_amount Decimal              @default(0)
-  planned_date    DateTime
-  planned_date_end DateTime?
-  status          PlannedExpenseStatus @default(PLANNED)
-  category_id     String?
-  category        Category?            @relation(fields: [category_id], references: [id])
-  budget_month_id String
-  budgetMonth     BudgetMonth          @relation(fields: [budget_month_id], references: [id], onDelete: Cascade)
-  completed_expense_id String?         @unique @db.Uuid
-  completedExpense     Expense?        @relation(fields: [completed_expense_id], references: [id], onDelete: SetNull)
-  created_at      DateTime             @default(now())
-  updated_at      DateTime             @updatedAt
+  id                   String               @id @default(uuid())
+  user_id              String
+  title                String
+  description          String?
+  icon_name            String               @default("gift")
+  icon_color           String               @default("purple")
+  amount               Decimal
+  reserved_amount      Decimal              @default(0)
+  planned_date         DateTime
+  planned_date_end     DateTime?
+  status               PlannedExpenseStatus @default(PLANNED)
+  category_id          String?
+  category             Category?            @relation(fields: [category_id], references: [id])
+  budget_month_id      String
+  budgetMonth          BudgetMonth          @relation(fields: [budget_month_id], references: [id], onDelete: Cascade)
+  completed_expense_id String?              @unique @db.Uuid
+  completedExpense     Expense?             @relation(fields: [completed_expense_id], references: [id], onDelete: SetNull)
+  created_at           DateTime             @default(now())
+  updated_at           DateTime             @updatedAt
 
   @@index([user_id, budget_month_id])
   @@index([budget_month_id, status])
 }
 
 model CategoryMonthSnapshot {
-  id              String   @id @default(uuid())
+  id              String      @id @default(uuid())
   budget_month_id String
   budgetMonth     BudgetMonth @relation(fields: [budget_month_id], references: [id], onDelete: Cascade)
   category_id     String
-  category        Category @relation(fields: [category_id], references: [id])
+  category        Category    @relation(fields: [category_id], references: [id])
   user_id         String
   year            Int
   month           Int
-  opening_balance Decimal  @default(0)
-  allocated       Decimal  @default(0)
-  spent           Decimal  @default(0)
-  closing_balance Decimal  @default(0)
-  version         Int      @default(0)
-  created_at      DateTime @default(now())
-  updated_at      DateTime @updatedAt
+  opening_balance Decimal     @default(0)
+  allocated       Decimal     @default(0)
+  spent           Decimal     @default(0)
+  closing_balance Decimal     @default(0)
+  version         Int         @default(0)
+  created_at      DateTime    @default(now())
+  updated_at      DateTime    @updatedAt
 
   @@unique([budget_month_id, category_id])
   @@index([user_id, year, month])
@@ -153,8 +161,8 @@ model CategoryMonthSnapshot {
 }
 
 model MonthCloseReport {
-  id                  String    @id @default(uuid())
-  budget_month_id     String    @unique
+  id                  String      @id @default(uuid())
+  budget_month_id     String      @unique
   budgetMonth         BudgetMonth @relation(fields: [budget_month_id], references: [id], onDelete: Cascade)
   income_total        Decimal
   spent_total         Decimal
@@ -162,6 +170,6 @@ model MonthCloseReport {
   overspent_total     Decimal
   carry_forward_total Decimal
   warnings_json       Json?
-  closed_at           DateTime  @default(now())
-  created_at          DateTime  @default(now())
+  closed_at           DateTime    @default(now())
+  created_at          DateTime    @default(now())
 }

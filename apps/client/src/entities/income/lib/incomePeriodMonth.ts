@@ -2,6 +2,7 @@ import { getMonthKeyFromIso } from '@coffer/shared'
 
 import type { Income } from '@/entities/income/model/types'
 import { dateInputValueFromDate, monthValueFromDate } from '@/shared/lib/date'
+import { isReceivedIncome } from './incomeStatus'
 
 export function getIncomePeriodMonth(income: Income): string {
   return getMonthKeyFromIso(income.period_month) ?? income.period_month
@@ -33,6 +34,10 @@ export function resolveAccountingPeriodMonth(
 
   const today = dateInputValueFromDate(referenceDate)
   const hasCurrentMonthIncome = incomes.some((income) => {
+    if (!isReceivedIncome(income)) {
+      return false
+    }
+
     const incomeDate = incomeDateInputValue(income)
 
     return (

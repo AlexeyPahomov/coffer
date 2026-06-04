@@ -7,7 +7,12 @@ import {
   categoryCardPressingClassName,
 } from '@/entities/category/lib/categoryTileLayout'
 import { getIncomeTypeUi } from '@/entities/income/lib/incomeTypeUi'
-import { resolveIncomeType } from '@coffer/shared'
+import {
+  INCOME_STATUS_LABELS,
+  resolveIncomeStatus,
+  resolveIncomeType,
+} from '@coffer/shared'
+import { isReceivedIncome } from '@/entities/income/lib/incomeStatus'
 import { formatAmount, formatDateLabel } from '@/shared/lib/format'
 import { useCardActivate } from '@/shared/hooks/use-card-activate'
 import { useLongPress } from '@/shared/hooks/use-long-press'
@@ -28,6 +33,8 @@ export function IncomeEntryCard({
   isDeleting = false,
 }: IncomeEntryCardProps) {
   const incomeType = resolveIncomeType(income.income_type)
+  const incomeStatus = resolveIncomeStatus(income.status)
+  const isExpected = !isReceivedIncome(income)
   const typeUi = getIncomeTypeUi(incomeType)
   const title = income.source?.trim() || typeUi.label
   const { Icon } = typeUi
@@ -54,6 +61,7 @@ export function IncomeEntryCard({
     <article
       className={cn(
         'flex items-center gap-3 rounded-xl border border-zinc-200/80 bg-white px-3 py-2.5 shadow-sm ring-1 ring-transparent transition-[box-shadow,transform,background-color]',
+        isExpected && 'bg-zinc-50 text-zinc-500',
         isEditable && categoryCardPressableClassName,
         isEditable && 'cursor-pointer hover:shadow-md',
         isPressing && categoryCardPressingClassName,
@@ -73,7 +81,9 @@ export function IncomeEntryCard({
 
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-semibold text-zinc-900">{title}</p>
-        <p className="truncate text-xs text-zinc-500">{typeUi.subtitle}</p>
+        <p className="truncate text-xs text-zinc-500">
+          {typeUi.subtitle} · {INCOME_STATUS_LABELS[incomeStatus]}
+        </p>
       </div>
 
       <div className="flex shrink-0 flex-col items-end gap-0.5">
