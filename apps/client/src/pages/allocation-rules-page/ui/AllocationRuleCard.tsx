@@ -16,7 +16,10 @@ import {
   DropdownMenuTrigger,
 } from '@/shared/ui'
 
-import { allocationRulesCardClassName } from '../lib/allocationRulesPageLayout'
+import {
+  allocationRulesCardClassName,
+  allocationRulesCardLinesGridClassName,
+} from '../lib/allocationRulesPageLayout'
 
 type AllocationRuleCardProps = {
   rule: AllocationRule
@@ -48,7 +51,7 @@ function AllocationRuleLineChip({
     <CategoryAmountChip
       category={line.category}
       value={lineValue(line)}
-      className="border border-white/70 transition-colors hover:border-zinc-200"
+      className="flex w-full min-w-0 border border-white/70 transition-colors hover:border-zinc-200"
       focusable
     />
   )
@@ -136,7 +139,7 @@ export function AllocationRuleCard({
           isDeleting={isDeleting}
         />
       </CardHeader>
-      <CardContent className="flex flex-wrap gap-2 pt-0">
+      <CardContent className={allocationRulesCardLinesGridClassName}>
         {rule.lines.map((line) => (
           <AllocationRuleLineChip key={line.id} line={line} />
         ))}
