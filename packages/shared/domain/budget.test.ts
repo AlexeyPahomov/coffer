@@ -83,6 +83,26 @@ describe('computeCategoryBudgetsForPeriod', () => {
     assert.equal(travel?.closingBalance, 0)
   })
 
+  it('uses income period month when allocation period month is invalid', () => {
+    const [apartment] = computeCategoryBudgetsForPeriod(
+      [{ id: 'apt', type: 'expense', carry_over_policy: 'CARRY' }],
+      [
+        {
+          category_id: 'apt',
+          amount: 7_000,
+          period_month: 'invalid',
+          income_period_month: '2026-05-01',
+        },
+      ],
+      [{ category_id: 'apt', amount: 1_000, date: '2026-05-15' }],
+      '2026-05',
+    )
+
+    assert.equal(apartment?.allocated, 7_000)
+    assert.equal(apartment?.spent, 1_000)
+    assert.equal(apartment?.closingBalance, 6_000)
+  })
+
   it('carries savings balance across months', () => {
     const [savings] = computeCategoryBudgetsForPeriod(
       [{ id: 'savings', type: 'savings', carry_over_policy: 'RESET' }],

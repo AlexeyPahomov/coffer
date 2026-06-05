@@ -32,6 +32,8 @@ export type BudgetRebuildAllocation = {
   category_id: string
   amount: MoneyInput
   period_month: string
+  /** Fallback, если `period_month` не парсится (как на странице «Бюджет»). */
+  income_period_month?: string | null
 }
 
 export type BudgetRebuildExpense = {
@@ -60,8 +62,19 @@ function shouldCarryOpeningBalance(category: BudgetRebuildCategory): boolean {
   return category.type === 'savings' || category.carry_over_policy === 'CARRY'
 }
 
+export function resolveAllocationPeriodMonthKey(
+  allocation: Pick<BudgetRebuildAllocation, 'period_month' | 'income_period_month'>,
+): string | undefined {
+  return (
+    getMonthKeyFromIso(allocation.period_month) ??
+    (allocation.income_period_month
+      ? getMonthKeyFromIso(allocation.income_period_month)
+      : undefined)
+  )
+}
+
 function getAllocationPeriodMonthKey(allocation: BudgetRebuildAllocation): string | undefined {
-  return getMonthKeyFromIso(allocation.period_month)
+  return resolveAllocationPeriodMonthKey(allocation)
 }
 
 function filterAllocationsByPeriod(

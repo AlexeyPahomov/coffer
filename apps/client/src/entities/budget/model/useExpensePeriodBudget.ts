@@ -5,6 +5,7 @@ import type { Allocation } from '@/entities/allocation/model/types'
 import type { Category } from '@/entities/category/model/types'
 import type { Expense } from '@/entities/expense/model/types'
 import type { Income } from '@/entities/income/model/types'
+import type { PlannedExpense } from '@/entities/planned-expense/model/types'
 import { currentMonthInputValue } from '@/shared/lib/date'
 
 import { alignFreePoolCategorySpentToPeriodMonth } from '../lib/alignFreePoolCategorySpentToPeriodMonth'
@@ -16,20 +17,20 @@ import {
   computeExpensePageOperationalSummary,
   shouldUseCycleEnvelopes,
 } from '../lib/computeExpensePageOperationalSummary'
-import { buildExpenseBudgetCaption } from '../lib/expensePageBudgetCopy'
 
 import type { CategoryBudgetItem } from './types'
 import type { OperationalSummary } from './operationalSummary'
 
 export { shouldUseCycleEnvelopes } from '../lib/computeExpensePageOperationalSummary'
 
-type UseExpensePeriodBudgetParams = {
+export type UseExpensePeriodBudgetParams = {
   periodMonth: string
   categories: readonly Category[]
   incomes: readonly Income[]
   allocations: readonly Allocation[]
   expenses: readonly Expense[]
   budgetCycle: BudgetCycleView | undefined
+  plannedExpenses?: readonly PlannedExpense[]
 }
 
 export function useExpensePeriodBudget({
@@ -39,6 +40,7 @@ export function useExpensePeriodBudget({
   allocations,
   expenses,
   budgetCycle,
+  plannedExpenses = [],
 }: UseExpensePeriodBudgetParams) {
   const useCycleEnvelopes = shouldUseCycleEnvelopes(
     periodMonth,
@@ -88,6 +90,7 @@ export function useExpensePeriodBudget({
         useCycleEnvelopes,
         allBudgetItems,
         displayBudgetItems: budgetItems,
+        plannedExpenses,
       }),
     [
       allBudgetItems,
@@ -97,19 +100,9 @@ export function useExpensePeriodBudget({
       expenses,
       incomes,
       periodMonth,
+      plannedExpenses,
       useCycleEnvelopes,
     ],
-  )
-
-  const caption = useMemo(
-    () =>
-      buildExpenseBudgetCaption(
-        periodMonth,
-        useCycleEnvelopes,
-        budgetCycle?.cycleStart,
-        budgetCycle?.cycleEnd ?? undefined,
-      ),
-    [budgetCycle, periodMonth, useCycleEnvelopes],
   )
 
   return {
@@ -117,6 +110,5 @@ export function useExpensePeriodBudget({
     allBudgetItems,
     budgetItems,
     operationalSummary,
-    caption,
   }
 }

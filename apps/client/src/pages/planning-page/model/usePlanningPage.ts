@@ -1,16 +1,13 @@
 import { useMemo, useState } from 'react'
 import type { ForecastMonth, MonthBudgetProjection } from '@/processes/forecasting'
 
-import {
-  computeOperationalSummary,
-  formatPlanningPeriodLabel,
-} from '@/entities/budget'
+import { formatPlanningPeriodLabel } from '@/entities/budget'
+import { resolveEnvelopeForecastInputs } from '@/entities/budget/lib/resolveEnvelopeForecastInputs'
 import { filterExpenseCategories } from '@/entities/category/lib/filterExpenseCategories'
 import {
   fullReserveMutationArgs,
   unreservePlannedExpenseMutationArgs,
 } from '@/entities/planned-expense/lib/fullReserveMutationArgs'
-import { usePeriodBudgetCore } from '@/entities/budget'
 import { useAllocationRulesQuery } from '@/entities/allocation-rule/api/useAllocationRulesQuery'
 import { usePlannedExpensesQuery } from '@/entities/planned-expense/api/usePlannedExpensesQuery'
 import { usePlannedExpenseStatusMutation } from '@/entities/planned-expense/api/usePlannedExpenseStatusMutation'
@@ -25,7 +22,7 @@ import { currentMonthInputValue } from '@/shared/lib/date'
 
 import { buildPlanningForecast } from '../lib/buildPlanningForecast'
 import { buildEnvelopeForecastChain } from '../lib/buildEnvelopeForecast'
-import { resolveEnvelopeForecastInputs } from '../lib/resolveEnvelopeForecastInputs'
+import { usePlanningPeriodBudget } from './usePlanningPeriodBudget'
 
 const EMPTY_PLANNED_EXPENSES: readonly [] = []
 
@@ -51,7 +48,6 @@ export function usePlanningPage() {
   const statusMutation = usePlannedExpenseStatusMutation()
   const unfinishMutation = useUnfinishPlannedExpenseMutation()
 
-  const core = usePeriodBudgetCore(periodMonth)
   const allPlanned = plannedQuery.data ?? EMPTY_PLANNED_EXPENSES
 
   const periodPlanned = useMemo(
@@ -59,29 +55,10 @@ export function usePlanningPage() {
     [allPlanned, periodMonth],
   )
 
-  const operationalSummary = useMemo(
-    () =>
-      computeOperationalSummary(
-        core.budgetItems,
-        {
-          categories: core.categories,
-          incomes: core.incomes,
-          allocations: core.allocations,
-          expenses: core.expenses,
-        },
-        periodMonth,
-        periodPlanned,
-      ),
-    [
-      core.budgetItems,
-      core.categories,
-      core.incomes,
-      core.allocations,
-      core.expenses,
-      periodMonth,
-      periodPlanned,
-    ],
-  )
+  const { core, periodBudget, budgetCycle, isBudgetLoading } =
+    usePlanningPeriodBudget(periodMonth, periodPlanned)
+
+  const operationalSummary = periodBudget.operationalSummary
 
   const timelineMonths = useMemo(
     () => buildPlanningTimelineMonths(periodMonth),
@@ -162,15 +139,17 @@ export function usePlanningPage() {
         allocations: core.allocations,
         expenses: core.expenses,
         incomes: core.incomes,
-        budgetItems: core.budgetItems,
+        periodBudgetItems: periodBudget.allBudgetItems,
+        budgetCycle,
       }),
     [
+      budgetCycle,
       core.allocations,
-      core.budgetItems,
       core.categories,
       core.expenses,
       core.incomes,
       forecastMonths,
+      periodBudget.allBudgetItems,
       periodMonth,
     ],
   )
@@ -223,6 +202,6 @@ export function usePlanningPage() {
     isLoading:
       plannedQuery.isPending ||
       allocationRulesQuery.isPending ||
-      core.isCoreLoading,
+      isBudgetLoading,
   }
 }

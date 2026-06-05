@@ -7,7 +7,6 @@ import { categoryBudgetListCompactShellClassName } from '@/widgets/category-budg
 import { CategoryBudgetList } from '@/widgets/category-budget-list';
 
 type ExpenseWorkspaceProps = {
-  cycleCaption?: string | null;
   budgetItems: CategoryBudgetItem[];
   selectedCategoryId: string | null;
   onAddExpense: () => void;
@@ -22,7 +21,6 @@ type ExpenseWorkspaceProps = {
 };
 
 export function ExpenseWorkspace({
-  cycleCaption,
   budgetItems,
   selectedCategoryId,
   onAddExpense,
@@ -47,9 +45,6 @@ export function ExpenseWorkspace({
           ),
       )}
     >
-      {cycleCaption ? (
-        <p className="mb-2 px-1 text-xs text-muted-foreground">{cycleCaption}</p>
-      ) : null}
       <CategoryBudgetList
         className={cn(
           'w-full',

@@ -16,9 +16,9 @@ export type OperationalSummary = {
   allocatedTotal: number
   /** Сумма расходов с датой в этом месяце. */
   spentThisMonth: number
-  /** Сумма opening balance по всем конвертам. */
+  /** Остаток свободного пула на начало учётного месяца (перенос с прошлых месяцев). */
   carryForwardTotal: number
-  /** Подпись предыдущего месяца для UX переноса. */
+  /** Подпись предыдущего месяца для переноса свободного пула. */
   previousPeriodLabel?: string
   /** Сумма планов со статусом PLANNED. */
   plannedTotal: number

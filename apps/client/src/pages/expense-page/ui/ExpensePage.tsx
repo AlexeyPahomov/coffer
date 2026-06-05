@@ -37,7 +37,6 @@ export function ExpensePage() {
     periodMonth,
     setPeriodMonth,
     currentBudgetView,
-    cycleCaption,
     sortedExpenses,
     isBudgetPending,
     isBudgetError,
@@ -120,7 +119,6 @@ export function ExpensePage() {
         <div className={expensePageShellWorkScrollClassName}>
           <ExpensePageWorkArea
             periodMonth={periodMonth}
-            cycleCaption={cycleCaption}
             expenseCategories={expenseCategories}
             budgetSnapshots={budgetSnapshots}
             incomes={incomes}

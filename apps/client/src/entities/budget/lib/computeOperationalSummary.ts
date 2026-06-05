@@ -5,12 +5,11 @@ import type { BudgetLedgerInput } from '../model/budgetLedgerInput'
 import type { CategoryBudgetItem } from '../model/types'
 import type { OperationalSummary } from '../model/operationalSummary'
 
-import { computeOpeningFreePoolForPeriod } from './computeFreePoolCarry'
+import { computeOpeningFreePoolForPeriod, resolveFreePoolCarryMeta } from './computeFreePoolCarry'
 import {
   computeSavingsReserveBalance,
   findSavingsCategory,
 } from './computeSavingsReserveBalance'
-import { getCarryForwardMeta } from './carryForward'
 import {
   computeFreePoolAvailableForPeriod,
   resolvePeriodLedgerTotals,
@@ -55,8 +54,10 @@ export function computeOperationalSummary(
     budgetItems,
     overrides,
   )
-  const { total: carryForwardTotal, previousPeriodLabel } =
-    getCarryForwardMeta(periodMonth, budgetItems)
+  const { carryForwardTotal, previousPeriodLabel } = resolveFreePoolCarryMeta(
+    periodMonth,
+    poolOpening,
+  )
 
   const projection = buildMonthProjection({
     available,

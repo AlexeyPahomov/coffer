@@ -4,6 +4,7 @@ import type { Expense } from '@/entities/expense/model/types'
 import type { Income } from '@/entities/income/model/types'
 import { computeCategoryBudgetsForPeriod, toBudgetRebuildCategory } from '@coffer/shared'
 import { filterReceivedAllocations } from '@/entities/allocation/lib/filterReceivedAllocations'
+import { toBudgetRebuildAllocation } from '@/entities/allocation/lib/toBudgetRebuildAllocation'
 
 import type { CategoryBudgetItem } from '../model/types'
 import type { BudgetTotals } from '../model/budgetTotals'
@@ -20,12 +21,7 @@ export function buildCategoryBudgets(
 ): CategoryBudgetItem[] {
   const rebuilt = computeCategoryBudgetsForPeriod(
     categories.map(toBudgetRebuildCategory),
-    filterReceivedAllocations(allocations)
-      .map((a) => ({
-        category_id: a.category_id,
-        amount: a.amount,
-        period_month: a.period_month,
-      })),
+    filterReceivedAllocations(allocations).map(toBudgetRebuildAllocation),
     expenses.map((e) => ({
       category_id: e.category_id,
       amount: e.amount,

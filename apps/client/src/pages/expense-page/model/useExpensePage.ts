@@ -112,7 +112,6 @@ export function useExpensePage() {
     allBudgetItems: periodBudget.allBudgetItems,
     budgetItems,
     currentBudgetView,
-    cycleCaption: periodBudget.caption,
     sortedExpenses,
     isBudgetPending,
     isBudgetError,

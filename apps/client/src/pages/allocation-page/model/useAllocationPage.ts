@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { sumMoneyAmounts } from '@coffer/shared'
 
 import { useAllAllocationsQuery } from '@/entities/allocation/api/useAllAllocationsQuery'
+import { filterReceivedAllocations } from '@/entities/allocation/lib/filterReceivedAllocations'
 import { pickIncomeWithMaxRemaining } from '@/entities/allocation/lib/pickIncomeWithMaxRemaining'
 import { resolveAllocationsForPeriodMonth } from '@/entities/allocation/lib/filterAllocationsByPeriod'
 import { sumAllocatedByIncome } from '@/entities/allocation/lib/sumAllocatedByIncome'
@@ -64,7 +65,7 @@ export function useAllocationPage() {
     }
 
     return resolveAllocationsForPeriodMonth(
-      allAllocationsQuery.data ?? [],
+      filterReceivedAllocations(allAllocationsQuery.data ?? []),
       selectedPeriodMonth,
     )
   }, [allAllocationsQuery.data, selectedPeriodMonth])

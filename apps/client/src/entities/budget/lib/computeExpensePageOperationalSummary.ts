@@ -1,4 +1,5 @@
 import type { BudgetCycleView } from '@/entities/budget-cycle/model/types'
+import type { PlannedExpense } from '@/entities/planned-expense/model/types'
 
 import type { BudgetLedgerInput } from '../model/budgetLedgerInput'
 import type { CategoryBudgetItem } from '../model/types'
@@ -14,7 +15,6 @@ import {
   computeOperationalSummary,
   sumExpenseOverspendCharge,
 } from './computeOperationalSummary'
-import { sumCarryForwardTotal } from './carryForward'
 
 export type ComputeExpensePageOperationalSummaryParams = BudgetLedgerInput & {
   periodMonth: string
@@ -23,6 +23,7 @@ export type ComputeExpensePageOperationalSummaryParams = BudgetLedgerInput & {
   allBudgetItems: readonly CategoryBudgetItem[]
   /** Конверты для отображения (после filterExpenseEnvelopeBudgetItems). */
   displayBudgetItems: readonly CategoryBudgetItem[]
+  plannedExpenses?: readonly PlannedExpense[]
 }
 
 function summarizeCycleEnvelopesWithPeriodPool(
@@ -42,7 +43,7 @@ function summarizeCycleEnvelopesWithPeriodPool(
     periodBudgetItems,
     ledger,
     params.periodMonth,
-    [],
+    params.plannedExpenses ?? [],
     {
       openingFreePool,
       freePoolExpenseTotal: computeFreePoolExpensesInPeriodMonth(
@@ -54,10 +55,7 @@ function summarizeCycleEnvelopesWithPeriodPool(
     },
   )
 
-  return {
-    ...periodSummary,
-    carryForwardTotal: sumCarryForwardTotal(params.allBudgetItems),
-  }
+  return periodSummary
 }
 
 /** Сводка страницы «Расход»: конверты по циклу или месяцу, пул — по учётному месяцу. */
@@ -84,7 +82,7 @@ export function computeExpensePageOperationalSummary(
     params.allBudgetItems,
     ledger,
     params.periodMonth,
-    [],
+    params.plannedExpenses ?? [],
     { openingFreePool },
   )
 }

@@ -15,7 +15,6 @@ import { ExpenseWorkspace } from './ExpenseWorkspace'
 
 export type ExpensePageWorkAreaPanelsProps = {
   periodMonth: string
-  cycleCaption: string | null
   expenseCategories: Category[]
   budgetSnapshots: CategoryBudgetSnapshot[]
   incomes: Income[]
@@ -57,7 +56,6 @@ type ExpensePagePanelProps = ExpensePageWorkAreaPanelsProps & {
 export function ExpensePageCategoriesPanel({
   listLayout,
   hideListTitle = false,
-  cycleCaption,
   budgetItems,
   selectedCategoryId,
   onAddExpense,
@@ -73,7 +71,6 @@ export function ExpensePageCategoriesPanel({
       <ExpenseWorkspace
         listLayout={listLayout}
         hideListTitle={hideListTitle}
-        cycleCaption={cycleCaption}
         budgetItems={budgetItems}
         selectedCategoryId={selectedCategoryId}
         onAddExpense={onAddExpense}

@@ -46,9 +46,6 @@ export function PlanningEnvelopeForecastSection({
           <h2 className={cn('text-sm font-medium text-zinc-900 sm:text-base', infoHintTitleTextClassName)}>
             Прогноз конвертов
           </h2>
-          <p className="mt-1 text-xs text-zinc-500">
-            Как активные правила могут разложить ожидаемые доходы. Факт не меняется.
-          </p>
         </div>
         <InfoHint label="Прогноз конвертов" align="end" className="shrink-0">
           <div className="space-y-2 text-sm text-zinc-600">

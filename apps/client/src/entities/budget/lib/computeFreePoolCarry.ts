@@ -8,6 +8,7 @@ import {
   collectPeriodMonthKeys,
   resolveEarliestPeriodMonth,
 } from './periodMonthKeys'
+import { formatPeriodMonthGenitive } from './periodLabels'
 
 function computeFreePoolDeltaForPeriod(
   periodMonth: string,
@@ -55,6 +56,22 @@ export function computeOpeningFreePoolForPeriod(
   }
 
   return balance
+}
+
+/** Перенос свободного пула на начало учётного месяца (для подсказки «Свободные средства»). */
+export function resolveFreePoolCarryMeta(
+  periodMonth: string,
+  poolOpening: number,
+): { carryForwardTotal: number; previousPeriodLabel?: string } {
+  const previousPeriodMonth = getPreviousPeriodMonth(periodMonth)
+
+  return {
+    carryForwardTotal: poolOpening,
+    previousPeriodLabel:
+      poolOpening !== 0 && previousPeriodMonth
+        ? formatPeriodMonthGenitive(previousPeriodMonth)
+        : undefined,
+  }
 }
 
 /** Закрытие свободных средств за учётный месяц (с переносом с прошлых месяцев). */
