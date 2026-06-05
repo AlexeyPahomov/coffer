@@ -4,7 +4,7 @@ import {
   type CategoryMonthSnapshotState,
 } from './budget.js'
 import type { CarryOverPolicy } from './category.js'
-import { getCalendarDateKey, isDateInActiveCycle } from './calendarDate.js'
+import { getCalendarDateKey, isDateInActiveCycle, subtractCalendarDays } from './calendarDate.js'
 import { getMonthKeyFromIso } from './periodMonth.js'
 import { toMoneyNumber, type MoneyInput } from '../lib/money.js'
 
@@ -280,6 +280,142 @@ export function resolveActiveIncomeCycle(
   }
 }
 
+/** Цикл расходования, активный накануне начала текущего. */
+export function resolvePreviousIncomeCycle(
+  incomes: readonly ReceivedIncomeRow[],
+  cycle: ResolvedIncomeCycle,
+  allocations: readonly BudgetCycleAllocation[],
+  closedPeriodMonths: ReadonlySet<string> = new Set(),
+): ResolvedIncomeCycle | null {
+  const asOfKey = subtractCalendarDays(cycle.cycleStart, 1)
+  if (!asOfKey) {
+    return null
+  }
+
+  return resolveActiveIncomeCycle(
+    incomes,
+    asOfKey,
+    allocations,
+    closedPeriodMonths,
+  )
+}
+
+function shouldCarryExpenseFromPreviousCycle(category: BudgetCycleCategory): boolean {
+  return category.type === 'expense' && category.carry_over_policy === 'CARRY'
+}
+
+function buildPreviousCycleCarryOpeningByCategory(
+  categories: readonly BudgetCycleCategory[],
+  allocations: readonly BudgetCycleAllocation[],
+  expenses: readonly BudgetCycleExpense[],
+  cycle: ResolvedIncomeCycle,
+  closedPeriodMonths: ReadonlySet<string>,
+  incomes: readonly ReceivedIncomeRow[],
+): Map<string, number> {
+  if (!isSettlementReceivedDate(cycle.cycleStart) || incomes.length === 0) {
+    return new Map()
+  }
+
+  const previousCycle = resolvePreviousIncomeCycle(
+    incomes,
+    cycle,
+    allocations,
+    closedPeriodMonths,
+  )
+  if (!previousCycle) {
+    return new Map()
+  }
+
+  const asOfKey = subtractCalendarDays(cycle.cycleStart, 1)
+  if (!asOfKey) {
+    return new Map()
+  }
+
+  const carryCategoryIds = new Set(
+    categories
+      .filter(shouldCarryExpenseFromPreviousCycle)
+      .map((category) => category.id),
+  )
+  if (carryCategoryIds.size === 0) {
+    return new Map()
+  }
+
+  const previousBudgets = computeCategoryBudgetsForCycle(
+    categories,
+    allocations,
+    expenses,
+    previousCycle,
+    asOfKey,
+    closedPeriodMonths,
+    incomes,
+  )
+
+  const carryByCategoryId = new Map<string, number>()
+  for (const row of previousBudgets) {
+    if (!carryCategoryIds.has(row.categoryId)) {
+      continue
+    }
+    carryByCategoryId.set(row.categoryId, row.closingBalance)
+  }
+
+  return carryByCategoryId
+}
+
+type CycleLedgerTotals = {
+  carriedFromAlloc: Map<string, number>
+  spentBefore: Map<string, number>
+  allocatedByCategory: Map<string, number>
+  spentByCategory: Map<string, number>
+  previousCycleCarryOpening: Map<string, number>
+}
+
+function prepareCycleLedgerTotals(
+  categories: readonly BudgetCycleCategory[],
+  allocations: readonly BudgetCycleAllocation[],
+  expenses: readonly BudgetCycleExpense[],
+  cycle: ResolvedIncomeCycle,
+  asOfKey: string,
+  closedPeriodMonths: ReadonlySet<string>,
+  incomes: readonly ReceivedIncomeRow[],
+): CycleLedgerTotals {
+  const priorAllocations = filterAllocationsBeforeCycle(
+    allocations,
+    cycle.cycleStart,
+  )
+  const priorExpenses = filterExpensesBeforeCycle(expenses, cycle.cycleStart)
+  const cycleAllocations = filterAllocationsInCycle(allocations, cycle)
+  const cycleExpenses = filterExpensesInCycle(expenses, cycle, asOfKey)
+
+  return {
+    carriedFromAlloc: sumByCategoryId(priorAllocations),
+    spentBefore: sumByCategoryId(priorExpenses),
+    allocatedByCategory: sumByCategoryId(cycleAllocations),
+    spentByCategory: sumByCategoryId(cycleExpenses),
+    previousCycleCarryOpening: buildPreviousCycleCarryOpeningByCategory(
+      categories,
+      allocations,
+      expenses,
+      cycle,
+      closedPeriodMonths,
+      incomes,
+    ),
+  }
+}
+
+function resolveCycleOpeningBalance(
+  category: BudgetCycleCategory,
+  totals: CycleLedgerTotals,
+): number {
+  if (shouldCarryOpeningInCycle(category)) {
+    return (
+      (totals.carriedFromAlloc.get(category.id) ?? 0) -
+      (totals.spentBefore.get(category.id) ?? 0)
+    )
+  }
+
+  return totals.previousCycleCarryOpening.get(category.id) ?? 0
+}
+
 function filterAllocationsBeforeCycle(
   allocations: readonly BudgetCycleAllocation[],
   cycleStart: string,
@@ -335,8 +471,10 @@ function filterExpensesInCycle(
 }
 
 /**
- * Конверты за активный доходный цикл: opening только у накоплений;
- * расходные конверты = распределения в цикле − траты в цикле (без переноса до аванса).
+ * Конверты за активный доходный цикл.
+ * Накопления: opening из распределений до цикла.
+ * Расходные CARRY: при старте цикла расчёта — closing предыдущего цикла.
+ * Остальные расходные: распределения в цикле − траты в цикле.
  */
 export function computeCategoryBudgetsForCycle(
   categories: readonly BudgetCycleCategory[],
@@ -345,6 +483,7 @@ export function computeCategoryBudgetsForCycle(
   cycle: ResolvedIncomeCycle,
   asOf: string,
   closedPeriodMonths: ReadonlySet<string> = new Set(),
+  incomes: readonly ReceivedIncomeRow[] = [],
 ): RebuiltCycleCategoryBudget[] {
   const asOfKey = getCalendarDateKey(asOf)
   if (!asOfKey) {
@@ -360,28 +499,22 @@ export function computeCategoryBudgetsForCycle(
     closedPeriodMonths,
   )
 
-  const priorAllocations = filterAllocationsBeforeCycle(
+  const totals = prepareCycleLedgerTotals(
+    categories,
     activeAllocations,
-    cycle.cycleStart,
+    activeExpenses,
+    cycle,
+    asOfKey,
+    closedPeriodMonths,
+    incomes,
   )
-  const priorExpenses = filterExpensesBeforeCycle(activeExpenses, cycle.cycleStart)
-  const cycleAllocations = filterAllocationsInCycle(activeAllocations, cycle)
-  const cycleExpenses = filterExpensesInCycle(activeExpenses, cycle, asOfKey)
-
-  const carriedFromAlloc = sumByCategoryId(priorAllocations)
-  const spentBefore = sumByCategoryId(priorExpenses)
-  const allocatedByCategory = sumByCategoryId(cycleAllocations)
-  const spentByCategory = sumByCategoryId(cycleExpenses)
 
   return categories
     .filter((category) => category.type !== 'income')
     .map((category) => {
-      const openingBalance = shouldCarryOpeningInCycle(category)
-        ? (carriedFromAlloc.get(category.id) ?? 0) -
-          (spentBefore.get(category.id) ?? 0)
-        : 0
-      const allocated = allocatedByCategory.get(category.id) ?? 0
-      const rawSpent = spentByCategory.get(category.id) ?? 0
+      const openingBalance = resolveCycleOpeningBalance(category, totals)
+      const allocated = totals.allocatedByCategory.get(category.id) ?? 0
+      const rawSpent = totals.spentByCategory.get(category.id) ?? 0
       const envelopeSpent = shouldAttributeExpenseToEnvelope(
         category.type,
         openingBalance,
@@ -413,6 +546,7 @@ export function computeFreePoolExpensesForCycle(
   cycle: ResolvedIncomeCycle,
   asOf: string,
   closedPeriodMonths: ReadonlySet<string> = new Set(),
+  incomes: readonly ReceivedIncomeRow[] = [],
 ): number {
   const asOfKey = getCalendarDateKey(asOf)
   if (!asOfKey) {
@@ -428,31 +562,26 @@ export function computeFreePoolExpensesForCycle(
     closedPeriodMonths,
   )
 
-  const priorAllocations = filterAllocationsBeforeCycle(
+  const totals = prepareCycleLedgerTotals(
+    categories,
     activeAllocations,
-    cycle.cycleStart,
+    activeExpenses,
+    cycle,
+    asOfKey,
+    closedPeriodMonths,
+    incomes,
   )
-  const priorExpenses = filterExpensesBeforeCycle(activeExpenses, cycle.cycleStart)
-  const cycleAllocations = filterAllocationsInCycle(activeAllocations, cycle)
-  const cycleExpenses = filterExpensesInCycle(activeExpenses, cycle, asOfKey)
-
-  const carriedFromAlloc = sumByCategoryId(priorAllocations)
-  const spentBefore = sumByCategoryId(priorExpenses)
-  const allocatedByCategory = sumByCategoryId(cycleAllocations)
   const categoryById = new Map(categories.map((category) => [category.id, category]))
 
   let total = 0
-  for (const expense of cycleExpenses) {
+  for (const expense of filterExpensesInCycle(activeExpenses, cycle, asOfKey)) {
     const category = categoryById.get(expense.category_id)
     if (!category || category.type === 'income') {
       continue
     }
 
-    const openingBalance = shouldCarryOpeningInCycle(category)
-      ? (carriedFromAlloc.get(category.id) ?? 0) -
-        (spentBefore.get(category.id) ?? 0)
-      : 0
-    const allocated = allocatedByCategory.get(category.id) ?? 0
+    const openingBalance = resolveCycleOpeningBalance(category, totals)
+    const allocated = totals.allocatedByCategory.get(category.id) ?? 0
 
     if (
       !shouldAttributeExpenseToEnvelope(

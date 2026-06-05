@@ -3,6 +3,7 @@ import {
   Calendar,
   Landmark,
   Lock,
+  PieChart,
   Plus,
   Wallet,
 } from 'lucide-react'
@@ -37,6 +38,11 @@ const nodeConfig: Record<
     icon: Plus,
     iconWrapClassName: 'bg-emerald-100 text-emerald-600',
     amountClassName: 'text-zinc-900',
+  },
+  envelopeAllocation: {
+    icon: PieChart,
+    iconWrapClassName: 'bg-violet-100 text-violet-600',
+    amountClassName: 'text-violet-700',
   },
   pool: {
     icon: Wallet,

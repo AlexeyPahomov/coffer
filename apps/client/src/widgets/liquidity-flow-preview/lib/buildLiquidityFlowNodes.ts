@@ -10,27 +10,15 @@ export type LiquidityFlowNodeData = LiquidityFlowNodeConfig & {
   amount: number
 }
 
-export type LiquidityFlowRailNodeKind = Exclude<LiquidityFlowNodeKind, 'income'>
+export type LiquidityFlowRailNodeKind = Exclude<
+  LiquidityFlowNodeKind,
+  'income' | 'envelopeAllocation'
+>
 
 export type LiquidityFlowRailNodeData = LiquidityFlowNodeConfig & {
   kind: LiquidityFlowRailNodeKind
   amount: number
 }
-
-const flowNodeKinds: LiquidityFlowNodeKind[] = [
-  'income',
-  'pool',
-  'planned',
-  'reserved',
-  'forecast',
-]
-
-const railNodeKinds: LiquidityFlowRailNodeKind[] = [
-  'pool',
-  'planned',
-  'reserved',
-  'forecast',
-]
 
 function liquidityFlowAmounts(
   projection: MonthBudgetProjection,
@@ -38,11 +26,25 @@ function liquidityFlowAmounts(
 ): Record<LiquidityFlowNodeKind, number> {
   return {
     income: expectedIncomeTotal,
+    envelopeAllocation: projection.expectedEnvelopeAllocation ?? 0,
     pool: projection.available,
     planned: projection.plannedTotal,
     reserved: projection.reservedTotal,
     forecast: projection.projectedFree,
   }
+}
+
+function resolveFlowNodeKinds(
+  amounts: Record<LiquidityFlowNodeKind, number>,
+): LiquidityFlowNodeKind[] {
+  const kinds: LiquidityFlowNodeKind[] = ['income']
+
+  if (amounts.envelopeAllocation > 0) {
+    kinds.push('envelopeAllocation')
+  }
+
+  kinds.push('pool', 'planned', 'reserved', 'forecast')
+  return kinds
 }
 
 function buildNodes<K extends LiquidityFlowNodeKind>(
@@ -63,18 +65,17 @@ export function buildLiquidityFlowNodes(
   projection: MonthBudgetProjection,
   expectedIncomeTotal = 0,
 ): LiquidityFlowNodeData[] {
-  return buildNodes(
-    flowNodeKinds,
-    liquidityFlowAmounts(projection, expectedIncomeTotal),
-  )
+  const amounts = liquidityFlowAmounts(projection, expectedIncomeTotal)
+  return buildNodes(resolveFlowNodeKinds(amounts), amounts)
 }
 
 export function buildLiquidityFlowRailNodes(
   projection: MonthBudgetProjection,
   expectedIncomeTotal = 0,
 ): LiquidityFlowRailNodeData[] {
+  const amounts = liquidityFlowAmounts(projection, expectedIncomeTotal)
   return buildNodes(
-    railNodeKinds,
-    liquidityFlowAmounts(projection, expectedIncomeTotal),
+    ['pool', 'planned', 'reserved', 'forecast'] as const,
+    amounts,
   )
 }

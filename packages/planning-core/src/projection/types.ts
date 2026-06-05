@@ -30,4 +30,6 @@ export type MonthBudgetProjection = {
   reservedTotal: number
   commitmentTotal: number
   projectedFree: number
+  /** Прогноз распределения ожидаемых доходов по конвертам (только planning UI). */
+  expectedEnvelopeAllocation?: number
 }

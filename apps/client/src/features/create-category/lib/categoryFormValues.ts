@@ -3,6 +3,7 @@ import { resolveCategoryIconKey } from '@/entities/category/lib/categoryIcons'
 import {
   DEFAULT_CATEGORY_ICON_KEY,
   DEFAULT_ICON_COLOR_KEY,
+  defaultCarryOverPolicy,
   resolveIconColorKey,
 } from '@coffer/shared'
 
@@ -14,6 +15,7 @@ export function emptyCategoryFormValues(): CategoryFormValues {
     type: 'expense',
     icon: DEFAULT_CATEGORY_ICON_KEY,
     icon_color: DEFAULT_ICON_COLOR_KEY,
+    carry_over_policy: defaultCarryOverPolicy('expense'),
   }
 }
 
@@ -33,5 +35,6 @@ export function resolveCategoryFormValues(
       category.type,
     ),
     icon_color: resolveIconColorKey(category.icon_color),
+    carry_over_policy: category.carry_over_policy,
   }
 }

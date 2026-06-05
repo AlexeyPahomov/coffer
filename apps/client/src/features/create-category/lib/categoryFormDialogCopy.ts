@@ -4,6 +4,6 @@ export function categoryFormDialogTitle(isEditing: boolean): string {
 
 export function categoryFormDialogDescription(isEditing: boolean): string {
   return isEditing
-    ? 'Измените название, тип или иконку категории.'
-    : 'Укажите название, тип и иконку новой категории.'
+    ? 'Измените название, тип, перенос остатка или иконку категории.'
+    : 'Укажите название, тип, перенос остатка и иконку новой категории.'
 }

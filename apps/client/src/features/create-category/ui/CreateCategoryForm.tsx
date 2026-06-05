@@ -1,4 +1,13 @@
-import { CATEGORY_TYPES, CATEGORY_TYPE_LABELS } from '@coffer/shared'
+import {
+  CATEGORY_TYPES,
+  CATEGORY_TYPE_LABELS,
+  CARRY_OVER_CHECKBOX_LABEL,
+  carryOverPolicyFromCheckbox,
+  carryOverPolicyHintForCheckbox,
+  defaultCarryOverPolicy,
+  isCarryOverEnabled,
+  isCategoryType,
+} from '@coffer/shared'
 
 import type { Category } from '@/entities/category/model/types'
 import { cn } from '@/shared/lib/utils'
@@ -8,6 +17,7 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
+  Checkbox,
   Input,
   Select,
 } from '@/shared/ui'
@@ -48,6 +58,8 @@ export function CreateCategoryForm({
   className,
 }: CreateCategoryFormProps) {
   const form = useCategoryForm({ editingCategory, onComplete })
+  const showCarryOverPolicy =
+    isCategoryType(form.values.type) && form.values.type === 'expense'
   const iconPicker = (
     <CategoryIconPicker
       icon={form.values.icon}
@@ -79,11 +91,45 @@ export function CreateCategoryForm({
       <Select
         id="category-type"
         value={form.values.type}
-        onValueChange={(type) => form.patchValues({ type })}
+        onValueChange={(type) => {
+          if (!isCategoryType(type)) {
+            return
+          }
+          form.patchValues({
+            type,
+            carry_over_policy: defaultCarryOverPolicy(type),
+          })
+        }}
         options={typeOptions}
         placeholder="Выберите тип"
         disabled={form.submitting}
       />
+
+      {showCarryOverPolicy ? (
+        <div className="space-y-1.5">
+          <label className="flex items-start gap-2 text-sm text-zinc-600">
+            <Checkbox
+              id="category-carry-over-policy"
+              className="mt-0.5"
+              checked={isCarryOverEnabled(form.values.carry_over_policy)}
+              disabled={form.submitting}
+              onCheckedChange={(checked) =>
+                form.patchValues({
+                  carry_over_policy: carryOverPolicyFromCheckbox(checked === true),
+                })
+              }
+            />
+            <span className="min-w-0">
+              <span className="font-medium text-zinc-800">
+                {CARRY_OVER_CHECKBOX_LABEL}
+              </span>
+              <p className="mt-1 text-xs leading-snug text-zinc-500">
+                {carryOverPolicyHintForCheckbox(form.values.carry_over_policy)}
+              </p>
+            </span>
+          </label>
+        </div>
+      ) : null}
 
       {iconPicker}
 

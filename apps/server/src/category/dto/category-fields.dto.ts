@@ -1,4 +1,5 @@
 import type {
+  CarryOverPolicy,
   CategoryIconKey,
   CategoryType,
   IconColorKey,
@@ -9,4 +10,5 @@ export class CategoryFieldsDto {
   type: CategoryType;
   icon: CategoryIconKey;
   icon_color: IconColorKey;
+  carry_over_policy?: CarryOverPolicy;
 }

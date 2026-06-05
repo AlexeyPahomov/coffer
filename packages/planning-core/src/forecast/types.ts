@@ -16,11 +16,14 @@ export type ForecastWarning = {
 export type ForecastMonth = {
   month: string
   openingBalance: number
+  /** Ожидаемые поступления (брутто, до распределения по конвертам). */
   income: number
+  /** Прогноз распределения ожидаемых доходов по конвертам. */
+  expectedEnvelopeAllocation: number
   carryOver: number
   /** Корректировки пула (например overspend charge). */
   liquidityAdjustment: number
-  /** Ликвидность до обязательств: opening + income + carryOver + adjustment. */
+  /** Ликвидность до обязательств: opening + income − envelopeAllocation + carryOver + adjustment. */
   available: number
   reserved: number
   planned: number
@@ -33,6 +36,8 @@ export type ForecastMonth = {
 export type ForecastChainMonthInput = {
   month: string
   income: number
+  /** Сумма, которая уйдёт из пула в конверты при поступлении ожидаемых доходов. */
+  expectedEnvelopeAllocation?: number
   carryOver?: number
   liquidityAdjustment?: number
   spentTotal?: number

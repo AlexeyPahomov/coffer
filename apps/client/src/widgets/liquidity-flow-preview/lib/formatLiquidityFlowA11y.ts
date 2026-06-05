@@ -2,17 +2,13 @@ import type { MonthBudgetProjection } from '@/processes/forecasting'
 
 import { formatAmount } from '@/shared/lib/format'
 
-import { liquidityFlowNodeLabels } from './liquidityFlowCopy'
+import { buildLiquidityFlowDetailLines } from './buildLiquidityFlowDetailLines'
 
 export function formatLiquidityFlowA11ySummary(
   projection: MonthBudgetProjection,
   expectedIncomeTotal = 0,
 ): string {
-  return [
-    `${liquidityFlowNodeLabels.income}: ${formatAmount(expectedIncomeTotal)}`,
-    `${liquidityFlowNodeLabels.pool}: ${formatAmount(projection.available)}`,
-    `${liquidityFlowNodeLabels.planned}: ${formatAmount(projection.plannedTotal)}`,
-    `${liquidityFlowNodeLabels.reserved}: ${formatAmount(projection.reservedTotal)}`,
-    `${liquidityFlowNodeLabels.forecast}: ${formatAmount(projection.projectedFree)}`,
-  ].join('. ')
+  return buildLiquidityFlowDetailLines(projection, expectedIncomeTotal)
+    .map((line) => `${line.label}: ${formatAmount(line.amount)}`)
+    .join('. ')
 }

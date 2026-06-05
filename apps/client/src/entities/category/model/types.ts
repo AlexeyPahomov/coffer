@@ -23,6 +23,7 @@ export type CategoryPayload = {
   type: CategoryType
   icon: CategoryIconKey
   icon_color: IconColorKey
+  carry_over_policy?: CarryOverPolicy
 }
 
 /** @deprecated Используйте CategoryPayload */

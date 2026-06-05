@@ -345,4 +345,64 @@ describe('computeCategoryBudgetsForCycle', () => {
     assert.equal(travel?.spent, 8_000)
     assert.equal(travel?.closingBalance, 0)
   })
+
+  it('carries CARRY envelope closing balance into settlement cycle', () => {
+    const incomes = [
+      {
+        id: 'may-advance',
+        status: 'RECEIVED',
+        received_at: '2026-05-22T10:00:00.000Z',
+        period_month: '2026-05-01',
+      },
+      {
+        id: 'june-settlement',
+        status: 'RECEIVED',
+        received_at: '2026-06-05T08:00:00.000Z',
+        period_month: '2026-06-01',
+      },
+    ]
+
+    const allocations = [
+      alloc({
+        category_id: 'groceries',
+        income_id: 'may-advance',
+        income_received_at: '2026-05-22',
+        amount: 72_000,
+      }),
+      alloc({
+        category_id: 'groceries',
+        income_id: 'june-settlement',
+        income_received_at: '2026-06-05',
+        income_period_month: '2026-06',
+        amount: 60_000,
+      }),
+    ]
+
+    const expenses = [
+      { category_id: 'groceries', amount: 34_000, date: '2026-05-30' },
+      { category_id: 'groceries', amount: 8_000, date: '2026-06-04' },
+      { category_id: 'groceries', amount: 9_500, date: '2026-06-06' },
+    ]
+
+    const juneCycle = {
+      incomeId: 'june-settlement',
+      cycleStart: '2026-06-05',
+      cycleEnd: null,
+    }
+
+    const [groceries] = computeCategoryBudgetsForCycle(
+      [{ id: 'groceries', type: 'expense', carry_over_policy: 'CARRY' }],
+      allocations,
+      expenses,
+      juneCycle,
+      '2026-06-06',
+      new Set(),
+      incomes,
+    )
+
+    assert.equal(groceries?.openingBalance, 30_000)
+    assert.equal(groceries?.allocated, 60_000)
+    assert.equal(groceries?.spent, 9_500)
+    assert.equal(groceries?.closingBalance, 80_500)
+  })
 })

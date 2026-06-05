@@ -146,6 +146,7 @@ export class BudgetCycleService {
       cycle,
       asOf,
       closedPeriodMonths,
+      activeIncomes,
     );
 
     const categoryById = new Map(categories.map((c) => [c.id, c]));

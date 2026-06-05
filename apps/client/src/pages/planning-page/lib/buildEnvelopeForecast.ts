@@ -154,6 +154,24 @@ function buildForecastAmountsForMonth({
   }
 }
 
+/** Сумма прогнозного распределения ожидаемых доходов по конвертам за месяц. */
+export function sumExpectedEnvelopeAllocationForMonth(
+  periodMonth: string,
+  incomes: readonly Income[],
+  rules: readonly AllocationRule[],
+): number {
+  const { forecastByCategoryId } = buildForecastAmountsForMonth({
+    periodMonth,
+    incomes,
+    rules,
+  })
+
+  return [...forecastByCategoryId.values()].reduce(
+    (sum, item) => sum + item.amount,
+    0,
+  )
+}
+
 function buildEnvelopeForecastItems(
   forecastByCategoryId: CategoryForecastAmounts,
   getCurrentRemaining: (categoryId: string) => number,

@@ -117,6 +117,33 @@ describe('buildForecastChain', () => {
     assert.equal(chain.months[0]!.available, 30_000)
   })
 
+  it('subtracts expected envelope allocation from available liquidity', () => {
+    const chain = buildForecastChain({
+      initialOpening: 20_000,
+      months: [
+        {
+          month: '2026-06',
+          income: 90_000,
+          expectedEnvelopeAllocation: 90_000,
+          commitmentRows: [
+            { amount: 40_000, reserved_amount: 0, status: 'PLANNED' },
+            { amount: 20_000, reserved_amount: 0, status: 'PLANNED' },
+            { amount: 15_000, reserved_amount: 15_000, status: 'RESERVED' },
+            { amount: 15_000, reserved_amount: 15_000, status: 'RESERVED' },
+          ],
+        },
+      ],
+    })
+
+    assert.equal(chain.months[0]!.openingBalance, 20_000)
+    assert.equal(chain.months[0]!.income, 90_000)
+    assert.equal(chain.months[0]!.expectedEnvelopeAllocation, 90_000)
+    assert.equal(chain.months[0]!.available, 20_000)
+    assert.equal(chain.months[0]!.planned, 60_000)
+    assert.equal(chain.months[0]!.reserved, 30_000)
+    assert.equal(chain.months[0]!.projectedFree, -70_000)
+  })
+
   it('flags OVERBOOKED when commitments exceed available pool', () => {
     const chain = buildForecastChain({
       months: [

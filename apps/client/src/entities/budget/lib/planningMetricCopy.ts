@@ -1,7 +1,4 @@
-import {
-  BUDGET_METRIC_LABELS,
-  POOL_AVAILABLE_NOW_LABEL,
-} from './budgetMetricLabels'
+import { BUDGET_METRIC_LABELS } from './budgetMetricLabels'
 import { formatPlanningPeriodLabel } from './periodLabels'
 
 export function planningForecastMetricTitle(periodMonth: string): string {
@@ -11,7 +8,8 @@ export function planningForecastMetricTitle(periodMonth: string): string {
 export const PLANNING_METRIC_COPY = {
   forecast: {
     caption: 'Остаток после ожидаемых поступлений и планов',
-    infoText: `${POOL_AVAILABLE_NOW_LABEL} плюс ожидаемые доходы выбранного месяца, минус запланированные траты и уже зарезервированные суммы.`,
+    infoText:
+      'Доступно сейчас плюс ожидаемые доходы, минус прогноз распределения по конвертам, минус запланированные траты и уже зарезервированные суммы.',
   },
   pool: {
     title: BUDGET_METRIC_LABELS.poolAvailableNow,
@@ -23,7 +21,7 @@ export const PLANNING_METRIC_COPY = {
     title: BUDGET_METRIC_LABELS.expectedIncome,
     caption: 'Будущие поступления',
     infoText:
-      'Доходы со статусом «Ожидается» в выбранном месяце. Они участвуют только в прогнозе, но не в фактическом бюджете.',
+      'Доходы со статусом «Ожидается» в выбранном месяце. Часть уйдёт в конверты по правилам распределения, остаток — в свободный пул.',
   },
   planned: {
     title: BUDGET_METRIC_LABELS.planned,

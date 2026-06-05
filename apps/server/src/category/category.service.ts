@@ -4,9 +4,11 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import {
+  isCarryOverPolicy,
   isCategoryIconKey,
   isCategoryType,
   isIconColorKey,
+  resolveCarryOverPolicy,
 } from '@coffer/shared';
 import { PrismaService } from '../prisma/prisma.service';
 import { CategoryFieldsDto } from './dto/category-fields.dto';
@@ -27,6 +29,12 @@ export class CategoryService {
     if (!isIconColorKey(dto.icon_color)) {
       throw new BadRequestException('Invalid category icon color');
     }
+    if (
+      dto.carry_over_policy != null &&
+      !isCarryOverPolicy(dto.carry_over_policy)
+    ) {
+      throw new BadRequestException('Invalid carry over policy');
+    }
   }
 
   private toWriteData(dto: CategoryFieldsDto) {
@@ -35,6 +43,10 @@ export class CategoryService {
       type: dto.type,
       icon: dto.icon,
       icon_color: dto.icon_color,
+      carry_over_policy: resolveCarryOverPolicy(
+        dto.type,
+        dto.carry_over_policy,
+      ),
     };
   }
 

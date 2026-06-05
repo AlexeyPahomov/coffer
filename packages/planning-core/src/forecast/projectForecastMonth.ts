@@ -15,14 +15,17 @@ export function projectForecastMonth(
   openingBalance: number,
 ): ProjectForecastMonthResult {
   const income = monthInput.income
+  const expectedEnvelopeAllocation =
+    monthInput.expectedEnvelopeAllocation ?? 0
   const carryOver = monthInput.carryOver ?? 0
   const liquidityAdjustment = monthInput.liquidityAdjustment ?? 0
-  const available = computeLiquidityAvailable({
-    openingBalance,
-    income,
-    carryOver,
-    liquidityAdjustment,
-  })
+  const available =
+    computeLiquidityAvailable({
+      openingBalance,
+      income,
+      carryOver,
+      liquidityAdjustment,
+    }) - expectedEnvelopeAllocation
 
   const commitments = sumPlannedExpenseCommitments(monthInput.commitmentRows)
   const projection = projectMonthBudget({
@@ -44,6 +47,7 @@ export function projectForecastMonth(
       month: monthInput.month,
       openingBalance,
       income,
+      expectedEnvelopeAllocation,
       carryOver,
       liquidityAdjustment,
       available,

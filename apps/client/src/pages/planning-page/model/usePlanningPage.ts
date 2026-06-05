@@ -32,15 +32,14 @@ const EMPTY_PLANNED_EXPENSES: readonly [] = []
 function forecastMonthToProjection(
   month: ForecastMonth,
 ): MonthBudgetProjection {
-  const currentPool = month.available - month.income
-
   return {
-    available: currentPool,
+    available: month.openingBalance,
     spentTotal: 0,
     plannedTotal: month.planned,
     reservedTotal: month.reserved,
     commitmentTotal: month.planned + month.reserved,
     projectedFree: month.projectedFree,
+    expectedEnvelopeAllocation: month.expectedEnvelopeAllocation,
   }
 }
 
@@ -98,9 +97,16 @@ export function usePlanningPage() {
         months: forecastMonths,
         incomes: core.incomes,
         plannedExpenses: allPlanned,
+        rules: allocationRulesQuery.data ?? [],
         initialAvailable: operationalSummary.available,
       }),
-    [allPlanned, core.incomes, forecastMonths, operationalSummary.available],
+    [
+      allPlanned,
+      allocationRulesQuery.data,
+      core.incomes,
+      forecastMonths,
+      operationalSummary.available,
+    ],
   )
   const forecastMonth = forecast.months.find(
     (month) => month.month === periodMonth,

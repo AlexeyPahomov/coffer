@@ -21,6 +21,23 @@ export function getCalendarDateKey(isoOrDate: string | Date): string | undefined
   return normalized
 }
 
+/** Календарная дата на N дней раньше (UTC). */
+export function subtractCalendarDays(
+  dateKey: string,
+  days: number,
+): string | undefined {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateKey)
+  if (!match || days < 0) {
+    return undefined
+  }
+
+  const date = new Date(
+    Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])),
+  )
+  date.setUTCDate(date.getUTCDate() - days)
+  return getCalendarDateKey(date)
+}
+
 export function isDateOnOrBefore(
   dateKey: string,
   asOfKey: string,

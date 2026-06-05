@@ -10,7 +10,7 @@ import type {
  * Последовательная цепочка ликвидности (cashflow forecasting).
  *
  * month[n + 1].openingBalance = month[n].projectedFree
- * month[n].available = opening + income + carryOver + liquidityAdjustment
+ * month[n].available = opening + income − envelopeAllocation + carryOver + liquidityAdjustment
  *
  * Не использовать независимый map(projectMonthBudget) по месяцам.
  */

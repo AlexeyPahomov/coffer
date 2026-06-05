@@ -9,6 +9,7 @@ export const BUDGET_METRIC_LABELS = {
   freeFunds: FREE_FUNDS_LABEL,
   poolAvailableNow: POOL_AVAILABLE_NOW_LABEL,
   expectedIncome: 'Ожидается',
+  expectedEnvelopeAllocation: 'В конверты',
   planned: 'В планах',
   reserved: 'Зарезервировано',
   forecastRemainder: 'Ожидаемый остаток',

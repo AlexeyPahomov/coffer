@@ -1,14 +1,18 @@
 import { buildForecastChain, type ForecastChainResult } from '@coffer/planning-core'
 
+import type { AllocationRule } from '@/entities/allocation-rule/model/types'
 import type { Income } from '@/entities/income/model/types'
 import type { PlannedExpense } from '@/entities/planned-expense/model/types'
 import { getIncomePeriodMonth } from '@/entities/income/lib/incomePeriodMonth'
 import { toMoneyNumber } from '@/shared/lib/money'
 
+import { sumExpectedEnvelopeAllocationForMonth } from './buildEnvelopeForecast'
+
 type BuildPlanningForecastInput = {
   months: readonly string[]
   incomes: readonly Income[]
   plannedExpenses: readonly PlannedExpense[]
+  rules: readonly AllocationRule[]
   initialAvailable: number
 }
 
@@ -59,6 +63,7 @@ export function buildPlanningForecast({
   months,
   incomes,
   plannedExpenses,
+  rules,
   initialAvailable,
 }: BuildPlanningForecastInput): ForecastChainResult {
   const expectedIncomeByMonth = sumExpectedIncomeByMonth(incomes)
@@ -69,6 +74,11 @@ export function buildPlanningForecast({
     months: months.map((month) => ({
       month,
       income: expectedIncomeByMonth.get(month) ?? 0,
+      expectedEnvelopeAllocation: sumExpectedEnvelopeAllocationForMonth(
+        month,
+        incomes,
+        rules,
+      ),
       commitmentRows: (plannedByMonth.get(month) ?? []).map((item) => ({
         amount: item.amount,
         reserved_amount: item.reserved_amount,
