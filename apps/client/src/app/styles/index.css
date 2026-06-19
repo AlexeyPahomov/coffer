@@ -178,30 +178,50 @@ body {
   }
 }
 
-.coffer-scroll-list {
+:root {
   --coffer-scrollbar-radius: 4px;
-  scrollbar-gutter: stable;
-  scrollbar-width: thin;
-  scrollbar-color: rgb(212 212 216) transparent;
+  --coffer-scrollbar-thumb: rgb(212 212 216);
 }
 
-.coffer-scroll-list::-webkit-scrollbar {
+/* Компактный скроллбар по всему приложению (см. .no-scrollbar для исключений). */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--coffer-scrollbar-thumb) transparent;
+}
+
+*::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 
-.coffer-scroll-list::-webkit-scrollbar-track {
+*::-webkit-scrollbar-track {
   border-radius: var(--coffer-scrollbar-radius);
   background: transparent;
 }
 
-.coffer-scroll-list::-webkit-scrollbar-thumb {
+*::-webkit-scrollbar-thumb {
   border-radius: var(--coffer-scrollbar-radius);
-  background-color: rgb(212 212 216);
+  background-color: var(--coffer-scrollbar-thumb);
 }
 
-.coffer-scroll-list::-webkit-scrollbar-corner {
+*::-webkit-scrollbar-corner {
   background: transparent;
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+/** Стабильная ширина контента при появлении вертикального скролла. */
+.coffer-scroll-list {
+  scrollbar-gutter: stable;
 }
 
 @theme inline {

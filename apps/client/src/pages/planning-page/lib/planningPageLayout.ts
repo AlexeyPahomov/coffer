@@ -11,7 +11,7 @@ export const planningPageShellClassName = cn(
   'flex min-h-0 min-w-0 flex-1 flex-col overflow-x-hidden',
   'max-md:overflow-hidden max-md:overscroll-none',
   'md:gap-6 md:overflow-y-auto md:overscroll-y-auto',
-  'md:coffer-scroll-list md:[overflow-anchor:none]',
+  'coffer-scroll-list md:[overflow-anchor:none]',
   pageScrollRingInsetClassName,
   safariIosFlexFillClassName,
 )
@@ -35,7 +35,7 @@ export const planningPageMonthTransitionClassName = cn(
 export const planningPageMonthBodyClassName = cn(
   'flex min-h-0 flex-1 flex-col gap-4 max-md:min-h-0 max-md:gap-2',
   'max-md:overflow-y-auto max-md:overscroll-y-auto',
-  'max-md:coffer-scroll-list max-md:[overflow-anchor:none]',
+  'coffer-scroll-list max-md:[overflow-anchor:none]',
   mobileFabScrollReserveClassName,
   'md:flex-none md:gap-6',
   'max-md:pe-2',
