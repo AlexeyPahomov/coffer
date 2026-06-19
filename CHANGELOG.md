@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.2.0](https://github.com/AlexeyPahomov/coffer/compare/v1.1.0...v1.2.0) (2026-06-19)
+
+
+### Features
+
+* начинаем переход на модель Транзакции → Конверты (категории) → Правила распределения → Прогнозы ([199be5b](https://github.com/AlexeyPahomov/coffer/commit/199be5b2518fd16d0ee1a421b83b819330bc6e12))
+* новая логика расчёта и переноса остатков ([5b41d4d](https://github.com/AlexeyPahomov/coffer/commit/5b41d4ddf293eb3f706db09a07a2c3735d5ae53a))
+* обернуть конверты и историю в табе на десктопе ([5a3afd1](https://github.com/AlexeyPahomov/coffer/commit/5a3afd11553648d0e7ba6108e8c1d2f6b2f4160c))
+* проведение расхода резерва ([ea77cc9](https://github.com/AlexeyPahomov/coffer/commit/ea77cc97238a3652234ee1ee32838eefac3240d7))
+* распределение дохода по шаблонам ([8421669](https://github.com/AlexeyPahomov/coffer/commit/84216690a5ddfd6d4b8d70038b6beb1e41f9e3b4))
+* расходы по фактическим остаткам ([ff0fd6b](https://github.com/AlexeyPahomov/coffer/commit/ff0fd6be008fa07f5c7a9e8e8d53e608c401a842))
+* текущий месяц считать после получения первой зп в нём ([d018dc6](https://github.com/AlexeyPahomov/coffer/commit/d018dc649e32ce32a7a653a223fedc93bef55499))
+* шаблоны распределения и preview применения после получения дохода ([f3d984c](https://github.com/AlexeyPahomov/coffer/commit/f3d984c4226424b63d4ad0aecdbebe60744d3d88))
+* ui шаблонов распределений: карточки, добавление, редактирование, удаление ([6efebc0](https://github.com/AlexeyPahomov/coffer/commit/6efebc03e7b8aac6eb7ddeafead2e7c3823cc9a8))
+
+
+### Bug Fixes
+
+* карточки шаблонов ([c64e6cf](https://github.com/AlexeyPahomov/coffer/commit/c64e6cf4b6d6c9d8a4056f34528b5ab08e35f194))
+* карусель месяцов ([2c7dcda](https://github.com/AlexeyPahomov/coffer/commit/2c7dcda08fe2ea627c0dc0c99d6bd3c6ac399977))
+* расчёт остатков ([a945e8c](https://github.com/AlexeyPahomov/coffer/commit/a945e8c8c34b99af791d02555bab43c9a11e051e))
+* скролл ([84ef0ec](https://github.com/AlexeyPahomov/coffer/commit/84ef0ec5641c099d17fc94c36516812f699ca7d7))
+* стабильность соединения с бд ([fb40bad](https://github.com/AlexeyPahomov/coffer/commit/fb40bad47c682e2e72e7c2836a425f79100ea0fe))
+* ui планирования ([3a9bb08](https://github.com/AlexeyPahomov/coffer/commit/3a9bb0880d8857b0eb4fda08d28b50a3840466cd))
+
 ## 1.1.0 (2026-05-29)
 
 
