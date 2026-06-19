@@ -1,13 +1,12 @@
 import { formatPlanningPeriodLabel } from '@/entities/budget/lib/periodLabels'
-import { cn } from '@/shared/lib/utils'
 import { Carousel, CarouselContent, CarouselItem } from '@/shared/ui'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 
 import {
   planningMonthCarouselContentClassName,
+  planningMonthCarouselItemClassName,
   planningMonthCarouselOptions,
   planningMonthCarouselViewportClassName,
-  planningMonthCardWidthClassName,
   planningMonthNavButtonClassName,
   planningMonthTimelineClassName,
 } from '../lib/planningMonthSwitcherLayout'
@@ -55,10 +54,7 @@ export function PlanningMonthTimeline({
           {carousel.months.map((month, index) => (
             <CarouselItem
               key={`planning-month-slot-${index}`}
-              className={cn(
-                'shrink-0 basis-auto pl-0',
-                planningMonthCardWidthClassName,
-              )}
+              className={planningMonthCarouselItemClassName}
             >
               <PlanningMonthCard
                 label={periodLabels[month] ?? formatPlanningPeriodLabel(month)}

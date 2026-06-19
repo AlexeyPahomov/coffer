@@ -1,19 +1,20 @@
 import type { CarouselOptions } from '@/shared/ui/carousel/carousel-context';
 
-/** Ширина одной карточки месяца в карусели. */
-export const planningMonthCardWidthClassName = 'w-[7.25rem] sm:w-[9rem]';
-
 /**
- * Viewport: на мобилке — вся доступная ширина; на десктопе ~3 карточки.
+ * Viewport карусели — занимает всё место между стрелками.
  */
 export const planningMonthCarouselViewportClassName =
-  'min-w-0 flex-1 overflow-hidden sm:w-[29rem] sm:shrink-0';
+  'min-w-0 flex-1 overflow-hidden';
 
 export const planningMonthTimelineClassName =
-  'flex w-full min-w-0 items-center gap-1.5 sm:gap-2';
+  'flex min-w-0 flex-1 items-center gap-1.5 sm:gap-2';
 
 /** Отступ между слайдами (flex gap на CarouselContent). */
-export const planningMonthCarouselContentClassName = 'ml-0 gap-3';
+export const planningMonthCarouselContentClassName = 'ml-0 gap-3 md:w-full';
+
+/** Мобилка — фиксированная ширина и горизонтальный скролл; десктоп — равномерно на всю ширину. */
+export const planningMonthCarouselItemClassName =
+  'w-[7.25rem] shrink-0 basis-auto pl-0 md:w-auto md:min-w-0 md:flex-1 md:basis-0';
 
 export const planningMonthCarouselOptions: CarouselOptions = {
   align: 'start',
@@ -30,7 +31,7 @@ export const planningMonthNavButtonClassName =
 /** Карточка месяца в переключателе (rounded-lg, как Card / кнопки расходов). */
 export function planningMonthCardClassName(active: boolean): string {
   const size =
-    'min-w-[7.25rem] flex-col items-center gap-0.5 px-3 py-1.5 text-center sm:min-w-[9rem] sm:px-4';
+    'w-full min-w-[7.25rem] flex-col items-center gap-0.5 px-3 py-1.5 text-center md:min-w-0 sm:px-4';
 
   return active
     ? `${size} rounded-lg border border-zinc-900 bg-zinc-900 text-white shadow-sm hover:border-zinc-900 hover:bg-zinc-900`
