@@ -49,7 +49,7 @@ function summarizeCycleEnvelopesWithPeriodPool(
       freePoolExpenseTotal: computeFreePoolExpensesInPeriodMonth(
         ledger.expenses,
         params.periodMonth,
-        buildEnvelopeLimitByCategoryId(params.allBudgetItems),
+        buildEnvelopeLimitByCategoryId(periodBudgetItems),
       ),
       overspendCharge: sumExpenseOverspendCharge(params.displayBudgetItems),
     },
@@ -87,10 +87,22 @@ export function computeExpensePageOperationalSummary(
   )
 }
 
+function cycleHasActiveExpenseEnvelopes(budgetCycle: BudgetCycleView): boolean {
+  return budgetCycle.snapshots.some(
+    (snap) =>
+      snap.categoryType === 'expense' &&
+      (snap.openingBalance > 0 || snap.allocated > 0),
+  )
+}
+
 export function shouldUseCycleEnvelopes(
   periodMonth: string,
   currentMonth: string,
   budgetCycle: BudgetCycleView | undefined,
 ): boolean {
-  return periodMonth === currentMonth && budgetCycle != null
+  if (periodMonth !== currentMonth || budgetCycle == null) {
+    return false
+  }
+
+  return cycleHasActiveExpenseEnvelopes(budgetCycle)
 }

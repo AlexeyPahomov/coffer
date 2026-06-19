@@ -34,24 +34,33 @@ export function buildIncomeMonthCards(
     }))
 }
 
-function compareIncomeByDateDesc(a: Income, b: Income): number {
-  const byPeriod = b.period_month.localeCompare(a.period_month)
+function incomeSortDate(income: Income): string {
+  return income.received_at ?? income.created_at
+}
+
+function compareIncomeByDateAsc(a: Income, b: Income): number {
+  const byPeriod = a.period_month.localeCompare(b.period_month)
   if (byPeriod !== 0) {
     return byPeriod
   }
 
-  return b.created_at.localeCompare(a.created_at)
+  const byDate = incomeSortDate(a).localeCompare(incomeSortDate(b))
+  if (byDate !== 0) {
+    return byDate
+  }
+
+  return a.created_at.localeCompare(b.created_at)
 }
 
-export function sortIncomesByDateDesc(incomes: readonly Income[]): Income[] {
-  return [...incomes].sort(compareIncomeByDateDesc)
+export function sortIncomesByDateAsc(incomes: readonly Income[]): Income[] {
+  return [...incomes].sort(compareIncomeByDateAsc)
 }
 
 export function filterIncomesByPeriodMonth(
   incomes: readonly Income[],
   periodMonth: string,
 ): Income[] {
-  return sortIncomesByDateDesc(
+  return sortIncomesByDateAsc(
     incomes.filter((income) => getIncomePeriodMonth(income) === periodMonth),
   )
 }

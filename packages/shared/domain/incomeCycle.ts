@@ -258,6 +258,13 @@ export function resolveActiveIncomeCycle(
   })
 
   if (cycleMembers.length === 0) {
+    if (lastSettlementBeforeAsOf) {
+      return {
+        incomeId: lastSettlementBeforeAsOf.id,
+        cycleStart: lastSettlementBeforeAsOf.received_at,
+        cycleEnd,
+      }
+    }
     return null
   }
 

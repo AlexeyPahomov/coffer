@@ -52,6 +52,32 @@ describe('resolveActiveIncomeCycle', () => {
     assert.equal(cycle?.cycleEnd, null)
   })
 
+  it('keeps settlement cycle between settlement and next advance', () => {
+    const cycle = resolveActiveIncomeCycle(salaryIncomes, '2026-06-19')
+    assert.equal(cycle?.incomeId, 'june-settlement')
+    assert.equal(cycle?.cycleStart, '2026-06-05')
+    assert.equal(cycle?.cycleEnd, null)
+  })
+
+  it('starts advance cycle when advance income arrives after settlement', () => {
+    const cycle = resolveActiveIncomeCycle(
+      [
+        ...salaryIncomes,
+        {
+          id: 'june-advance',
+          status: 'RECEIVED',
+          received_at: '2026-06-19T10:00:00.000Z',
+          period_month: '2026-06-01',
+        },
+      ],
+      '2026-06-19',
+    )
+
+    assert.equal(cycle?.incomeId, 'june-advance')
+    assert.equal(cycle?.cycleStart, '2026-06-19')
+    assert.equal(cycle?.cycleEnd, null)
+  })
+
   it('does not split cycle on extra income between advance and settlement', () => {
     const cycle = resolveActiveIncomeCycle(
       [
