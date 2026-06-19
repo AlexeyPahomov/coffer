@@ -11,6 +11,7 @@ import {
   expensePageShellWorkScrollClassName,
   getExpensePageShellClassName,
 } from '../lib/expensePageLayout';
+import { EXPENSE_ADD_LABEL } from '../lib/expensePageCopy';
 import { toBudgetSnapshots } from '../lib/toBudgetSnapshots';
 import { useExpensePageCategorySelection } from '../model/useExpensePageCategorySelection';
 import { useExpensePageOutsideInteraction } from '../model/useExpensePageOutsideInteraction';
@@ -150,7 +151,7 @@ export function ExpensePage() {
         </div>
       </div>
 
-      <Fab label="Добавить расход" onClick={expenseFormDialog.openForAdd} />
+      <Fab label={EXPENSE_ADD_LABEL} onClick={expenseFormDialog.openForAdd} />
 
       <ExpenseFormDialog
         open={expenseFormDialog.isOpen}

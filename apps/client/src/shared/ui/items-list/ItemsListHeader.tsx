@@ -25,8 +25,8 @@ export function ItemsListHeader({
   isPending,
   onTitleClick,
 }: ItemsListHeaderProps) {
-  const showHeaderRow =
-    Boolean(title) || headerEnd != null || (isFetching && !isPending)
+  const showFetchingSpinner = isFetching && !isPending
+  const showHeaderRow = Boolean(title) || headerEnd != null
 
   if (!showHeaderRow && headerAddon == null) {
     return null
@@ -47,12 +47,12 @@ export function ItemsListHeader({
             title ? 'justify-between' : 'justify-end',
           )}
         >
-          {title || (isFetching && !isPending) ? (
+          {title || (showFetchingSpinner && showHeaderRow) ? (
             <ItemsListInteractive className="flex min-w-0 items-center gap-2">
               {title ? (
                 <ItemsListTitle onClick={onTitleClick}>{title}</ItemsListTitle>
               ) : null}
-              {isFetching && !isPending ? (
+              {showFetchingSpinner ? (
                 <Spinner
                   className="size-4 shrink-0 text-zinc-500"
                   aria-label="Обновление списка"

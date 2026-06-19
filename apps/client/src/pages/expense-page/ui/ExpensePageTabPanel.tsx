@@ -35,7 +35,7 @@ export function ExpensePageTabPanel({
 
   return (
     <div
-      className={getExpensePagePanelClassName(slide, inTab)}
+      className={getExpensePagePanelClassName(inTab)}
       {...getExpensePageWorkPanelDomProps(slide)}
     >
       {content}

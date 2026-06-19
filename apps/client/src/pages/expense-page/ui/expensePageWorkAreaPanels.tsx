@@ -58,7 +58,6 @@ export function ExpensePageCategoriesPanel({
   hideListTitle = false,
   budgetItems,
   selectedCategoryId,
-  onAddExpense,
   stressCategoryId,
   onCategorySelect,
   isBudgetPending,
@@ -73,7 +72,6 @@ export function ExpensePageCategoriesPanel({
         hideListTitle={hideListTitle}
         budgetItems={budgetItems}
         selectedCategoryId={selectedCategoryId}
-        onAddExpense={onAddExpense}
         stressCategoryId={stressCategoryId}
         onCategorySelect={onCategorySelect}
         isBudgetPending={isBudgetPending}

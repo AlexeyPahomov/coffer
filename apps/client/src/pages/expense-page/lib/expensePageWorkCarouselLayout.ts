@@ -10,7 +10,7 @@ export const expensePageWorkCarouselOptions: CarouselOptions = {
 
 /** Табы + карусель: вторая строка забирает оставшуюся высоту. */
 export const expensePageWorkCarouselRootClassName =
-  'grid min-h-0 flex-1 grid-rows-[auto_minmax(0,1fr)] md:hidden';
+  'grid min-h-0 flex-1 grid-rows-[auto_minmax(0,1fr)]';
 
 export const expensePageWorkCarouselViewportClassName = cn(
   'min-h-0 h-full overflow-hidden',
@@ -25,16 +25,20 @@ export const expensePageWorkCarouselContentClassName =
 export const expensePageWorkCarouselItemClassName =
   'h-full min-h-0 min-w-0 shrink-0 grow-0 basis-full self-stretch pl-0 md:flex md:flex-col';
 
-/** Шапка табов — вне скролла списка. */
+/** Шапка табов и кнопки добавления — вне скролла списка. */
 export const expensePageWorkSwitcherBarClassName =
-  'z-10 shrink-0 max-md:px-px max-md:pe-2 max-md:pb-1 md:border-b md:border-zinc-200/80 md:pb-3';
+  'relative z-10 w-full min-h-8 shrink-0 px-px pe-2 pb-1 md:min-h-9 md:pe-0 md:pb-3';
 
-/** Сегментированный переключатель: одна тень снаружи, без обводки у сегментов. */
+/** Сегментированный переключатель: компактная ширина по содержимому. */
 export const expensePageWorkSwitcherClassName =
-  'flex w-full gap-0.5 rounded-xl bg-zinc-100/90 p-1 shadow-sm';
+  'inline-flex w-auto max-w-full gap-0.5 rounded-xl bg-zinc-100/90 p-0.5 shadow-sm';
 
 export const expensePageWorkSwitcherButtonClassName =
-  'h-9 min-h-9 min-w-0 flex-1 rounded-lg border-0 px-2 text-xs font-medium shadow-none sm:text-sm';
+  'h-8 min-h-8 rounded-lg border-0 px-3 text-xs font-medium whitespace-nowrap shadow-none sm:text-sm';
+
+/** Десктоп: кнопка поверх правого края шапки, не растягивает табы. */
+export const expensePageWorkAddButtonClassName =
+  'absolute top-0 right-0 z-10 hidden shrink-0 md:inline-flex';
 
 export const expensePageWorkSwitcherButtonActiveClassName =
   'bg-white font-semibold text-zinc-900 shadow-none hover:bg-white';

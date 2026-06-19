@@ -9,7 +9,7 @@ export type ExpensePageWorkSlideId =
 export const EXPENSE_PAGE_WORK_SLIDES = [
   {
     id: EXPENSE_PAGE_WORK_SLIDE.categories,
-    label: 'По категориям',
+    label: 'Конверты',
   },
   {
     id: EXPENSE_PAGE_WORK_SLIDE.history,
