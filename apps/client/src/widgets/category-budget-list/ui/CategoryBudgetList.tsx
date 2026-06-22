@@ -9,7 +9,7 @@ import { ItemsList } from '@/shared/ui';
 import type { ItemsListLayout } from '@/shared/ui/items-list/ItemsList';
 import { itemsListInTabUlClassName } from '@/shared/ui/items-list/itemsListLayout';
 
-import { getCategoryBudgetListGridClassName } from '../lib/categoryBudgetListLayout';
+import { categoryBudgetListGridClassName } from '../lib/categoryBudgetListLayout';
 
 import type { CategoryBudgetListItem } from '../model/types';
 
@@ -28,8 +28,6 @@ export type CategoryBudgetListProps = {
   className?: string;
   onListScroll?: UIEventHandler<HTMLUListElement>;
   onTitleClick?: () => void;
-  /** Ограничить сетку двумя рядами со скроллом (история развёрнута). */
-  limitToTwoRows?: boolean;
   layout?: ItemsListLayout;
   /** Скрыть заголовок списка (например, заголовок вынесен в табы). */
   hideListTitle?: boolean;
@@ -48,12 +46,11 @@ export function CategoryBudgetList({
   className,
   onListScroll,
   onTitleClick,
-  limitToTwoRows = false,
   layout = 'fill',
   hideListTitle = false,
 }: CategoryBudgetListProps) {
   const listClassName = cn(
-    getCategoryBudgetListGridClassName(limitToTwoRows),
+    categoryBudgetListGridClassName,
     hideListTitle && itemsListInTabUlClassName,
   );
 

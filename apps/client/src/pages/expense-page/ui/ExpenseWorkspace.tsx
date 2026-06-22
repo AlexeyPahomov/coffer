@@ -1,9 +1,9 @@
 import type { CategoryBudgetItem } from '@/entities/budget/model/types';
 import { cn } from '@/shared/lib/utils';
 import type { ItemsListLayout } from '@/shared/ui/items-list/ItemsList';
-import { expensePageListInTabClassName } from '../lib/expensePageLayout';
-import { categoryBudgetListCompactShellClassName } from '@/widgets/category-budget-list/lib/categoryBudgetListLayout';
 import { CategoryBudgetList } from '@/widgets/category-budget-list';
+
+import { expensePageListInTabClassName } from '../lib/expensePageLayout';
 
 type ExpenseWorkspaceProps = {
   budgetItems: CategoryBudgetItem[];
@@ -30,36 +30,19 @@ export function ExpenseWorkspace({
   listLayout = 'fill',
   hideListTitle = false,
 }: ExpenseWorkspaceProps) {
-  const categoriesCompact = listLayout === 'fill';
-
   return (
-    <div
-      className={cn(
-        listLayout === 'fill' &&
-          cn(
-            'flex w-full min-h-0 flex-1 flex-col overflow-hidden',
-            categoryBudgetListCompactShellClassName,
-          ),
-      )}
-    >
-      <CategoryBudgetList
-        className={cn(
-          'w-full',
-          listLayout === 'fill' && 'min-h-0 flex-1 overflow-hidden',
-          hideListTitle && expensePageListInTabClassName,
-        )}
-        layout={listLayout}
-        hideListTitle={hideListTitle}
-        limitToTwoRows={categoriesCompact}
-        budgetItems={budgetItems}
-        isPending={isBudgetPending}
-        isError={isBudgetError}
-        error={budgetError}
-        isFetching={isBudgetFetching}
-        selectedCategoryId={selectedCategoryId}
-        stressCategoryId={stressCategoryId}
-        onCategorySelect={onCategorySelect}
-      />
-    </div>
+    <CategoryBudgetList
+      className={cn('w-full', hideListTitle && expensePageListInTabClassName)}
+      layout={listLayout}
+      hideListTitle={hideListTitle}
+      budgetItems={budgetItems}
+      isPending={isBudgetPending}
+      isError={isBudgetError}
+      error={budgetError}
+      isFetching={isBudgetFetching}
+      selectedCategoryId={selectedCategoryId}
+      stressCategoryId={stressCategoryId}
+      onCategorySelect={onCategorySelect}
+    />
   );
 }

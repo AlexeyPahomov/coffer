@@ -1,6 +1,6 @@
 import { cn } from '@/shared/lib/utils'
 
-/** Высота карточки конверта на md+ (см. `categoryBudgetListTwoRowMaxHeightRem`). */
+/** Высота карточки конверта на md+. */
 export const categoryBudgetCardHeightRem = 9.5
 
 /** Компактная карточка конверта: 8.25rem на мобилке, 9.5rem на md+. */

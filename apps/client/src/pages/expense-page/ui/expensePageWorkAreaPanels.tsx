@@ -8,7 +8,10 @@ import type { ItemsListLayout } from '@/shared/ui/items-list/ItemsList'
 import type { ExpenseListItem, ExpenseListViewMode } from '@/widgets/expense-list'
 import { ExpenseList } from '@/widgets/expense-list'
 
-import { getExpensePageHistoryListClassName } from '../lib/expensePageLayout'
+import {
+  getExpensePageHistoryListClassName,
+  getExpensePageTabListLayout,
+} from '../lib/expensePageLayout'
 
 import { ExpensePageTabPanel } from './ExpensePageTabPanel'
 import { ExpenseWorkspace } from './ExpenseWorkspace'
@@ -68,7 +71,7 @@ export function ExpensePageCategoriesPanel({
   return (
     <ExpensePageTabPanel slide="categories" inTab={hideListTitle}>
       <ExpenseWorkspace
-        listLayout={listLayout}
+        listLayout={getExpensePageTabListLayout(hideListTitle, listLayout)}
         hideListTitle={hideListTitle}
         budgetItems={budgetItems}
         selectedCategoryId={selectedCategoryId}
@@ -100,10 +103,10 @@ export function ExpensePageHistoryPanel({
   onDeleteExpense,
 }: ExpensePagePanelProps) {
   return (
-    <ExpensePageTabPanel slide="history" inTab={hideListTitle} topInset={hideListTitle}>
+    <ExpensePageTabPanel slide="history" inTab={hideListTitle}>
       <ExpenseList
         className={getExpensePageHistoryListClassName(hideListTitle)}
-        layout={listLayout}
+        layout={getExpensePageTabListLayout(hideListTitle, listLayout)}
         hideListTitle={hideListTitle}
         hideHeaderViewSwitcher={hideHeaderViewSwitcher}
         viewMode={historyViewMode}
