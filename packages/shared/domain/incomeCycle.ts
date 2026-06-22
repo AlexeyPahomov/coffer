@@ -4,6 +4,7 @@ import {
   type CategoryMonthSnapshotState,
 } from './budget.js'
 import type { CarryOverPolicy } from './category.js'
+import { canAnchorIncomeCycle } from './incomeType.js'
 import { getCalendarDateKey, isDateInActiveCycle, subtractCalendarDays } from './calendarDate.js'
 import { getMonthKeyFromIso } from './periodMonth.js'
 import { toMoneyNumber, type MoneyInput } from '../lib/money.js'
@@ -14,6 +15,7 @@ export type ReceivedIncomeRow = {
   received_at: string | null
   /** Учётный месяц дохода `YYYY-MM` — закрытые месяцы не участвуют в активном цикле. */
   period_month?: string | null
+  income_type?: string | null
 }
 
 export type ResolvedIncomeCycle = {
@@ -141,11 +143,19 @@ function shouldCarryOpeningInCycle(category: BudgetCycleCategory): boolean {
 
 type ReceivedIncomeEntry = { id: string; received_at: string }
 
-function mapReceivedIncomes(
+function filterActiveReceivedIncomes(
   incomes: readonly ReceivedIncomeRow[],
+  closedPeriodMonths: ReadonlySet<string>,
+): ReceivedIncomeRow[] {
+  return filterIncomesExcludingClosedPeriods(incomes, closedPeriodMonths).filter(
+    (income) => income.status === 'RECEIVED' && income.received_at != null,
+  )
+}
+
+function mapReceivedIncomes(
+  activeIncomeRows: readonly ReceivedIncomeRow[],
 ): ReceivedIncomeEntry[] {
-  return incomes
-    .filter((income) => income.status === 'RECEIVED' && income.received_at != null)
+  return activeIncomeRows
     .map((income) => {
       const receivedAt = getCalendarDateKey(income.received_at!)
       if (!receivedAt) {
@@ -155,6 +165,17 @@ function mapReceivedIncomes(
     })
     .filter((row): row is ReceivedIncomeEntry => row != null)
     .sort((a, b) => a.received_at.localeCompare(b.received_at))
+}
+
+function settlementAnchoredCycle(
+  settlement: ReceivedIncomeEntry,
+  cycleEnd: string | null,
+): ResolvedIncomeCycle {
+  return {
+    incomeId: settlement.id,
+    cycleStart: settlement.received_at,
+    cycleEnd,
+  }
 }
 
 function sumAllocationsForIncome(
@@ -205,9 +226,12 @@ export function resolveActiveIncomeCycle(
     return null
   }
 
-  const received = mapReceivedIncomes(
-    filterIncomesExcludingClosedPeriods(incomes, closedPeriodMonths),
+  const activeIncomeRows = filterActiveReceivedIncomes(incomes, closedPeriodMonths)
+  const incomeById = new Map(
+    activeIncomeRows.map((income) => [income.id, income]),
   )
+
+  const received = mapReceivedIncomes(activeIncomeRows)
   if (received.length === 0) {
     return null
   }
@@ -258,27 +282,22 @@ export function resolveActiveIncomeCycle(
   })
 
   if (cycleMembers.length === 0) {
-    if (lastSettlementBeforeAsOf) {
-      return {
-        incomeId: lastSettlementBeforeAsOf.id,
-        cycleStart: lastSettlementBeforeAsOf.received_at,
-        cycleEnd,
-      }
-    }
-    return null
+    return lastSettlementBeforeAsOf
+      ? settlementAnchoredCycle(lastSettlementBeforeAsOf, cycleEnd)
+      : null
   }
 
-  const advancesInCycle = cycleMembers.filter((income) =>
-    isAdvanceReceivedDate(income.received_at),
-  )
-  const primaryAdvance =
-    advancesInCycle.length > 0
-      ? pickPrimaryAdvanceIncome(advancesInCycle, allocations)
-      : (cycleMembers[0] ?? null)
+  const anchorableAdvances = cycleMembers
+    .filter((income) => isAdvanceReceivedDate(income.received_at))
+    .filter((income) => canAnchorIncomeCycle(incomeById.get(income.id)?.income_type))
 
-  if (!primaryAdvance) {
-    return null
+  if (anchorableAdvances.length === 0) {
+    return lastSettlementBeforeAsOf
+      ? settlementAnchoredCycle(lastSettlementBeforeAsOf, cycleEnd)
+      : null
   }
+
+  const primaryAdvance = pickPrimaryAdvanceIncome(anchorableAdvances, allocations)
 
   return {
     incomeId: primaryAdvance.id,
@@ -311,6 +330,30 @@ function shouldCarryExpenseFromPreviousCycle(category: BudgetCycleCategory): boo
   return category.type === 'expense' && category.carry_over_policy === 'CARRY'
 }
 
+/**
+ * Остаток предыдущего цикла для переноса в следующий аванс.
+ * После расчёта с новым лимитом — closing как есть.
+ * После расчёта без лимита, но с переносом из аванса — spent − opening:
+ * конверт тратится без пополнения от расчёта, дефицит виден как минус на карточке.
+ */
+function resolveCarryOpeningFromPreviousCycle(
+  previousCycle: ResolvedIncomeCycle,
+  row: RebuiltCycleCategoryBudget,
+): number {
+  if (!isSettlementReceivedDate(previousCycle.cycleStart)) {
+    return row.closingBalance
+  }
+
+  const carriedWithoutNewLimit =
+    row.allocated === 0 &&
+    row.openingBalance > 0 &&
+    row.spent <= row.openingBalance
+
+  return carriedWithoutNewLimit
+    ? row.spent - row.openingBalance
+    : row.closingBalance
+}
+
 function buildPreviousCycleCarryOpeningByCategory(
   categories: readonly BudgetCycleCategory[],
   allocations: readonly BudgetCycleAllocation[],
@@ -319,7 +362,7 @@ function buildPreviousCycleCarryOpeningByCategory(
   closedPeriodMonths: ReadonlySet<string>,
   incomes: readonly ReceivedIncomeRow[],
 ): Map<string, number> {
-  if (!isSettlementReceivedDate(cycle.cycleStart) || incomes.length === 0) {
+  if (incomes.length === 0) {
     return new Map()
   }
 
@@ -347,6 +390,12 @@ function buildPreviousCycleCarryOpeningByCategory(
     return new Map()
   }
 
+  // Авансовый цикл на экране считается с opening=0; при переносе в следующий
+  // аванс не подмешиваем остаток из ещё более раннего расчёта.
+  const carryIncomes = isSettlementReceivedDate(previousCycle.cycleStart)
+    ? incomes
+    : []
+
   const previousBudgets = computeCategoryBudgetsForCycle(
     categories,
     allocations,
@@ -354,7 +403,7 @@ function buildPreviousCycleCarryOpeningByCategory(
     previousCycle,
     asOfKey,
     closedPeriodMonths,
-    incomes,
+    carryIncomes,
   )
 
   const carryByCategoryId = new Map<string, number>()
@@ -362,7 +411,10 @@ function buildPreviousCycleCarryOpeningByCategory(
     if (!carryCategoryIds.has(row.categoryId)) {
       continue
     }
-    carryByCategoryId.set(row.categoryId, row.closingBalance)
+    carryByCategoryId.set(
+      row.categoryId,
+      resolveCarryOpeningFromPreviousCycle(previousCycle, row),
+    )
   }
 
   return carryByCategoryId
@@ -480,7 +532,7 @@ function filterExpensesInCycle(
 /**
  * Конверты за активный доходный цикл.
  * Накопления: opening из распределений до цикла.
- * Расходные CARRY: при старте цикла расчёта — closing предыдущего цикла.
+ * Расходные CARRY: при старте нового цикла — closing предыдущего цикла.
  * Остальные расходные: распределения в цикле − траты в цикле.
  */
 export function computeCategoryBudgetsForCycle(

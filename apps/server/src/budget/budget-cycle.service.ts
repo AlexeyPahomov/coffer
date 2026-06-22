@@ -110,6 +110,7 @@ export class BudgetCycleService {
           ? formatReceivedAtFromDate(income.received_at)
           : null,
         period_month: formatPeriodMonthKeyFromDate(income.period_month),
+        income_type: String(income.income_type),
       })),
       closedPeriodMonths,
     );

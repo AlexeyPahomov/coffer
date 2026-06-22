@@ -16,7 +16,7 @@
     "@types/node": "^24.0.0"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "pnpm build && tsc -p tsconfig.test.json && node --test dist/domain/*.test.js"
   }

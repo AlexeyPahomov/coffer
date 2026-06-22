@@ -34,3 +34,11 @@ export function resolveIncomeType(
   }
   return DEFAULT_INCOME_TYPE
 }
+
+/** Доходы, которые могут открыть новый цикл расходования. */
+export function canAnchorIncomeCycle(
+  incomeType: string | null | undefined,
+): boolean {
+  const type = resolveIncomeType(incomeType)
+  return type === 'salary' || type === 'freelance'
+}
