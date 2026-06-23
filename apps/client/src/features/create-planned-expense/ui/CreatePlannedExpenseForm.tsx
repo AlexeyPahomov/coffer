@@ -1,3 +1,4 @@
+import type { Category } from '@/entities/category/model/types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui'
 
 import { useCreatePlannedExpenseForm } from '../model/useCreatePlannedExpenseForm'
@@ -6,11 +7,13 @@ import { CreatePlannedExpenseFields } from './CreatePlannedExpenseFields'
 
 export type CreatePlannedExpenseFormProps = {
   anchorPeriodMonth: string
+  categories: readonly Category[]
 }
 
-export function CreatePlannedExpenseForm(
-  _props: CreatePlannedExpenseFormProps,
-) {
+export function CreatePlannedExpenseForm({
+  anchorPeriodMonth: _anchorPeriodMonth,
+  categories,
+}: CreatePlannedExpenseFormProps) {
   const form = useCreatePlannedExpenseForm()
 
   return (
@@ -21,6 +24,7 @@ export function CreatePlannedExpenseForm(
       <CardContent className="flex flex-col gap-3">
         <CreatePlannedExpenseFields
           values={form.values}
+          categories={categories}
           onChange={form.handleChange}
           patchValues={form.patchValues}
           onSubmit={form.submit}

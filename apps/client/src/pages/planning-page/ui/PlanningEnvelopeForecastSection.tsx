@@ -43,6 +43,10 @@ function ForecastAmount({
 export function PlanningEnvelopeForecastSection({
   forecast,
 }: PlanningEnvelopeForecastSectionProps) {
+  if (forecast.items.length === 0) {
+    return null;
+  }
+
   return (
     <section className="rounded-xl border border-zinc-200/80 bg-white shadow-sm">
       <div className="flex items-start justify-between gap-3 border-b border-zinc-100 px-4 py-3">
@@ -80,40 +84,34 @@ export function PlanningEnvelopeForecastSection({
         </InfoHint>
       </div>
 
-      {forecast.items.length === 0 ? (
-        <p className="px-4 py-3 text-sm text-zinc-500">
-          Нет прогнозных распределений и планов по конвертам.
-        </p>
-      ) : (
-        <div className="grid gap-2 p-3 sm:grid-cols-3 xl:grid-cols-5">
-          {forecast.items.map((item) => (
-            <article
-              key={item.category.id}
-              className="rounded-xl border border-zinc-100 bg-zinc-50/70 p-3"
-            >
-              <CategoryNameWithIcon
-                category={item.category}
-                className="text-sm font-semibold text-zinc-900"
+      <div className="grid gap-2 p-3 sm:grid-cols-3 xl:grid-cols-5">
+        {forecast.items.map((item) => (
+          <article
+            key={item.category.id}
+            className="rounded-xl border border-zinc-100 bg-zinc-50/70 p-3"
+          >
+            <CategoryNameWithIcon
+              category={item.category}
+              className="text-sm font-semibold text-zinc-900"
+            />
+            <div className="mt-3 grid grid-cols-3 gap-2 text-sm">
+              <ForecastAmount label="сейчас" value={item.currentRemaining} />
+              <ForecastAmount
+                label="ожидается"
+                value={item.forecastAmount}
+                tone="forecast"
               />
-              <div className="mt-3 grid grid-cols-3 gap-2 text-sm">
-                <ForecastAmount label="сейчас" value={item.currentRemaining} />
+              {item.plannedAmount > 0 ? (
                 <ForecastAmount
-                  label="ожидается"
-                  value={item.forecastAmount}
-                  tone="forecast"
+                  label="планы"
+                  value={item.plannedAmount}
+                  tone="planned"
                 />
-                {item.plannedAmount > 0 ? (
-                  <ForecastAmount
-                    label="планы"
-                    value={item.plannedAmount}
-                    tone="planned"
-                  />
-                ) : null}
-              </div>
-            </article>
-          ))}
-        </div>
-      )}
+              ) : null}
+            </div>
+          </article>
+        ))}
+      </div>
     </section>
   );
 }
