@@ -469,7 +469,14 @@ export class PlannedExpenseService {
   }
 
   async remove(id: string, userId: string): Promise<void> {
-    await this.findOwned(id, userId);
+    const plan = await this.findOwned(id, userId);
+
+    if (plan.status !== 'PLANNED') {
+      throw new BadRequestException(
+        'Only planned expenses in PLANNED status can be deleted',
+      );
+    }
+
     await this.prisma.plannedExpense.delete({ where: { id } });
   }
 }

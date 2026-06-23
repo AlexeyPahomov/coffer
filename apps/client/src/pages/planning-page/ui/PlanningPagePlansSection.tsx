@@ -38,9 +38,7 @@ export function PlanningPagePlansSection({
               key={item.id}
               item={item}
               onReserve={(id) => page.reserve(id, item.amount)}
-              onCancelPlan={
-                item.status === 'PLANNED' ? page.cancelPlan : undefined
-              }
+              onDeletePlan={page.deletePlan}
               onUnreserve={page.unreserve}
               onFinish={
                 canFinishPlannedExpense(item) ? onFinishPlanned : undefined
@@ -52,6 +50,7 @@ export function PlanningPagePlansSection({
                 item.status === 'PLANNED' ? onEditPlanned : undefined
               }
               pendingStatusMutation={page.pendingStatusMutation}
+              pendingDeletePlanId={page.pendingDeletePlanId}
               pendingUnfinishId={page.pendingUnfinishId}
             />
           ))}

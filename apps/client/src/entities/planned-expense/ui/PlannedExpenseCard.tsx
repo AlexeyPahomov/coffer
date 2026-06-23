@@ -52,12 +52,13 @@ const statusBadgeStaticClassName = 'rounded-md bg-zinc-100 text-zinc-600'
 export type PlannedExpenseCardProps = {
   item: PlannedExpense
   onReserve?: (id: string) => void
-  onCancelPlan?: (id: string) => void
+  onDeletePlan?: (id: string) => void
   onUnreserve?: (id: string) => void
   onFinish?: (item: PlannedExpense) => void
   onUnfinish?: (id: string) => void
   onEdit?: (item: PlannedExpense) => void
   pendingStatusMutation?: PlannedExpenseStatusMutationArgs
+  pendingDeletePlanId?: string
   pendingUnfinishId?: string
   className?: string
 }
@@ -65,12 +66,13 @@ export type PlannedExpenseCardProps = {
 export function PlannedExpenseCard({
   item,
   onReserve,
-  onCancelPlan,
+  onDeletePlan,
   onUnreserve,
   onFinish,
   onUnfinish,
   onEdit,
   pendingStatusMutation,
+  pendingDeletePlanId,
   pendingUnfinishId,
   className,
 }: PlannedExpenseCardProps) {
@@ -83,20 +85,20 @@ export function PlannedExpenseCard({
     isPendingForItem &&
     pendingStatusMutation?.status === 'PLANNED' &&
     pendingStatusMutation.reserveAmount === 0
-  const isCancelPlanLoading =
-    isPendingForItem && pendingStatusMutation?.status === 'CANCELLED'
+  const isDeletePlanLoading = pendingDeletePlanId === item.id
   const showReserve = item.status === 'PLANNED' && onReserve != null
-  const showCancelPlan = item.status === 'PLANNED' && onCancelPlan != null
+  const showDeletePlan = item.status === 'PLANNED' && onDeletePlan != null
   const showPlannedMenu =
     item.status === 'PLANNED' &&
-    (showReserve || onEdit != null || showCancelPlan)
+    (showReserve || onEdit != null || showDeletePlan)
   const showUnreserveMenu = item.reserved_amount > 0 && onUnreserve != null
   const showFinishMenu = canFinishPlannedExpense(item) && onFinish != null
   const showUnfinishMenu = canUnfinishPlannedExpense(item) && onUnfinish != null
   const showReservedMenu = showUnreserveMenu || showFinishMenu
   const showCompletedMenu = showUnfinishMenu
   const isUnfinishLoading = pendingUnfinishId === item.id
-  const actionPending = statusMutationPending || isUnfinishLoading
+  const actionPending =
+    statusMutationPending || isDeletePlanLoading || isUnfinishLoading
   const statusLabel = PLANNED_EXPENSE_STATUS_LABELS[item.status]
   const tone = resolveIconColorTone(item.icon_color)
   const currentAmount = item.reserved_amount
@@ -167,21 +169,21 @@ export function PlannedExpenseCard({
               Изменить
             </Button>
           ) : null}
-          {showPlannedMenu && showCancelPlan ? (
+          {showPlannedMenu && showDeletePlan ? (
             <Button
               type="button"
               variant="ghost"
               size="sm"
               className={cancelMenuItemClassName}
               disabled={actionPending}
-              isLoading={isCancelPlanLoading}
+              isLoading={isDeletePlanLoading}
               onClick={() => {
                 closeStatusMenu()
-                onCancelPlan(item.id)
+                onDeletePlan(item.id)
               }}
             >
               <Trash2 className="size-4 shrink-0" />
-              Отменить план
+              Удалить план
             </Button>
           ) : null}
           {showUnreserveMenu && !showPlannedMenu ? (

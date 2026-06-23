@@ -10,6 +10,7 @@ import {
 } from '@/entities/planned-expense/lib/fullReserveMutationArgs'
 import { useAllocationRulesQuery } from '@/entities/allocation-rule/api/useAllocationRulesQuery'
 import { usePlannedExpensesQuery } from '@/entities/planned-expense/api/usePlannedExpensesQuery'
+import { useDeletePlannedExpenseMutation } from '@/entities/planned-expense/api/useDeletePlannedExpenseMutation'
 import { usePlannedExpenseStatusMutation } from '@/entities/planned-expense/api/usePlannedExpenseStatusMutation'
 import { useUnfinishPlannedExpenseMutation } from '@/entities/planned-expense/api/useUnfinishPlannedExpenseMutation'
 import { buildPlanningTimelineMonths } from '@/entities/planned-expense/lib/buildPlanningTimelineMonths'
@@ -46,6 +47,7 @@ export function usePlanningPage() {
   const plannedQuery = usePlannedExpensesQuery()
   const allocationRulesQuery = useAllocationRulesQuery()
   const statusMutation = usePlannedExpenseStatusMutation()
+  const deletePlanMutation = useDeletePlannedExpenseMutation()
   const unfinishMutation = useUnfinishPlannedExpenseMutation()
 
   const allPlanned = plannedQuery.data ?? EMPTY_PLANNED_EXPENSES
@@ -188,13 +190,15 @@ export function usePlanningPage() {
     expenseCategories,
     reserve: (id: string, amount: number) =>
       statusMutation.mutate(fullReserveMutationArgs(id, amount)),
-    cancelPlan: (id: string) =>
-      statusMutation.mutate({ id, status: 'CANCELLED' }),
+    deletePlan: (id: string) => deletePlanMutation.mutate(id),
     unreserve: (id: string) =>
       statusMutation.mutate(unreservePlannedExpenseMutationArgs(id)),
     unfinish: (id: string) => unfinishMutation.mutate(id),
     pendingStatusMutation: statusMutation.isPending
       ? statusMutation.variables
+      : undefined,
+    pendingDeletePlanId: deletePlanMutation.isPending
+      ? deletePlanMutation.variables
       : undefined,
     pendingUnfinishId: unfinishMutation.isPending
       ? unfinishMutation.variables
