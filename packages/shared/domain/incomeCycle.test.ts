@@ -715,7 +715,7 @@ describe('computeCategoryBudgetsForCycle', () => {
     )
   })
 
-  it('carries spent-minus-opening when settlement had no new envelope limit', () => {
+  it('carries settlement deficit when settlement had no new envelope limit', () => {
     const budgets = computeJuneAdvanceBudgets(
       [
         receivedIncome('may-advance', '2026-05-22'),
@@ -764,5 +764,70 @@ describe('computeCategoryBudgetsForCycle', () => {
       { opening: -1_000, closing: 69_000 },
       { opening: -4_000, closing: 6_000 },
     )
+  })
+
+  it('does not carry unused settlement opening into next advance', () => {
+    const categories = [
+      { id: 'groceries', type: 'expense', carry_over_policy: 'CARRY' },
+      { id: 'apartment', type: 'expense', carry_over_policy: 'CARRY' },
+    ] as const
+    const incomes = [
+      receivedIncome('may-advance', '2026-05-22'),
+      receivedIncome('june-settlement', '2026-06-05'),
+      receivedIncome('june-advance', '2026-06-22'),
+    ]
+    const allocations = [
+      alloc({
+        category_id: 'groceries',
+        income_id: 'may-advance',
+        income_received_at: '2026-05-22',
+        amount: 72_000,
+      }),
+      alloc({
+        category_id: 'apartment',
+        income_id: 'may-advance',
+        income_received_at: '2026-05-22',
+        amount: 7_000,
+      }),
+      alloc({
+        category_id: 'groceries',
+        income_id: 'june-advance',
+        income_received_at: '2026-06-22',
+        income_period_month: '2026-06',
+        amount: 70_000,
+      }),
+      alloc({
+        category_id: 'apartment',
+        income_id: 'june-advance',
+        income_received_at: '2026-06-22',
+        income_period_month: '2026-06',
+        amount: 7_000,
+      }),
+    ]
+    const expenses = [
+      expense('groceries', 34_000, '2026-05-30'),
+      expense('groceries', 37_000, '2026-06-20'),
+      expense('groceries', 9_000, '2026-06-22'),
+      expense('apartment', 1_000, '2026-06-01'),
+    ]
+    const budgets = computeCategoryBudgetsForCycle(
+      categories,
+      allocations,
+      expenses,
+      JUNE_ADVANCE_CYCLE,
+      '2026-06-23',
+      new Set(),
+      incomes,
+    )
+
+    const groceries = budgets.find((row) => row.categoryId === 'groceries')
+    const apartment = budgets.find((row) => row.categoryId === 'apartment')
+
+    assert.equal(groceries?.openingBalance, -1_000)
+    assert.equal(groceries?.allocated, 70_000)
+    assert.equal(groceries?.closingBalance, 60_000)
+    assert.equal(apartment?.openingBalance, 0)
+    assert.equal(apartment?.allocated, 7_000)
+    assert.equal(apartment?.closingBalance, 7_000)
   })
 })

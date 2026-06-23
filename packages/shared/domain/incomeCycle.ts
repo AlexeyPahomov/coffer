@@ -333,8 +333,9 @@ function shouldCarryExpenseFromPreviousCycle(category: BudgetCycleCategory): boo
 /**
  * Остаток предыдущего цикла для переноса в следующий аванс.
  * После расчёта с новым лимитом — closing как есть.
- * После расчёта без лимита, но с переносом из аванса — spent − opening:
- * конверт тратится без пополнения от расчёта, дефицит виден как минус на карточке.
+ * После расчёта без лимита, но с остатком из аванса:
+ * - если тратили из переноса, но не всё — deficit carry как spent − opening;
+ * - неиспользованный остаток в расчёте на новый аванс не переносим.
  */
 function resolveCarryOpeningFromPreviousCycle(
   previousCycle: ResolvedIncomeCycle,
@@ -345,13 +346,21 @@ function resolveCarryOpeningFromPreviousCycle(
   }
 
   const carriedWithoutNewLimit =
-    row.allocated === 0 &&
-    row.openingBalance > 0 &&
-    row.spent <= row.openingBalance
+    row.allocated === 0 && row.openingBalance > 0
 
-  return carriedWithoutNewLimit
-    ? row.spent - row.openingBalance
-    : row.closingBalance
+  if (!carriedWithoutNewLimit) {
+    return row.closingBalance
+  }
+
+  if (row.spent === 0) {
+    return 0
+  }
+
+  if (row.spent < row.openingBalance) {
+    return row.spent - row.openingBalance
+  }
+
+  return row.closingBalance
 }
 
 function buildPreviousCycleCarryOpeningByCategory(
