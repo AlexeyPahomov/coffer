@@ -75,8 +75,17 @@ const dateLongFormatter = new Intl.DateTimeFormat('ru-RU', {
   year: 'numeric',
 })
 
+const dateDayMonthFormatter = new Intl.DateTimeFormat('ru-RU', {
+  day: 'numeric',
+  month: 'long',
+})
+
 function formatDateLong(d: Date): string {
   return dateLongFormatter.format(d)
+}
+
+function formatDateDayMonth(d: Date): string {
+  return dateDayMonthFormatter.format(d)
 }
 
 /** ISO или `YYYY-MM-DD` → значение для date-input. */
@@ -140,4 +149,30 @@ export function formatDateRangeLabel(
   }
 
   return `${formatDateLong(startDate)} — ${formatDateLong(endDate)}`
+}
+
+/** Подпись даты/интервала без года (карточка плана в рамках месяца). */
+export function formatDateRangeLabelWithoutYear(
+  start: string,
+  end?: string | null,
+): string {
+  if (!start.trim()) {
+    return ''
+  }
+
+  const startDate = parseToLocalDate(start)
+  if (!startDate) {
+    return start
+  }
+
+  if (!end) {
+    return formatDateDayMonth(startDate)
+  }
+
+  const endDate = parseToLocalDate(end)
+  if (!endDate || dateInputValueFromDate(startDate) === dateInputValueFromDate(endDate)) {
+    return formatDateDayMonth(startDate)
+  }
+
+  return `${formatDateDayMonth(startDate)} — ${formatDateDayMonth(endDate)}`
 }

@@ -3,7 +3,7 @@ import { useState } from 'react'
 
 import type { Category } from '@/entities/category/model/types'
 import { cancelMenuItemClassName } from '@/shared/lib/cancelMenuItemLayout'
-import { formatDateRangeLabel } from '@/shared/lib/date'
+import { formatDateRangeLabelWithoutYear } from '@/shared/lib/date'
 import { formatMoneyRange, formatMoneyWithRub } from '@/shared/lib/format'
 import { cn } from '@/shared/lib/utils'
 import {
@@ -309,7 +309,7 @@ export function PlannedExpenseCard({
           <div className={plannedExpenseCardStatusClassName}>{statusBadge}</div>
 
           <p className={plannedExpenseCardDateClassName}>
-            {formatDateRangeLabel(item.planned_date, item.planned_date_end)}
+            {formatDateRangeLabelWithoutYear(item.planned_date, item.planned_date_end)}
           </p>
         </div>
       </div>

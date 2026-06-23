@@ -21,7 +21,7 @@ export const plannedExpenseCardMainClassName =
 
 /** Сумма → статус → дата на мобилке; + иконка источника на sm+. */
 export const plannedExpenseCardDetailsClassName =
-  'grid w-full shrink-0 items-center gap-x-3 sm:ml-auto sm:w-max sm:gap-x-4 [grid-template-columns:minmax(3rem,max-content)_max-content_minmax(5.5rem,8rem)] sm:[grid-template-columns:2rem_5rem_6rem_8rem]';
+  'grid w-full shrink-0 items-center gap-x-3 sm:ml-auto sm:w-max sm:gap-x-4 [grid-template-columns:minmax(3rem,max-content)_max-content_minmax(0,1fr)] sm:[grid-template-columns:2rem_5rem_6rem_9rem]';
 
 /** Иконка источника в строке деталей (десктоп). */
 export const plannedExpenseCardSourceClassName =
@@ -49,7 +49,7 @@ export const plannedExpenseCardProgressTextClassName =
   'text-xs tabular-nums text-zinc-500';
 
 export const plannedExpenseCardDateClassName =
-  'min-w-0 justify-self-end text-right text-xs leading-snug tabular-nums text-zinc-500 sm:text-sm';
+  'min-w-0 justify-self-stretch whitespace-nowrap text-right text-xs leading-snug tabular-nums text-zinc-500 sm:justify-self-end sm:whitespace-normal sm:text-sm';
 
 export const plannedExpenseCardStatusClassName =
   'flex items-center justify-self-start';
