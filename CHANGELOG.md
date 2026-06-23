@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.2.1](https://github.com/AlexeyPahomov/coffer/compare/v1.2.0...v1.2.1) (2026-06-23)
+
+
+### Bug Fixes
+
+* размер списка ковертов и скролл истории ([1aedc7c](https://github.com/AlexeyPahomov/coffer/commit/1aedc7c7fe6a76a5188df6dfdcb41d413db8426d))
+* расчёт конвертов ([d461c69](https://github.com/AlexeyPahomov/coffer/commit/d461c6997fd9836c333b2a3f9bcff3d7c0f29c7b))
+* расчёт конвертов ([05271bc](https://github.com/AlexeyPahomov/coffer/commit/05271bc84548e003ceda98e59d07c334a2fe8fc9))
+* расчёт свободного пула ([3c1da72](https://github.com/AlexeyPahomov/coffer/commit/3c1da724a2c9d453c906681b8ad94d7ba168496b))
+* удаление плана вместо отмены ([d7e4a29](https://github.com/AlexeyPahomov/coffer/commit/d7e4a29149fce122ede3d1bbc9c0ced2f198bd03))
+* формат дат планов ([ddefd8b](https://github.com/AlexeyPahomov/coffer/commit/ddefd8b8537e4cd5a0c1a34f48d0c172d3bf7879))
+
 ## [1.2.0](https://github.com/AlexeyPahomov/coffer/compare/v1.1.0...v1.2.0) (2026-06-19)
 
 
