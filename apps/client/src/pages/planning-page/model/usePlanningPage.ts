@@ -163,11 +163,13 @@ export function usePlanningPage() {
         incomes: core.incomes,
         rules: allocationRulesQuery.data ?? [],
         initialBudgetItems: envelopeForecastInputs.initialBudgetItems,
+        savingsReserveBalance: operationalSummary.inReserve,
       }),
     [
       allocationRulesQuery.data,
       core.incomes,
       envelopeForecastInputs,
+      operationalSummary.inReserve,
       periodMonth,
     ],
   )

@@ -1,6 +1,7 @@
 import type { AllocationRule } from '@/entities/allocation-rule/model/types'
 import type { CategoryBudgetItem } from '@/entities/budget/model/types'
 import type { Category } from '@/entities/category/model/types'
+import { isSavingsCategory } from '@/entities/category/lib/categoryKind'
 import type { Income } from '@/entities/income/model/types'
 import { getIncomePeriodMonth } from '@/entities/income/lib/incomePeriodMonth'
 import { toMoneyNumber } from '@/shared/lib/money'
@@ -40,6 +41,8 @@ type BuildEnvelopeForecastChainInput = {
   incomes: readonly Income[]
   rules: readonly AllocationRule[]
   initialBudgetItems: readonly CategoryBudgetItem[]
+  /** Полный остаток накоплений (все распределения − все траты), для поля «сейчас». */
+  savingsReserveBalance?: number
 }
 
 type CategoryForecastAmounts = Map<
@@ -51,15 +54,71 @@ function isExpectedIncomeInPeriod(income: Income, periodMonth: string): boolean 
   return income.status === 'EXPECTED' && getIncomePeriodMonth(income) === periodMonth
 }
 
-function findMatchingRule(
+function isRuleMatchingIncome(
+  income: Income,
+  rule: AllocationRule,
+): boolean {
+  return (
+    rule.is_active &&
+    (rule.trigger_income_type == null ||
+      rule.trigger_income_type === income.income_type)
+  )
+}
+
+function findMatchingRules(
+  income: Income,
+  rules: readonly AllocationRule[],
+): AllocationRule[] {
+  return rules.filter((rule) => isRuleMatchingIncome(income, rule))
+}
+
+function scoreRuleRelevanceForIncome(
+  income: Income,
+  rule: AllocationRule,
+): number {
+  const source = (income.source ?? '').trim().toLowerCase()
+  const ruleName = rule.name.trim().toLowerCase()
+
+  if (!source || !ruleName) {
+    return 0
+  }
+
+  if (ruleName.includes(source)) {
+    return 100
+  }
+
+  const keyword = ruleName.split(/[\s(]/)[0] ?? ''
+  if (keyword.length >= 3 && source.includes(keyword)) {
+    return 80
+  }
+
+  return 0
+}
+
+/** Одно правило на доход: при нескольких совпадениях — по источнику (Аванс / Расчёт). */
+function pickAllocationRuleForIncome(
   income: Income,
   rules: readonly AllocationRule[],
 ): AllocationRule | undefined {
-  return rules.find(
-    (rule) =>
-      rule.is_active &&
-      (rule.trigger_income_type == null ||
-        rule.trigger_income_type === income.income_type),
+  const matching = findMatchingRules(income, rules)
+  if (matching.length === 0) {
+    return undefined
+  }
+  if (matching.length === 1) {
+    return matching[0]
+  }
+
+  const bestScore = Math.max(
+    ...matching.map((rule) => scoreRuleRelevanceForIncome(income, rule)),
+  )
+  if (bestScore > 0) {
+    return matching.find(
+      (rule) => scoreRuleRelevanceForIncome(income, rule) === bestScore,
+    )
+  }
+
+  return (
+    matching.find((rule) => rule.trigger_income_type != null) ?? matching[0]
   )
 }
 
@@ -105,7 +164,7 @@ function buildForecastAmountsForMonth({
     }
 
     expectedIncomeCount += 1
-    const rule = findMatchingRule(income, rules)
+    const rule = pickAllocationRuleForIncome(income, rules)
     if (!rule) {
       continue
     }
@@ -172,6 +231,58 @@ export function sumExpectedEnvelopeAllocationForMonth(
   )
 }
 
+function resolveEnvelopeRemaining(
+  item: CategoryBudgetItem,
+  savingsReserveBalance: number | undefined,
+): number {
+  if (
+    savingsReserveBalance != null &&
+    isSavingsCategory(item.category.type)
+  ) {
+    return savingsReserveBalance
+  }
+
+  return item.remaining
+}
+
+function applySavingsReserveDisplay(
+  forecast: EnvelopeForecast,
+  savingsReserveBalance: number | undefined,
+): EnvelopeForecast {
+  if (savingsReserveBalance == null) {
+    return forecast
+  }
+
+  return {
+    ...forecast,
+    items: forecast.items.map((item) => {
+      if (!isSavingsCategory(item.category.type)) {
+        return item
+      }
+
+      return {
+        ...item,
+        currentRemaining: savingsReserveBalance,
+        projectedRemaining: savingsReserveBalance + item.forecastAmount,
+      }
+    }),
+  }
+}
+
+function resolveSavingsProjectedRemaining(
+  item: EnvelopeForecastItem,
+  savingsReserveBalance: number | undefined,
+): number {
+  if (
+    savingsReserveBalance != null &&
+    isSavingsCategory(item.category.type)
+  ) {
+    return savingsReserveBalance + item.forecastAmount
+  }
+
+  return item.projectedRemaining
+}
+
 function buildEnvelopeForecastItems(
   forecastByCategoryId: CategoryForecastAmounts,
   getCurrentRemaining: (categoryId: string) => number,
@@ -187,7 +298,14 @@ function buildEnvelopeForecastItems(
         projectedRemaining: currentRemaining + amount,
       }
     })
-    .sort((a, b) => b.forecastAmount - a.forecastAmount)
+    .sort((a, b) => {
+      const aIsSavings = isSavingsCategory(a.category.type)
+      const bIsSavings = isSavingsCategory(b.category.type)
+      if (aIsSavings !== bIsSavings) {
+        return aIsSavings ? 1 : -1
+      }
+      return b.forecastAmount - a.forecastAmount
+    })
 }
 
 function buildMonthEnvelopeForecast(
@@ -234,6 +352,7 @@ export function buildEnvelopeForecastChain({
   incomes,
   rules,
   initialBudgetItems,
+  savingsReserveBalance,
 }: BuildEnvelopeForecastChainInput): EnvelopeForecast {
   if (months.length === 0 || !months.includes(selectedPeriodMonth)) {
     return emptyEnvelopeForecast()
@@ -245,7 +364,10 @@ export function buildEnvelopeForecastChain({
   >(
     initialBudgetItems.map((item) => [
       item.category.id,
-      { category: item.category, remaining: item.remaining },
+      {
+        category: item.category,
+        remaining: resolveEnvelopeRemaining(item, savingsReserveBalance),
+      },
     ]),
   )
 
@@ -262,12 +384,18 @@ export function buildEnvelopeForecastChain({
     for (const item of monthForecast.items) {
       balanceByCategoryId.set(item.category.id, {
         category: item.category,
-        remaining: item.projectedRemaining,
+        remaining: resolveSavingsProjectedRemaining(
+          item,
+          savingsReserveBalance,
+        ),
       })
     }
 
     if (month === selectedPeriodMonth) {
-      selectedForecast = monthForecast
+      selectedForecast = applySavingsReserveDisplay(
+        monthForecast,
+        savingsReserveBalance,
+      )
     }
   }
 
