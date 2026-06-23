@@ -114,4 +114,47 @@ describe('computeCategoryBudgetsForPeriod', () => {
     assert.equal(savings?.openingBalance, 100_000)
     assert.equal(savings?.closingBalance, 100_000)
   })
+
+  it('does not carry CARRY free-pool spend into the next month', () => {
+    const [pet] = computeCategoryBudgetsForPeriod(
+      [{ id: 'pet', type: 'expense', carry_over_policy: 'CARRY' }],
+      [],
+      [{ category_id: 'pet', amount: 21_000, date: '2026-06-22' }],
+      '2026-06',
+    )
+
+    assert.equal(pet?.spent, 21_000)
+    assert.equal(pet?.closingBalance, 0)
+
+    const [petJuly] = computeCategoryBudgetsForPeriod(
+      [{ id: 'pet', type: 'expense', carry_over_policy: 'CARRY' }],
+      [],
+      [{ category_id: 'pet', amount: 21_000, date: '2026-06-22' }],
+      '2026-07',
+    )
+
+    assert.equal(petJuly?.openingBalance, 0)
+    assert.equal(petJuly?.closingBalance, 0)
+  })
+
+  it('still carries CARRY envelope overspend into the next month', () => {
+    const [pet] = computeCategoryBudgetsForPeriod(
+      [{ id: 'pet', type: 'expense', carry_over_policy: 'CARRY' }],
+      [{ category_id: 'pet', amount: 5_000, period_month: '2026-06-01' }],
+      [{ category_id: 'pet', amount: 8_000, date: '2026-06-15' }],
+      '2026-06',
+    )
+
+    assert.equal(pet?.closingBalance, -3_000)
+
+    const [petJuly] = computeCategoryBudgetsForPeriod(
+      [{ id: 'pet', type: 'expense', carry_over_policy: 'CARRY' }],
+      [{ category_id: 'pet', amount: 5_000, period_month: '2026-06-01' }],
+      [{ category_id: 'pet', amount: 8_000, date: '2026-06-15' }],
+      '2026-07',
+    )
+
+    assert.equal(petJuly?.openingBalance, -3_000)
+    assert.equal(petJuly?.closingBalance, -3_000)
+  })
 })

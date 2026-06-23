@@ -4,7 +4,7 @@ import {
   type CategoryMonthSnapshotState,
 } from './budget.js'
 import type { CarryOverPolicy } from './category.js'
-import { getMonthKeyFromIso, isBeforePeriodMonth, isSamePeriodMonth } from './periodMonth.js'
+import { getMonthKeyFromIso, isSamePeriodMonth } from './periodMonth.js'
 import { toMoneyNumber, type MoneyInput } from '../lib/money.js'
 
 export type BudgetRebuildCategory = {
@@ -62,6 +62,157 @@ function shouldCarryOpeningBalance(category: BudgetRebuildCategory): boolean {
   return category.type === 'savings' || category.carry_over_policy === 'CARRY'
 }
 
+function sumCategoryAllocationsBeforePeriod(
+  allocations: readonly BudgetRebuildAllocation[],
+  categoryId: string,
+  periodMonth: string,
+): number {
+  let total = 0
+  for (const allocation of allocations) {
+    if (allocation.category_id !== categoryId) {
+      continue
+    }
+    const monthKey = getAllocationPeriodMonthKey(allocation)
+    if (monthKey != null && monthKey < periodMonth) {
+      total += toMoneyNumber(allocation.amount)
+    }
+  }
+  return total
+}
+
+function sumCategoryAllocationsInPeriod(
+  allocations: readonly BudgetRebuildAllocation[],
+  categoryId: string,
+  periodMonth: string,
+): number {
+  let total = 0
+  for (const allocation of allocations) {
+    if (allocation.category_id !== categoryId) {
+      continue
+    }
+    if (getAllocationPeriodMonthKey(allocation) === periodMonth) {
+      total += toMoneyNumber(allocation.amount)
+    }
+  }
+  return total
+}
+
+function sumCategoryExpensesInPeriod(
+  expenses: readonly BudgetRebuildExpense[],
+  categoryId: string,
+  periodMonth: string,
+): number {
+  let total = 0
+  for (const expense of expenses) {
+    if (
+      expense.category_id === categoryId &&
+      isSamePeriodMonth(expense.date, periodMonth)
+    ) {
+      total += toMoneyNumber(expense.amount)
+    }
+  }
+  return total
+}
+
+function collectCategoryPeriodMonthsBefore(
+  allocations: readonly BudgetRebuildAllocation[],
+  expenses: readonly BudgetRebuildExpense[],
+  categoryId: string,
+  periodMonth: string,
+): string[] {
+  const months = new Set<string>()
+
+  for (const allocation of allocations) {
+    if (allocation.category_id !== categoryId) {
+      continue
+    }
+    const monthKey = getAllocationPeriodMonthKey(allocation)
+    if (monthKey != null && monthKey < periodMonth) {
+      months.add(monthKey)
+    }
+  }
+
+  for (const expense of expenses) {
+    if (expense.category_id !== categoryId) {
+      continue
+    }
+    const monthKey = getMonthKeyFromIso(expense.date)
+    if (monthKey != null && monthKey < periodMonth) {
+      months.add(monthKey)
+    }
+  }
+
+  return [...months].sort()
+}
+
+/** Только траты, реально списанные с конверта в прошлых месяцах. */
+function computeEnvelopeAttributedSpentBefore(
+  category: BudgetRebuildCategory,
+  allocations: readonly BudgetRebuildAllocation[],
+  expenses: readonly BudgetRebuildExpense[],
+  periodMonth: string,
+): number {
+  if (!shouldCarryOpeningBalance(category)) {
+    return 0
+  }
+
+  let envelopeSpentBefore = 0
+
+  for (const month of collectCategoryPeriodMonthsBefore(
+    allocations,
+    expenses,
+    category.id,
+    periodMonth,
+  )) {
+    const openingAtMonth =
+      sumCategoryAllocationsBeforePeriod(allocations, category.id, month) -
+      envelopeSpentBefore
+    const allocatedInMonth = sumCategoryAllocationsInPeriod(
+      allocations,
+      category.id,
+      month,
+    )
+    const rawSpentInMonth = sumCategoryExpensesInPeriod(
+      expenses,
+      category.id,
+      month,
+    )
+
+    if (
+      shouldAttributeExpenseToEnvelope(
+        category.type,
+        openingAtMonth,
+        allocatedInMonth,
+      )
+    ) {
+      envelopeSpentBefore += rawSpentInMonth
+    }
+  }
+
+  return envelopeSpentBefore
+}
+
+function resolveCarriedOpeningBalance(
+  category: BudgetRebuildCategory,
+  allocations: readonly BudgetRebuildAllocation[],
+  expenses: readonly BudgetRebuildExpense[],
+  periodMonth: string,
+): number {
+  if (!shouldCarryOpeningBalance(category)) {
+    return 0
+  }
+
+  return (
+    sumCategoryAllocationsBeforePeriod(allocations, category.id, periodMonth) -
+    computeEnvelopeAttributedSpentBefore(
+      category,
+      allocations,
+      expenses,
+      periodMonth,
+    )
+  )
+}
+
 export function resolveAllocationPeriodMonthKey(
   allocation: Pick<BudgetRebuildAllocation, 'period_month' | 'income_period_month'>,
 ): string | undefined {
@@ -86,31 +237,11 @@ function filterAllocationsByPeriod(
   )
 }
 
-function filterAllocationsBeforePeriod(
-  allocations: readonly BudgetRebuildAllocation[],
-  periodMonth: string,
-): BudgetRebuildAllocation[] {
-  return allocations.filter((allocation) => {
-    const monthKey = getAllocationPeriodMonthKey(allocation)
-
-    return monthKey != null && monthKey < periodMonth
-  })
-}
-
 function filterExpensesByPeriod(
   expenses: readonly BudgetRebuildExpense[],
   periodMonth: string,
 ): BudgetRebuildExpense[] {
   return expenses.filter((expense) => isSamePeriodMonth(expense.date, periodMonth))
-}
-
-function filterExpensesBeforePeriod(
-  expenses: readonly BudgetRebuildExpense[],
-  periodMonth: string,
-): BudgetRebuildExpense[] {
-  return expenses.filter((expense) =>
-    isBeforePeriodMonth(expense.date, periodMonth),
-  )
 }
 
 /**
@@ -122,24 +253,21 @@ export function computeCategoryBudgetsForPeriod(
   expenses: readonly BudgetRebuildExpense[],
   periodMonth: string,
 ): RebuiltCategoryBudget[] {
-  const priorAllocations = filterAllocationsBeforePeriod(allocations, periodMonth)
-  const priorExpenses = filterExpensesBeforePeriod(expenses, periodMonth)
   const periodAllocations = filterAllocationsByPeriod(allocations, periodMonth)
   const periodExpenses = filterExpensesByPeriod(expenses, periodMonth)
 
-  const carriedFromAlloc = sumByCategoryId(priorAllocations)
-  const spentBefore = sumByCategoryId(priorExpenses)
   const allocatedByCategory = sumByCategoryId(periodAllocations)
   const spentByCategory = sumByCategoryId(periodExpenses)
 
   return categories
     .filter((category) => category.type !== 'income')
     .map((category) => {
-      const openingBalance =
-        shouldCarryOpeningBalance(category)
-          ? (carriedFromAlloc.get(category.id) ?? 0) -
-            (spentBefore.get(category.id) ?? 0)
-          : 0
+      const openingBalance = resolveCarriedOpeningBalance(
+        category,
+        allocations,
+        expenses,
+        periodMonth,
+      )
       const allocated = allocatedByCategory.get(category.id) ?? 0
       const rawSpent = spentByCategory.get(category.id) ?? 0
       const envelopeSpent = shouldAttributeExpenseToEnvelope(
@@ -172,13 +300,9 @@ export function computeFreePoolExpensesForPeriod(
   expenses: readonly BudgetRebuildExpense[],
   periodMonth: string,
 ): number {
-  const priorAllocations = filterAllocationsBeforePeriod(allocations, periodMonth)
-  const priorExpenses = filterExpensesBeforePeriod(expenses, periodMonth)
   const periodAllocations = filterAllocationsByPeriod(allocations, periodMonth)
   const periodExpenses = filterExpensesByPeriod(expenses, periodMonth)
 
-  const carriedFromAlloc = sumByCategoryId(priorAllocations)
-  const spentBefore = sumByCategoryId(priorExpenses)
   const allocatedByCategory = sumByCategoryId(periodAllocations)
   const categoryById = new Map(categories.map((category) => [category.id, category]))
 
@@ -189,10 +313,12 @@ export function computeFreePoolExpensesForPeriod(
       continue
     }
 
-    const openingBalance = shouldCarryOpeningBalance(category)
-      ? (carriedFromAlloc.get(category.id) ?? 0) -
-        (spentBefore.get(category.id) ?? 0)
-      : 0
+    const openingBalance = resolveCarriedOpeningBalance(
+      category,
+      allocations,
+      expenses,
+      periodMonth,
+    )
     const allocated = allocatedByCategory.get(category.id) ?? 0
 
     if (
