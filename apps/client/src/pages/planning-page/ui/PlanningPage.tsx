@@ -68,6 +68,7 @@ export function PlanningPage() {
           }
         }}
         item={editingPlanned}
+        categories={page.expenseCategories}
       />
 
       <FinishPlannedExpenseDialog

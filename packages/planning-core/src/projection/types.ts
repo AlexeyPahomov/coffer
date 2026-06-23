@@ -6,6 +6,8 @@ export type PlannedExpenseCommitmentRow = {
   amount: number
   reserved_amount: number
   status: string
+  /** Если задана — обязательство списывается с конверта, иначе со свободного пула. */
+  category_id?: string | null
 }
 
 export type PlannedExpenseCommitments = {

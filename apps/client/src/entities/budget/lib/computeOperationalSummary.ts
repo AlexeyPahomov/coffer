@@ -1,4 +1,5 @@
 import type { PlannedExpense } from '@/entities/planned-expense/model/types'
+import { toPoolCommitmentRows } from '@/entities/planned-expense/lib/plannedExpenseCommitmentRows'
 import { buildMonthProjection } from '@coffer/planning-core'
 
 import type { BudgetLedgerInput } from '../model/budgetLedgerInput'
@@ -62,11 +63,7 @@ export function computeOperationalSummary(
   const projection = buildMonthProjection({
     available,
     spentTotal,
-    commitmentRows: plannedExpenses.map((row) => ({
-      amount: row.amount,
-      reserved_amount: row.reserved_amount,
-      status: row.status,
-    })),
+    commitmentRows: toPoolCommitmentRows(plannedExpenses),
   })
 
   return {

@@ -3,6 +3,10 @@ import { describe, it } from 'node:test'
 
 import { buildMonthProjection } from './buildMonthProjection.js'
 import { projectMonthBudget } from './projectMonthBudget.js'
+import {
+  filterPoolCommitmentRows,
+  sumPlannedCommitmentsByCategoryId,
+} from './plannedExpenseCommitmentUtils.js'
 import { sumPlannedExpenseCommitments } from './sumPlannedExpenseCommitments.js'
 
 describe('sumPlannedExpenseCommitments', () => {
@@ -46,6 +50,31 @@ describe('sumPlannedExpenseCommitments', () => {
       ]),
       { planned: 0, reserved: 10 },
     )
+  })
+})
+
+describe('filterPoolCommitmentRows', () => {
+  it('keeps only rows without category_id', () => {
+    const rows = [
+      { amount: 10, reserved_amount: 0, status: 'PLANNED' },
+      { amount: 20, reserved_amount: 0, status: 'PLANNED', category_id: 'c1' },
+    ]
+    assert.equal(filterPoolCommitmentRows(rows).length, 1)
+    assert.equal(filterPoolCommitmentRows(rows)[0]?.amount, 10)
+  })
+})
+
+describe('sumPlannedCommitmentsByCategoryId', () => {
+  it('aggregates active plans per category', () => {
+    const totals = sumPlannedCommitmentsByCategoryId([
+      { amount: 10, reserved_amount: 0, status: 'PLANNED', category_id: 'c1' },
+      { amount: 5, reserved_amount: 5, status: 'RESERVED', category_id: 'c1' },
+      { amount: 100, reserved_amount: 0, status: 'COMPLETED', category_id: 'c1' },
+      { amount: 7, reserved_amount: 0, status: 'PLANNED' },
+    ])
+
+    assert.equal(totals.get('c1'), 15)
+    assert.equal(totals.has('c7'), false)
   })
 })
 

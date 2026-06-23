@@ -1,4 +1,5 @@
 import type { PlannedExpense } from '@/entities/planned-expense/model/types'
+import type { Category } from '@/entities/category/model/types'
 import {
   Dialog,
   DialogContent,
@@ -19,12 +20,14 @@ export type EditPlannedExpenseDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   item: PlannedExpense | null
+  categories: readonly Category[]
 }
 
 export function EditPlannedExpenseDialog({
   open,
   onOpenChange,
   item,
+  categories,
 }: EditPlannedExpenseDialogProps) {
   const form = useCreatePlannedExpenseForm({
     editingPlannedExpense: item,
@@ -45,6 +48,7 @@ export function EditPlannedExpenseDialog({
         <div key={formKey} className="flex flex-col gap-3">
           <CreatePlannedExpenseFields
             values={form.values}
+            categories={categories}
             onChange={form.handleChange}
             patchValues={form.patchValues}
             onSubmit={form.submit}

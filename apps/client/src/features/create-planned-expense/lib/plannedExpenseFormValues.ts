@@ -25,6 +25,7 @@ export function emptyPlannedExpenseFormValues(): CreatePlannedExpenseFormValues 
     amount: '',
     planned_date: '',
     planned_date_end: '',
+    category_id: '',
   }
 }
 
@@ -41,6 +42,7 @@ export function plannedExpenseToFormValues(
     planned_date_end: item.planned_date_end
       ? isoToDateInputValue(item.planned_date_end)
       : '',
+    category_id: item.category_id ?? '',
   }
 }
 

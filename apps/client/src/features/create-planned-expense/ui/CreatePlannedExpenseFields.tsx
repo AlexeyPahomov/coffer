@@ -1,4 +1,7 @@
 import { Button, DateRangePicker, Input, MoneyInput } from '@/shared/ui'
+import type { Category } from '@/entities/category/model/types'
+import { CategorySelect } from '@/entities/category/ui/CategorySelect'
+import { formLabelClassName } from '@/shared/config/formUi'
 import { bindMoneyAmountField } from '@/shared/lib/moneyInput'
 
 import { createPlannedExpenseInputChangeHandler } from '../lib/plannedExpenseFormFieldHandlers'
@@ -7,6 +10,7 @@ import type { CreatePlannedExpenseFormValues } from '../model/types'
 
 export type CreatePlannedExpenseFieldsProps = {
   values: CreatePlannedExpenseFormValues
+  categories: readonly Category[]
   onChange: (name: keyof CreatePlannedExpenseFormValues, value: string) => void
   patchValues: (patch: Partial<CreatePlannedExpenseFormValues>) => void
   onSubmit: () => void
@@ -17,6 +21,7 @@ export type CreatePlannedExpenseFieldsProps = {
 
 export function CreatePlannedExpenseFields({
   values,
+  categories,
   onChange,
   patchValues,
   onSubmit,
@@ -25,6 +30,7 @@ export function CreatePlannedExpenseFields({
   submitLabel = 'Добавить план',
 }: CreatePlannedExpenseFieldsProps) {
   const onFieldChange = createPlannedExpenseInputChangeHandler(onChange)
+  const noCategories = categories.length === 0
 
   return (
     <>
@@ -57,6 +63,32 @@ export function CreatePlannedExpenseFields({
           onChange('amount', amount),
         )}
       />
+      <div className="space-y-2">
+        <label
+          htmlFor="planned-expense-category"
+          className={formLabelClassName}
+        >
+          Источник
+        </label>
+        <CategorySelect
+          id="planned-expense-category"
+          value={values.category_id}
+          onValueChange={(value) => onChange('category_id', value)}
+          categories={categories}
+          optional
+          optionalLabel="Свободный пул"
+          placeholder={
+            noCategories
+              ? 'Нет категорий расходов'
+              : 'Свободный пул'
+          }
+          disabled={isPending}
+        />
+        <p className="text-xs text-zinc-500">
+          Без категории план списывается из свободного пула. С категорией — из
+          конверта при проведении, если в нём есть лимит.
+        </p>
+      </div>
       <DateRangePicker
         emptyLabel="Когда?"
         from={values.planned_date}

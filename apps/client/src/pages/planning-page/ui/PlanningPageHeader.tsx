@@ -18,6 +18,7 @@ export function PlanningPageToolbarSlot({
       periodLabels={page.periodLabels}
       itemCounts={page.itemCounts}
       itemSwatches={page.itemSwatches}
+      categories={page.expenseCategories}
       onSelectMonth={page.setPeriodMonth}
     />
   )

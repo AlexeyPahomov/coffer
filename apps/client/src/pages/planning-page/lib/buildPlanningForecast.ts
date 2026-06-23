@@ -1,7 +1,12 @@
-import { buildForecastChain, type ForecastChainResult } from '@coffer/planning-core'
+import {
+  buildForecastChain,
+  type ForecastChainResult,
+} from '@coffer/planning-core'
 
 import type { AllocationRule } from '@/entities/allocation-rule/model/types'
 import type { Income } from '@/entities/income/model/types'
+import { toPoolCommitmentRows } from '@/entities/planned-expense/lib/plannedExpenseCommitmentRows'
+import { groupPlannedExpensesByPeriodMonth } from '@/entities/planned-expense/lib/groupPlannedExpensesByPeriodMonth'
 import type { PlannedExpense } from '@/entities/planned-expense/model/types'
 import { getIncomePeriodMonth } from '@/entities/income/lib/incomePeriodMonth'
 import { toMoneyNumber } from '@/shared/lib/money'
@@ -40,25 +45,6 @@ function sumExpectedIncomeByMonth(
   return totals
 }
 
-function groupPlannedExpensesByMonth(
-  plannedExpenses: readonly PlannedExpense[],
-): Map<string, PlannedExpense[]> {
-  const groups = new Map<string, PlannedExpense[]>()
-
-  for (const item of plannedExpenses) {
-    const group = groups.get(item.period_month)
-
-    if (group) {
-      group.push(item)
-      continue
-    }
-
-    groups.set(item.period_month, [item])
-  }
-
-  return groups
-}
-
 export function buildPlanningForecast({
   months,
   incomes,
@@ -67,7 +53,7 @@ export function buildPlanningForecast({
   initialAvailable,
 }: BuildPlanningForecastInput): ForecastChainResult {
   const expectedIncomeByMonth = sumExpectedIncomeByMonth(incomes)
-  const plannedByMonth = groupPlannedExpensesByMonth(plannedExpenses)
+  const plannedByMonth = groupPlannedExpensesByPeriodMonth(plannedExpenses)
 
   return buildForecastChain({
     initialOpening: initialAvailable,
@@ -79,11 +65,7 @@ export function buildPlanningForecast({
         incomes,
         rules,
       ),
-      commitmentRows: (plannedByMonth.get(month) ?? []).map((item) => ({
-        amount: item.amount,
-        reserved_amount: item.reserved_amount,
-        status: item.status,
-      })),
+      commitmentRows: toPoolCommitmentRows(plannedByMonth.get(month) ?? []),
     })),
   })
 }

@@ -5,6 +5,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/shared/ui'
+import type { Category } from '@/entities/category/model/types'
 
 import { plannedExpenseFormDialogDescription } from '../lib/plannedExpenseFormDialogCopy'
 import { useCreatePlannedExpenseForm } from '../model/useCreatePlannedExpenseForm'
@@ -15,12 +16,14 @@ export type CreatePlannedExpenseDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   anchorPeriodMonth: string
+  categories: readonly Category[]
 }
 
 export function CreatePlannedExpenseDialog({
   open,
   onOpenChange,
   anchorPeriodMonth: _anchorPeriodMonth,
+  categories,
 }: CreatePlannedExpenseDialogProps) {
   const form = useCreatePlannedExpenseForm({
     onSuccess: () => onOpenChange(false),
@@ -38,6 +41,7 @@ export function CreatePlannedExpenseDialog({
         <div className="flex flex-col gap-3">
           <CreatePlannedExpenseFields
             values={form.values}
+            categories={categories}
             onChange={form.handleChange}
             patchValues={form.patchValues}
             onSubmit={form.submit}

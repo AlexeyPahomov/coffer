@@ -15,7 +15,12 @@ export type CategorySelectProps = {
   categories: readonly Category[]
   placeholder?: string
   disabled?: boolean
+  /** Разрешить сброс выбора (value → ''). */
+  optional?: boolean
+  optionalLabel?: string
 }
+
+const EMPTY_CATEGORY_VALUE = '__category_none__'
 
 export function CategorySelect({
   id,
@@ -24,11 +29,20 @@ export function CategorySelect({
   categories,
   placeholder,
   disabled,
+  optional = false,
+  optionalLabel = 'Не выбрано',
 }: CategorySelectProps) {
   const selectedCategory = categories.find((category) => category.id === value)
+  const selectValue = value || (optional ? EMPTY_CATEGORY_VALUE : value)
 
   return (
-    <SelectRoot value={value} onValueChange={onValueChange} disabled={disabled}>
+    <SelectRoot
+      value={selectValue}
+      onValueChange={(next) =>
+        onValueChange(next === EMPTY_CATEGORY_VALUE ? '' : next)
+      }
+      disabled={disabled}
+    >
       <SelectTrigger
         id={id}
         size="default"
@@ -41,6 +55,14 @@ export function CategorySelect({
         )}
       </SelectTrigger>
       <SelectContent position="popper" className="min-w-(--radix-select-trigger-width)">
+        {optional ? (
+          <SelectItem
+            value={EMPTY_CATEGORY_VALUE}
+            className="min-h-9 py-1.5 text-zinc-500"
+          >
+            {optionalLabel}
+          </SelectItem>
+        ) : null}
         {categories.map((category) => (
           <SelectItem key={category.id} value={category.id} className="min-h-9 py-1.5">
             <CategoryNameWithIcon category={category} />

@@ -76,6 +76,7 @@ export function useCreatePlannedExpenseForm(
         icon_name: values.icon_name,
         icon_color: values.icon_color,
         amount,
+        category_id: values.category_id || null,
         ...buildPlannedExpenseDateUpdatePatch(
           dateFields.planned_date,
           values.planned_date_end,
@@ -94,6 +95,7 @@ export function useCreatePlannedExpenseForm(
         icon_name: values.icon_name,
         icon_color: values.icon_color,
         amount,
+        category_id: values.category_id || undefined,
         ...dateFields,
       })
       reset()

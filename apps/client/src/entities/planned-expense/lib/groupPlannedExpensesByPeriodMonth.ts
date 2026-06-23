@@ -8,6 +8,25 @@ export function filterPlannedExpensesByPeriodMonth(
   return items.filter((item) => item.period_month === periodMonth)
 }
 
+export function groupPlannedExpensesByPeriodMonth(
+  items: readonly PlannedExpense[],
+): Map<string, PlannedExpense[]> {
+  const groups = new Map<string, PlannedExpense[]>()
+
+  for (const item of items) {
+    const group = groups.get(item.period_month)
+
+    if (group) {
+      group.push(item)
+      continue
+    }
+
+    groups.set(item.period_month, [item])
+  }
+
+  return groups
+}
+
 export function countPlannedExpensesByPeriodMonth(
   items: readonly PlannedExpense[],
 ): Record<string, number> {

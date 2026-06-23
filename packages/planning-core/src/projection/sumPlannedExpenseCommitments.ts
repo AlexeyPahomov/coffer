@@ -2,10 +2,7 @@ import type {
   PlannedExpenseCommitmentRow,
   PlannedExpenseCommitments,
 } from './types.js'
-
-function isActiveCommitment(status: string): boolean {
-  return status !== 'COMPLETED' && status !== 'CANCELLED'
-}
+import { isActivePlannedExpenseCommitment } from './plannedExpenseCommitmentUtils.js'
 
 /** Суммы по активным обязательствам (без COMPLETED / CANCELLED). */
 export function sumPlannedExpenseCommitments(
@@ -15,7 +12,7 @@ export function sumPlannedExpenseCommitments(
   let reserved = 0
 
   for (const row of rows) {
-    if (!isActiveCommitment(row.status)) {
+    if (!isActivePlannedExpenseCommitment(row.status)) {
       continue
     }
 

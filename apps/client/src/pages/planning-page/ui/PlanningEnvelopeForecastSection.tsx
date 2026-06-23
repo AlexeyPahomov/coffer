@@ -1,7 +1,10 @@
 import type { EnvelopeForecast } from '../lib/buildEnvelopeForecast';
+import {
+  formatEnvelopeForecastAmount,
+  type EnvelopeForecastAmountTone,
+} from '../lib/formatEnvelopeForecastAmount';
 
 import { CategoryNameWithIcon } from '@/entities/category/ui/CategoryNameWithIcon';
-import { formatAmount } from '@/shared/lib/format';
 import { cn } from '@/shared/lib/utils';
 import { InfoHint } from '@/shared/ui';
 import { infoHintTitleTextClassName } from '@/shared/ui/info-hint/infoHintLayout';
@@ -17,7 +20,7 @@ function ForecastAmount({
 }: {
   label: string;
   value: number;
-  tone?: 'default' | 'forecast' | 'total';
+  tone?: EnvelopeForecastAmountTone;
 }) {
   return (
     <div className="min-w-0">
@@ -26,11 +29,12 @@ function ForecastAmount({
         className={cn(
           'mt-0.5 font-semibold tabular-nums',
           tone === 'forecast' && 'text-green',
+          tone === 'planned' && 'text-amber-700',
           tone === 'total' && 'text-zinc-900',
           tone === 'default' && 'text-zinc-700',
         )}
       >
-        {formatAmount(value)}
+        {formatEnvelopeForecastAmount(value, tone)}
       </p>
     </div>
   );
@@ -57,6 +61,8 @@ export function PlanningEnvelopeForecastSection({
             <p>
               Это read-only прогноз: ожидаемые доходы подставляются в активные
               правила распределения, но реальные остатки конвертов не меняются.
+              Планы с категорией уменьшают прогноз конверта; без категории —
+              свободный пул.
             </p>
             {forecast.unmatchedIncomeCount > 0 ? (
               <p>
@@ -76,7 +82,7 @@ export function PlanningEnvelopeForecastSection({
 
       {forecast.items.length === 0 ? (
         <p className="px-4 py-3 text-sm text-zinc-500">
-          Нет прогнозных распределений по конвертам.
+          Нет прогнозных распределений и планов по конвертам.
         </p>
       ) : (
         <div className="grid gap-2 p-3 sm:grid-cols-3 xl:grid-cols-5">
@@ -92,10 +98,17 @@ export function PlanningEnvelopeForecastSection({
               <div className="mt-3 grid grid-cols-3 gap-2 text-sm">
                 <ForecastAmount label="сейчас" value={item.currentRemaining} />
                 <ForecastAmount
-                  label="+ ожидается"
+                  label="ожидается"
                   value={item.forecastAmount}
                   tone="forecast"
                 />
+                {item.plannedAmount > 0 ? (
+                  <ForecastAmount
+                    label="планы"
+                    value={item.plannedAmount}
+                    tone="planned"
+                  />
+                ) : null}
               </div>
             </article>
           ))}

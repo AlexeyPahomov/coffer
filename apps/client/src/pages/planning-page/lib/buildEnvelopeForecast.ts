@@ -3,13 +3,18 @@ import type { CategoryBudgetItem } from '@/entities/budget/model/types'
 import type { Category } from '@/entities/category/model/types'
 import { isSavingsCategory } from '@/entities/category/lib/categoryKind'
 import type { Income } from '@/entities/income/model/types'
+import { toPlannedExpenseCommitmentRows } from '@/entities/planned-expense/lib/plannedExpenseCommitmentRows'
+import type { PlannedExpense } from '@/entities/planned-expense/model/types'
 import { getIncomePeriodMonth } from '@/entities/income/lib/incomePeriodMonth'
 import { toMoneyNumber } from '@/shared/lib/money'
+import { sumPlannedCommitmentsByCategoryId } from '@coffer/planning-core'
 
 export type EnvelopeForecastItem = {
   category: Category
   currentRemaining: number
   forecastAmount: number
+  /** Сумма планов с этой категорией за месяц. */
+  plannedAmount: number
   projectedRemaining: number
 }
 
@@ -43,6 +48,9 @@ type BuildEnvelopeForecastChainInput = {
   initialBudgetItems: readonly CategoryBudgetItem[]
   /** Полный остаток накоплений (все распределения − все траты), для поля «сейчас». */
   savingsReserveBalance?: number
+  plannedExpenses?: readonly PlannedExpense[]
+  /** Все категории расходов — для планов по конвертам без остатка. */
+  expenseCategories?: readonly Category[]
 }
 
 type CategoryForecastAmounts = Map<
@@ -263,7 +271,8 @@ function applySavingsReserveDisplay(
       return {
         ...item,
         currentRemaining: savingsReserveBalance,
-        projectedRemaining: savingsReserveBalance + item.forecastAmount,
+        projectedRemaining:
+          savingsReserveBalance + item.forecastAmount - item.plannedAmount,
       }
     }),
   }
@@ -277,7 +286,9 @@ function resolveSavingsProjectedRemaining(
     savingsReserveBalance != null &&
     isSavingsCategory(item.category.type)
   ) {
-    return savingsReserveBalance + item.forecastAmount
+    return (
+      savingsReserveBalance + item.forecastAmount - item.plannedAmount
+    )
   }
 
   return item.projectedRemaining
@@ -286,25 +297,45 @@ function resolveSavingsProjectedRemaining(
 function buildEnvelopeForecastItems(
   forecastByCategoryId: CategoryForecastAmounts,
   getCurrentRemaining: (categoryId: string) => number,
+  plannedByCategoryId: Map<string, number>,
+  categoriesById: Map<string, Category>,
 ): EnvelopeForecastItem[] {
-  return [...forecastByCategoryId.values()]
-    .map(({ category, amount }) => {
-      const currentRemaining = getCurrentRemaining(category.id)
+  const categoryIds = new Set([
+    ...forecastByCategoryId.keys(),
+    ...plannedByCategoryId.keys(),
+  ])
+
+  return [...categoryIds]
+    .map((categoryId) => {
+      const forecastEntry = forecastByCategoryId.get(categoryId)
+      const category =
+        forecastEntry?.category ?? categoriesById.get(categoryId)
+      if (!category) {
+        return null
+      }
+
+      const currentRemaining = getCurrentRemaining(categoryId)
+      const forecastAmount = forecastEntry?.amount ?? 0
+      const plannedAmount = plannedByCategoryId.get(categoryId) ?? 0
 
       return {
         category,
         currentRemaining,
-        forecastAmount: amount,
-        projectedRemaining: currentRemaining + amount,
+        forecastAmount,
+        plannedAmount,
+        projectedRemaining: currentRemaining + forecastAmount - plannedAmount,
       }
     })
+    .filter((item): item is EnvelopeForecastItem => item != null)
     .sort((a, b) => {
       const aIsSavings = isSavingsCategory(a.category.type)
       const bIsSavings = isSavingsCategory(b.category.type)
       if (aIsSavings !== bIsSavings) {
         return aIsSavings ? 1 : -1
       }
-      return b.forecastAmount - a.forecastAmount
+      const aTotal = a.forecastAmount + a.plannedAmount
+      const bTotal = b.forecastAmount + b.plannedAmount
+      return bTotal - aTotal
     })
 }
 
@@ -313,6 +344,8 @@ function buildMonthEnvelopeForecast(
   incomes: readonly Income[],
   rules: readonly AllocationRule[],
   getCurrentRemaining: (categoryId: string) => number,
+  plannedByCategoryId: Map<string, number>,
+  categoriesById: Map<string, Category>,
 ): EnvelopeForecast {
   const {
     forecastByCategoryId,
@@ -323,12 +356,30 @@ function buildMonthEnvelopeForecast(
   } = buildForecastAmountsForMonth({ periodMonth, incomes, rules })
 
   return {
-    items: buildEnvelopeForecastItems(forecastByCategoryId, getCurrentRemaining),
+    items: buildEnvelopeForecastItems(
+      forecastByCategoryId,
+      getCurrentRemaining,
+      plannedByCategoryId,
+      categoriesById,
+    ),
     expectedIncomeCount,
     matchedIncomeCount,
     unmatchedIncomeCount,
     warnings,
   }
+}
+
+function plannedCommitmentsForMonth(
+  plannedExpenses: readonly PlannedExpense[],
+  periodMonth: string,
+): Map<string, number> {
+  const monthPlans = plannedExpenses.filter(
+    (item) => item.period_month === periodMonth,
+  )
+
+  return sumPlannedCommitmentsByCategoryId(
+    toPlannedExpenseCommitmentRows(monthPlans),
+  )
 }
 
 export function buildEnvelopeForecast({
@@ -353,10 +404,17 @@ export function buildEnvelopeForecastChain({
   rules,
   initialBudgetItems,
   savingsReserveBalance,
+  plannedExpenses = [],
+  expenseCategories = [],
 }: BuildEnvelopeForecastChainInput): EnvelopeForecast {
   if (months.length === 0 || !months.includes(selectedPeriodMonth)) {
     return emptyEnvelopeForecast()
   }
+
+  const categoriesById = new Map<string, Category>([
+    ...initialBudgetItems.map((item) => [item.category.id, item.category] as const),
+    ...expenseCategories.map((category) => [category.id, category] as const),
+  ])
 
   const balanceByCategoryId = new Map<
     string,
@@ -374,11 +432,17 @@ export function buildEnvelopeForecastChain({
   let selectedForecast: EnvelopeForecast | null = null
 
   for (const month of months) {
+    const plannedByCategoryId = plannedCommitmentsForMonth(
+      plannedExpenses,
+      month,
+    )
     const monthForecast = buildMonthEnvelopeForecast(
       month,
       incomes,
       rules,
       (categoryId) => balanceByCategoryId.get(categoryId)?.remaining ?? 0,
+      plannedByCategoryId,
+      categoriesById,
     )
 
     for (const item of monthForecast.items) {

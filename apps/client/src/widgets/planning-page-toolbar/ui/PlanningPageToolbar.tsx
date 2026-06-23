@@ -1,5 +1,6 @@
 import { useState } from 'react'
 
+import type { Category } from '@/entities/category/model/types'
 import { CreatePlannedExpenseDialog } from '@/features/create-planned-expense/ui/CreatePlannedExpenseDialog'
 import { AddButton, Fab } from '@/shared/ui'
 import { PlanningMonthTimeline } from '@/widgets/planning-month-timeline/ui/PlanningMonthTimeline'
@@ -15,6 +16,7 @@ export type PlanningPageToolbarProps = {
   periodLabels: Record<string, string>
   itemCounts: Record<string, number>
   itemSwatches: Record<string, string[]>
+  categories: readonly Category[]
   onSelectMonth: (periodMonth: string) => void
 }
 
@@ -23,6 +25,7 @@ export function PlanningPageToolbar({
   periodLabels,
   itemCounts,
   itemSwatches,
+  categories,
   onSelectMonth,
 }: PlanningPageToolbarProps) {
   const [createOpen, setCreateOpen] = useState(false)
@@ -54,6 +57,7 @@ export function PlanningPageToolbar({
         open={createOpen}
         onOpenChange={setCreateOpen}
         anchorPeriodMonth={periodMonth}
+        categories={categories}
       />
     </>
   )

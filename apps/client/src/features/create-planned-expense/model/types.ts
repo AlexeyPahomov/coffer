@@ -6,4 +6,5 @@ export type CreatePlannedExpenseFormValues = {
   amount: string
   planned_date: string
   planned_date_end: string
+  category_id: string
 }

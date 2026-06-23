@@ -1,6 +1,7 @@
 import { Check, Lock, LockOpen, Pencil, RotateCcw, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 
+import type { Category } from '@/entities/category/model/types'
 import { cancelMenuItemClassName } from '@/shared/lib/cancelMenuItemLayout'
 import { formatDateRangeLabel } from '@/shared/lib/date'
 import { formatMoneyRange, formatMoneyWithRub } from '@/shared/lib/format'
@@ -19,11 +20,13 @@ import {
   plannedExpenseCardClassName,
   plannedExpenseCardDateClassName,
   plannedExpenseCardDescriptionClassName,
+  plannedExpenseCardDetailsClassName,
   plannedExpenseCardFinanceClassName,
-  plannedExpenseCardMetaClassName,
   plannedExpenseCardMainClassName,
   plannedExpenseCardProgressTextClassName,
   plannedExpenseCardRowClassName,
+  plannedExpenseCardSourceClassName,
+  plannedExpenseCardSourceMobileClassName,
   plannedExpenseCardStatusClassName,
   plannedExpenseCardTextClassName,
   plannedExpenseCardTitleClassName,
@@ -43,6 +46,7 @@ import { resolveIconColorTone } from '@/shared/lib/iconColorStyles'
 import { PLANNED_EXPENSE_STATUS_LABELS } from '../lib/plannedExpenseStatus'
 import type { PlannedExpense } from '../model/types'
 import { PlannedExpenseIconAvatar } from './PlannedExpenseIconAvatar'
+import { PlannedExpenseSourceIcon } from './PlannedExpenseSourceIcon'
 
 const statusBadgeInteractiveClassName =
   'rounded-md bg-zinc-100 text-zinc-600 hover:bg-zinc-200/80 disabled:pointer-events-none disabled:opacity-50'
@@ -51,6 +55,7 @@ const statusBadgeStaticClassName = 'rounded-md bg-zinc-100 text-zinc-600'
 
 export type PlannedExpenseCardProps = {
   item: PlannedExpense
+  category?: Category | null
   onReserve?: (id: string) => void
   onDeletePlan?: (id: string) => void
   onUnreserve?: (id: string) => void
@@ -65,6 +70,7 @@ export type PlannedExpenseCardProps = {
 
 export function PlannedExpenseCard({
   item,
+  category = null,
   onReserve,
   onDeletePlan,
   onUnreserve,
@@ -256,6 +262,10 @@ export function PlannedExpenseCard({
 
   return (
     <article className={cn(plannedExpenseCardClassName, className)}>
+      <div className={plannedExpenseCardSourceMobileClassName}>
+        <PlannedExpenseSourceIcon category={category} />
+      </div>
+
       <div className={plannedExpenseCardRowClassName}>
         <div className={plannedExpenseCardMainClassName}>
           <PlannedExpenseIconAvatar
@@ -273,7 +283,11 @@ export function PlannedExpenseCard({
           </div>
         </div>
 
-        <div className={plannedExpenseCardMetaClassName}>
+        <div className={plannedExpenseCardDetailsClassName}>
+          <div className={plannedExpenseCardSourceClassName}>
+            <PlannedExpenseSourceIcon category={category} />
+          </div>
+
           <div className={plannedExpenseCardFinanceClassName}>
             <p className={plannedExpenseCardAmountClassName}>
               {formatMoneyWithRub(targetAmount)}
@@ -282,7 +296,7 @@ export function PlannedExpenseCard({
               <>
                 <Progress
                   value={progressValue}
-                  className="h-1 w-full max-w-36 bg-zinc-100"
+                  className="h-1 w-full min-w-20 bg-zinc-100"
                   indicatorClassName={tone.progressClassName}
                 />
                 <p className={plannedExpenseCardProgressTextClassName}>
@@ -293,11 +307,11 @@ export function PlannedExpenseCard({
           </div>
 
           <div className={plannedExpenseCardStatusClassName}>{statusBadge}</div>
-        </div>
 
-        <p className={plannedExpenseCardDateClassName}>
-          {formatDateRangeLabel(item.planned_date, item.planned_date_end)}
-        </p>
+          <p className={plannedExpenseCardDateClassName}>
+            {formatDateRangeLabel(item.planned_date, item.planned_date_end)}
+          </p>
+        </div>
       </div>
     </article>
   )

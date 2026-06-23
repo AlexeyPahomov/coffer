@@ -1,3 +1,4 @@
+import { resolvePlannedExpenseCategory } from '@/entities/planned-expense/lib/resolvePlannedExpenseCategory'
 import { canFinishPlannedExpense } from '@/entities/planned-expense/lib/canFinishPlannedExpense'
 import { canUnfinishPlannedExpense } from '@/entities/planned-expense/lib/canUnfinishPlannedExpense'
 import type { PlannedExpense } from '@/entities/planned-expense/model/types'
@@ -37,6 +38,10 @@ export function PlanningPagePlansSection({
             <PlannedExpenseCard
               key={item.id}
               item={item}
+              category={resolvePlannedExpenseCategory(
+                item,
+                page.expenseCategories,
+              )}
               onReserve={(id) => page.reserve(id, item.amount)}
               onDeletePlan={page.deletePlan}
               onUnreserve={page.unreserve}
