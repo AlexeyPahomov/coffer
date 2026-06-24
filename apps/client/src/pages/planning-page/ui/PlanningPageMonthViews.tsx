@@ -1,5 +1,5 @@
 import type { PlannedExpense } from '@/entities/planned-expense/model/types'
-import { Spinner } from '@/shared/ui'
+import { PageContentLoader, Spinner } from '@/shared/ui'
 import { MonthLiquidityFlow, PlanningMobileLiquidityHeader } from '@/widgets/liquidity-flow-preview'
 import { PlanningMonthMetrics } from '@/widgets/planning-month-metrics'
 
@@ -14,10 +14,21 @@ type PlanningPageMonthViewsProps = {
   onFinishPlanned: (item: PlannedExpense) => void
 }
 
+function PlanningSectionFallback({ label }: { label: string }) {
+  return (
+    <div
+      className="flex min-h-24 items-center justify-center rounded-xl border border-dashed border-zinc-200 bg-white/60"
+      aria-busy="true"
+    >
+      <Spinner className="size-6 text-zinc-400" aria-label={label} />
+    </div>
+  )
+}
+
 export function PlanningPageMonthMobileHeader({
   page,
 }: Pick<PlanningPageMonthViewsProps, 'page'>) {
-  if (page.isLoading) {
+  if (page.isBudgetLoading) {
     return null
   }
 
@@ -36,17 +47,6 @@ export function PlanningPageMonthBody({
   onEditPlanned,
   onFinishPlanned,
 }: PlanningPageMonthViewsProps) {
-  if (page.isLoading) {
-    return (
-      <div
-        className="flex min-h-[min(50vh,28rem)] flex-col items-center justify-center"
-        aria-busy="true"
-      >
-        <Spinner className="size-8 text-zinc-500" aria-label="Загрузка" />
-      </div>
-    )
-  }
-
   const liquidityFlowProps = {
     projection: page.projection,
     expectedIncomeTotal: page.expectedIncomeTotal,
@@ -54,25 +54,39 @@ export function PlanningPageMonthBody({
 
   return (
     <>
-      <PlanningMonthMetrics
-        className="hidden md:grid"
-        projection={page.projection}
-        periodMonth={page.periodMonth}
-        expectedIncomeTotal={page.expectedIncomeTotal}
-      />
+      {page.isBudgetLoading ? (
+        <PlanningSectionFallback label="Загрузка метрик" />
+      ) : (
+        <>
+          <PlanningMonthMetrics
+            className="hidden md:grid"
+            projection={page.projection}
+            periodMonth={page.periodMonth}
+            expectedIncomeTotal={page.expectedIncomeTotal}
+          />
 
-      <MonthLiquidityFlow
-        className="hidden md:flex"
-        {...liquidityFlowProps}
-      />
+          <MonthLiquidityFlow
+            className="hidden md:flex"
+            {...liquidityFlowProps}
+          />
+        </>
+      )}
 
-      <PlanningEnvelopeForecastSection forecast={page.envelopeForecast} />
+      {page.isForecastLoading ? (
+        <PlanningSectionFallback label="Загрузка прогноза конвертов" />
+      ) : (
+        <PlanningEnvelopeForecastSection forecast={page.envelopeForecast} />
+      )}
 
-      <PlanningPagePlansSection
-        page={page}
-        onEditPlanned={onEditPlanned}
-        onFinishPlanned={onFinishPlanned}
-      />
+      {page.isPlansLoading ? (
+        <PageContentLoader className="min-h-40" />
+      ) : (
+        <PlanningPagePlansSection
+          page={page}
+          onEditPlanned={onEditPlanned}
+          onFinishPlanned={onFinishPlanned}
+        />
+      )}
     </>
   )
 }

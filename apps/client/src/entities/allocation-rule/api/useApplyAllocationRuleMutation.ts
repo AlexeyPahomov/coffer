@@ -22,7 +22,7 @@ export function useApplyAllocationRuleMutation() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: allocationRuleKeys.all })
       void queryClient.invalidateQueries({ queryKey: allocationKeys.all })
-      invalidateDerivedBudgetCaches(queryClient)
+      invalidateDerivedBudgetCaches(queryClient, { includeBootstrap: true })
     },
   })
 }

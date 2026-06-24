@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import type { ForecastMonth, MonthBudgetProjection } from '@/processes/forecasting'
 
 import { formatPlanningPeriodLabel } from '@/entities/budget'
+import { usePrefetchBudgetMonth } from '@/entities/budget-month/api/usePrefetchBudgetMonth'
 import { resolveEnvelopeForecastInputs } from '@/entities/budget/lib/resolveEnvelopeForecastInputs'
 import { filterExpenseCategories } from '@/entities/category/lib/filterExpenseCategories'
 import {
@@ -44,6 +45,7 @@ function forecastMonthToProjection(
 export function usePlanningPage() {
   const [pickedPeriodMonth, setPickedPeriodMonth] = useState<string | null>(null)
   const periodMonth = pickedPeriodMonth ?? currentMonthInputValue()
+  usePrefetchBudgetMonth(periodMonth)
   const plannedQuery = usePlannedExpensesQuery()
   const allocationRulesQuery = useAllocationRulesQuery()
   const statusMutation = usePlannedExpenseStatusMutation()
@@ -209,9 +211,20 @@ export function usePlanningPage() {
     pendingUnfinishId: unfinishMutation.isPending
       ? unfinishMutation.variables
       : undefined,
+    isPlansLoading:
+      plannedQuery.isPending && plannedQuery.data === undefined,
+    isRulesLoading:
+      allocationRulesQuery.isPending &&
+      allocationRulesQuery.data === undefined,
+    isBudgetLoading,
+    isForecastLoading:
+      isBudgetLoading ||
+      (allocationRulesQuery.isPending &&
+        allocationRulesQuery.data === undefined),
     isLoading:
-      plannedQuery.isPending ||
-      allocationRulesQuery.isPending ||
+      (plannedQuery.isPending && plannedQuery.data === undefined) ||
+      (allocationRulesQuery.isPending &&
+        allocationRulesQuery.data === undefined) ||
       isBudgetLoading,
   }
 }

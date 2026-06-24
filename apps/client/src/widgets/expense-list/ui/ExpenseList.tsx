@@ -26,6 +26,8 @@ export interface ExpenseListProps {
   isFetching?: boolean;
   className?: string;
   monthFilter: string;
+  /** Месяц уже отфильтрован на сервере — применяется только фильтр категории. */
+  serverMonthFiltered?: boolean;
   editingExpenseId?: string | null;
   deletingExpenseId?: string | null;
   onEdit?: (item: ExpenseListItem) => void;
@@ -65,6 +67,7 @@ export function ExpenseList({
   hideHeaderViewSwitcher = false,
   viewMode: viewModeProp,
   onViewModeChange,
+  serverMonthFiltered = false,
 }: ExpenseListProps) {
   const [internalViewMode, setInternalViewMode] =
     useState<ExpenseListViewMode>('list');
@@ -73,12 +76,19 @@ export function ExpenseList({
 
   const filteredExpenses = useMemo(
     () =>
-      filterExpensesByCategoryAndMonth(
-        expenses ?? [],
-        categoryFilter,
-        monthFilter,
-      ),
-    [expenses, categoryFilter, monthFilter],
+      serverMonthFiltered
+        ? filterExpensesByCategoryAndMonth(
+            expenses ?? [],
+            categoryFilter,
+            monthFilter,
+            { skipMonthFilter: true },
+          )
+        : filterExpensesByCategoryAndMonth(
+            expenses ?? [],
+            categoryFilter,
+            monthFilter,
+          ),
+    [categoryFilter, expenses, monthFilter, serverMonthFiltered],
   );
 
   const viewSwitcher = (

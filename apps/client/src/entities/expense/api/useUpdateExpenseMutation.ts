@@ -1,7 +1,8 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 
-import { invalidateDerivedBudgetCaches } from '@/entities/budget'
+import { updateInListQuery } from '@/shared/lib/queryCache/listQueryCache'
 
+import { invalidateExpenseDerivedCaches } from '../lib/expenseMutationCache'
 import type { UpdateExpensePayload } from '../model/types'
 import { updateExpense } from './expenseApi'
 import { expenseQueryKeys } from './expenseQueryKeys'
@@ -17,9 +18,11 @@ export function useUpdateExpenseMutation() {
   return useMutation({
     mutationFn: ({ id, payload }: UpdateExpenseVariables) =>
       updateExpense(id, payload),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: expenseQueryKeys.all })
-      invalidateDerivedBudgetCaches(queryClient)
+    onSuccess: (expense) => {
+      updateInListQuery(queryClient, expenseQueryKeys.list(), expense.id, expense)
+      invalidateExpenseDerivedCaches(queryClient, expense, {
+        invalidateAllHistory: true,
+      })
     },
   })
 }

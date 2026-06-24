@@ -8,5 +8,6 @@ import { AllocationRuleService } from './allocation-rule.service';
   imports: [BudgetModule],
   controllers: [AllocationRuleController],
   providers: [AllocationRuleService],
+  exports: [AllocationRuleService],
 })
 export class AllocationRuleModule {}

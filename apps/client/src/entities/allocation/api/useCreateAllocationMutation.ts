@@ -1,6 +1,9 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 
 import { invalidateDerivedBudgetCaches } from '@/entities/budget'
+import { getAllocationPeriodMonthKey } from '@/entities/allocation/lib/getAllocationPeriodMonthKey'
+import { appendToListQuery } from '@/shared/lib/queryCache/listQueryCache'
+import { todayDateInputValue } from '@/shared/lib/date'
 
 import type {
   Allocation,
@@ -14,9 +17,12 @@ export function useCreateAllocationMutation() {
 
   return useMutation<Allocation, Error, CreateAllocationPayload>({
     mutationFn: createAllocation,
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: allocationKeys.all })
-      invalidateDerivedBudgetCaches(queryClient)
+    onSuccess: (allocation) => {
+      appendToListQuery(queryClient, allocationKeys.allList(), allocation)
+      invalidateDerivedBudgetCaches(queryClient, {
+        periodMonth: getAllocationPeriodMonthKey(allocation),
+        asOf: todayDateInputValue(),
+      })
     },
   })
 }

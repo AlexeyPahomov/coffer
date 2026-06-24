@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
 
 import { todayDateInputValue } from '@/shared/lib/date'
 
@@ -13,5 +13,6 @@ export function useCurrentBudgetCycleQuery(asOf: string = todayDateInputValue())
     queryFn: () => fetchCurrentBudgetCycle(asOf),
     staleTime: 30_000,
     retry: 1,
+    placeholderData: keepPreviousData,
   })
 }

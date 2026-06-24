@@ -5,13 +5,9 @@ import {
   useActiveCycleBudgetCore,
   useExpensePeriodBudget,
 } from '@/entities/budget'
+import { usePrefetchBudgetMonth } from '@/entities/budget-month/api/usePrefetchBudgetMonth'
 import { filterExpenseCategories } from '@/entities/category/lib/filterExpenseCategories'
 import { currentMonthInputValue } from '@/shared/lib/date'
-
-import {
-  enrichExpensesWithCategory,
-  sortExpensesNewestFirst,
-} from '../lib/enrichExpenses'
 
 export function useExpensePage() {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(
@@ -20,6 +16,8 @@ export function useExpensePage() {
 
   const [pickedPeriodMonth, setPickedPeriodMonth] = useState<string | null>(null)
   const periodMonth = pickedPeriodMonth ?? currentMonthInputValue()
+
+  usePrefetchBudgetMonth(periodMonth)
 
   const core = useActiveCycleBudgetCore()
 
@@ -67,11 +65,6 @@ export function useExpensePage() {
     [periodBudget.operationalSummary],
   )
 
-  const sortedExpenses = useMemo(() => {
-    const enriched = enrichExpensesWithCategory(core.expenses, core.categories)
-    return sortExpensesNewestFirst(enriched)
-  }, [core.expenses, core.categories])
-
   const isBudgetPending =
     core.categoriesQuery.isPending ||
     core.incomesQuery.isPending ||
@@ -112,7 +105,7 @@ export function useExpensePage() {
     allBudgetItems: periodBudget.allBudgetItems,
     budgetItems,
     currentBudgetView,
-    sortedExpenses,
+    categories: core.categories,
     isBudgetPending,
     isBudgetError,
     budgetError,

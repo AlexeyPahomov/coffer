@@ -1,6 +1,10 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState, type UIEventHandler } from 'react';
 
 import { useDeleteExpenseMutation } from '@/entities/expense/api/useDeleteExpenseMutation';
+import {
+  flattenExpenseHistoryPages,
+  useExpenseHistoryQuery,
+} from '@/entities/expense/api/useExpenseHistoryQuery';
 import type { Expense } from '@/entities/expense/model/types';
 import type { ExpenseListItem } from '@/widgets/expense-list';
 import { ExpenseFormDialog } from '@/features/create-expense/ui/ExpenseFormDialog';
@@ -12,6 +16,7 @@ import {
   getExpensePageShellClassName,
 } from '../lib/expensePageLayout';
 import { EXPENSE_ADD_LABEL } from '../lib/expensePageCopy';
+import { enrichExpensesWithCategory } from '../lib/enrichExpenses';
 import { toBudgetSnapshots } from '../lib/toBudgetSnapshots';
 import { useExpensePageCategorySelection } from '../model/useExpensePageCategorySelection';
 import { useExpensePageOutsideInteraction } from '../model/useExpensePageOutsideInteraction';
@@ -38,12 +43,11 @@ export function ExpensePage() {
     periodMonth,
     setPeriodMonth,
     currentBudgetView,
-    sortedExpenses,
+    categories,
     isBudgetPending,
     isBudgetError,
     budgetError,
     isBudgetFetching,
-    expensesQuery,
   } = useExpensePage();
 
   const {
@@ -54,6 +58,29 @@ export function ExpensePage() {
     selectedCategoryId,
     setSelectedCategoryId,
   });
+
+  const historyQuery = useExpenseHistoryQuery(periodMonth, expenseCategoryFilter)
+
+  const sortedExpenses = useMemo((): ExpenseListItem[] => {
+    const flat = flattenExpenseHistoryPages(historyQuery.data?.pages)
+    return enrichExpensesWithCategory(flat, categories)
+  }, [categories, historyQuery.data?.pages])
+
+  const handleHistoryScroll = useCallback<UIEventHandler<HTMLUListElement>>(
+    (event) => {
+      if (!historyQuery.hasNextPage || historyQuery.isFetchingNextPage) {
+        return
+      }
+
+      const target = event.currentTarget
+      const remaining =
+        target.scrollHeight - target.scrollTop - target.clientHeight
+      if (remaining < 120) {
+        void historyQuery.fetchNextPage()
+      }
+    },
+    [historyQuery],
+  )
 
   useExpensePageOutsideInteraction({
     selectedCategoryId,
@@ -137,7 +164,13 @@ export function ExpensePage() {
             isBudgetFetching={isBudgetFetching}
             sortedExpenses={sortedExpenses}
             expenseCategoryFilter={expenseCategoryFilter}
-            expensesQuery={expensesQuery}
+            isHistoryPending={
+              historyQuery.isPending && historyQuery.data === undefined
+            }
+            isHistoryError={historyQuery.isError}
+            historyError={historyQuery.error}
+            isHistoryFetching={historyQuery.isFetchingNextPage}
+            onHistoryScroll={handleHistoryScroll}
             editingExpenseId={editingExpense?.id ?? null}
             deletingExpenseId={
               deleteExpenseMutation.isPending

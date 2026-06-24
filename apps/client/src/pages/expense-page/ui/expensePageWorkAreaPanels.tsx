@@ -1,3 +1,4 @@
+import type { UIEventHandler } from 'react'
 import type { Allocation } from '@/entities/allocation/model/types'
 import type { Category } from '@/entities/category/model/types'
 import type { Expense } from '@/entities/expense/model/types'
@@ -35,12 +36,11 @@ export type ExpensePageWorkAreaPanelsProps = {
   isBudgetFetching: boolean
   sortedExpenses: ExpenseListItem[]
   expenseCategoryFilter: string
-  expensesQuery: {
-    isPending: boolean
-    isError: boolean
-    error: unknown
-    isFetching: boolean
-  }
+  isHistoryPending: boolean
+  isHistoryError: boolean
+  historyError: unknown
+  isHistoryFetching: boolean
+  onHistoryScroll?: UIEventHandler<HTMLUListElement>
   editingExpenseId: string | null
   deletingExpenseId: string | null
   onEditExpense: (item: ExpenseListItem) => void
@@ -95,8 +95,11 @@ export function ExpensePageHistoryPanel({
   periodMonth,
   sortedExpenses,
   expenseCategoryFilter,
-  expensesQuery,
-  isBudgetPending,
+  isHistoryPending,
+  isHistoryError,
+  historyError,
+  isHistoryFetching,
+  onHistoryScroll,
   editingExpenseId,
   deletingExpenseId,
   onEditExpense,
@@ -114,10 +117,12 @@ export function ExpensePageHistoryPanel({
         monthFilter={periodMonth}
         expenses={sortedExpenses}
         categoryFilter={expenseCategoryFilter}
-        isPending={isBudgetPending}
-        isError={expensesQuery.isError}
-        error={expensesQuery.error}
-        isFetching={expensesQuery.isFetching}
+        serverMonthFiltered
+        isPending={isHistoryPending}
+        isError={isHistoryError}
+        error={historyError}
+        isFetching={isHistoryFetching}
+        onListScroll={onHistoryScroll}
         editingExpenseId={editingExpenseId}
         deletingExpenseId={deletingExpenseId}
         onEdit={onEditExpense}

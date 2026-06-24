@@ -8,7 +8,7 @@ import { apiDelete, apiGet, apiPatch, apiPost } from '@/shared/api/client'
 
 const INCOME_PATH = '/income'
 
-function normalizeIncome(income: Income): Income {
+export function normalizeIncomeFromApi(income: Income): Income {
   return {
     ...income,
     income_type: resolveIncomeType(income.income_type),
@@ -18,7 +18,7 @@ function normalizeIncome(income: Income): Income {
 
 export async function getIncomes(): Promise<Income[]> {
   const rows = await apiGet<Income[]>(INCOME_PATH)
-  return rows.map(normalizeIncome)
+  return rows.map(normalizeIncomeFromApi)
 }
 
 export function createIncome(payload: CreateIncomePayload): Promise<Income> {

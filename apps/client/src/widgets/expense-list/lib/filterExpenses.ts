@@ -1,9 +1,14 @@
 import type { ExpenseListItem } from '../model/types'
 
+type FilterExpensesOptions = {
+  skipMonthFilter?: boolean
+}
+
 export function filterExpensesByCategoryAndMonth(
   expenses: readonly ExpenseListItem[],
   categoryFilter: string,
   monthFilter: string,
+  options?: FilterExpensesOptions,
 ): ExpenseListItem[] {
   const monthPrefix = monthFilter.trim().slice(0, 7)
 
@@ -12,7 +17,7 @@ export function filterExpensesByCategoryAndMonth(
       return false
     }
 
-    if (!monthPrefix) {
+    if (options?.skipMonthFilter || !monthPrefix) {
       return true
     }
 

@@ -7,5 +7,6 @@ import { ExpenseService } from './expense.service';
   imports: [BudgetModule],
   controllers: [ExpenseController],
   providers: [ExpenseService],
+  exports: [ExpenseService],
 })
 export class ExpenseModule {}

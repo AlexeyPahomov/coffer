@@ -179,6 +179,14 @@ export class BudgetMonthService {
     });
   }
 
+  /** GET view или materialize + view (без отдельного POST open на клиенте). */
+  async getViewOrOpen(
+    userId: string,
+    periodMonth: string,
+  ): Promise<BudgetMonthViewDto> {
+    return this.open(userId, periodMonth);
+  }
+
   async open(userId: string, periodMonth: string): Promise<BudgetMonthViewDto> {
     const meta = await this.findBudgetMonthMeta(userId, periodMonth);
     if (meta) {

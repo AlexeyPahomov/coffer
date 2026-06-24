@@ -23,7 +23,7 @@ type BudgetMonthApiSlice = {
   month: number
 }
 
-type PlannedExpenseApiRow = {
+export type PlannedExpenseApiRow = {
   id: string
   user_id: string
   title: string
@@ -52,7 +52,9 @@ function periodMonthFromRow(row: PlannedExpenseApiRow): string {
   return getMonthKeyFromIso(row.planned_date) ?? ''
 }
 
-function mapPlannedExpense(row: PlannedExpenseApiRow): PlannedExpense {
+export function mapPlannedExpenseFromApiRow(
+  row: PlannedExpenseApiRow,
+): PlannedExpense {
   return {
     id: row.id,
     user_id: row.user_id,
@@ -79,7 +81,7 @@ export function getPlannedExpenses(periodMonth?: string): Promise<PlannedExpense
     ? `?${new URLSearchParams({ period: periodMonth })}`
     : ''
   return apiGet<PlannedExpenseApiRow[]>(`${PLANNED_EXPENSE_PATH}${q}`).then(
-    (rows) => rows.map(mapPlannedExpense),
+    (rows) => rows.map(mapPlannedExpenseFromApiRow),
   )
 }
 
@@ -87,7 +89,7 @@ export function createPlannedExpense(
   payload: CreatePlannedExpensePayload,
 ): Promise<PlannedExpense> {
   return apiPost<PlannedExpenseApiRow>(PLANNED_EXPENSE_PATH, payload).then(
-    mapPlannedExpense,
+    mapPlannedExpenseFromApiRow,
   )
 }
 
@@ -99,7 +101,7 @@ export function updatePlannedExpense(
   return apiPatch<PlannedExpenseApiRow>(
     `${PLANNED_EXPENSE_PATH}/${encodeURIComponent(id)}?${q}`,
     payload,
-  ).then(mapPlannedExpense)
+  ).then(mapPlannedExpenseFromApiRow)
 }
 
 export function deletePlannedExpense(id: string): Promise<void> {
@@ -115,7 +117,7 @@ export function finishPlannedExpense(
   return apiPost<{ plannedExpense: PlannedExpenseApiRow }>(
     `${PLANNED_EXPENSE_PATH}/${encodeURIComponent(id)}/finish?${q}`,
     payload,
-  ).then((response) => mapPlannedExpense(response.plannedExpense))
+  ).then((response) => mapPlannedExpenseFromApiRow(response.plannedExpense))
 }
 
 export function unfinishPlannedExpense(id: string): Promise<PlannedExpense> {
@@ -123,5 +125,5 @@ export function unfinishPlannedExpense(id: string): Promise<PlannedExpense> {
   return apiPost<PlannedExpenseApiRow>(
     `${PLANNED_EXPENSE_PATH}/${encodeURIComponent(id)}/unfinish?${q}`,
     {},
-  ).then(mapPlannedExpense)
+  ).then(mapPlannedExpenseFromApiRow)
 }

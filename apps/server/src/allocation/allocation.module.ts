@@ -7,5 +7,6 @@ import { AllocationService } from './allocation.service';
   imports: [BudgetModule],
   controllers: [AllocationController],
   providers: [AllocationService],
+  exports: [AllocationService],
 })
 export class AllocationModule {}
