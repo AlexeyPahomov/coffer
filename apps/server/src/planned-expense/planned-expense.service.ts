@@ -9,7 +9,7 @@ import { monthValueFromDate, parsePeriodMonthKey } from '@coffer/shared';
 
 import { BudgetMonthService } from '../budget/budget-month.service';
 import { BudgetProjectorService } from '../budget/budget-projector.service';
-import { runBudgetProjection } from '../lib/budget-projection';
+import { awaitBudgetProjection } from '../lib/budget-projection';
 import { DEV_USER_ID } from '../lib/dev-user';
 import { withTransientDbRetry } from '../prisma/db-retry';
 import { PrismaService } from '../prisma/prisma.service';
@@ -410,7 +410,7 @@ export class PlannedExpenseService {
       },
     });
 
-    runBudgetProjection(
+    await awaitBudgetProjection(
       this.logger,
       'planned expense finish',
       this.budgetProjector.onExpenseCreated(this.prisma, expense),
@@ -447,22 +447,13 @@ export class PlannedExpenseService {
     const plannedExpense = await this.revertPlanToReserved(id, plan.amount);
 
     if (expense) {
-      setTimeout(() => {
-        runBudgetProjection(
-          this.logger,
-          'planned expense unfinish',
-          this.budgetProjector.onExpenseRemoved(this.prisma, expense),
-        );
+      await awaitBudgetProjection(
+        this.logger,
+        'planned expense unfinish',
+        this.budgetProjector.onExpenseRemoved(this.prisma, expense),
+      );
 
-        void this.prisma.expense
-          .delete({ where: { id: expense.id } })
-          .catch((error: unknown) => {
-            this.logger.warn(
-              'Linked expense delete failed (planned expense unfinish)',
-              error instanceof Error ? error.stack : String(error),
-            );
-          });
-      }, 0);
+      await this.prisma.expense.delete({ where: { id: expense.id } });
     }
 
     return plannedExpense;

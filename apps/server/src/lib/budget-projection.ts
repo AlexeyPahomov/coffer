@@ -1,14 +1,17 @@
 import type { Logger } from '@nestjs/common';
 
-export function runBudgetProjection(
+/** Дождаться projector перед ответом мутации — snapshot актуален к моменту refetch. */
+export async function awaitBudgetProjection(
   logger: Logger,
   context: string,
   task: Promise<void>,
-): void {
-  void task.catch((error: unknown) => {
+): Promise<void> {
+  try {
+    await task;
+  } catch (error: unknown) {
     logger.warn(
       `Budget snapshot projection failed (${context})`,
       error instanceof Error ? error.stack : String(error),
     );
-  });
+  }
 }

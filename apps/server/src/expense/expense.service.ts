@@ -7,7 +7,7 @@ import {
 import { monthValueFromDate } from '@coffer/shared';
 import type { Prisma } from '../generated/prisma/client';
 
-import { runBudgetProjection } from '../lib/budget-projection';
+import { awaitBudgetProjection } from '../lib/budget-projection';
 import { DEV_USER_ID } from '../lib/dev-user';
 import { parsePeriodMonthKey } from '../lib/period-month';
 import { BudgetMonthService } from '../budget/budget-month.service';
@@ -119,7 +119,7 @@ export class ExpenseService {
       },
     });
 
-    runBudgetProjection(
+    await awaitBudgetProjection(
       this.logger,
       'create',
       this.budgetProjector.onExpenseCreated(this.prisma, expense),
@@ -188,7 +188,7 @@ export class ExpenseService {
       },
     });
 
-    runBudgetProjection(
+    await awaitBudgetProjection(
       this.logger,
       'update',
       this.budgetProjector.onExpenseUpdated(this.prisma, before, after),
@@ -215,7 +215,7 @@ export class ExpenseService {
       });
     }
 
-    runBudgetProjection(
+    await awaitBudgetProjection(
       this.logger,
       'remove',
       this.budgetProjector.onExpenseRemoved(this.prisma, expense),

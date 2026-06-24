@@ -3,28 +3,12 @@ import type { CategoryBudgetItem } from '@/entities/budget/model/types'
 
 import type { BudgetMonthView } from '../model/types'
 
+import { snapshotLooksStale } from './budgetMonthSnapshotTrust'
 import { mapBudgetMonthToCategoryItems } from './mapBudgetMonthToItems'
 
-function snapshotLooksStale(
-  derived: CategoryBudgetItem,
-  fromServer: CategoryBudgetItem,
-): boolean {
-  const serverEmpty =
-    fromServer.allocated === 0 &&
-    fromServer.spent === 0 &&
-    fromServer.carriedFromPrevious === 0
-  const derivedHasActivity =
-    derived.allocated !== 0 ||
-    derived.spent !== 0 ||
-    derived.carriedFromPrevious !== 0
-
-  return serverEmpty && derivedHasActivity
-}
-
 /**
- * Серверные snapshot'ы накладываются на derive, только если месяц материализован
- * для всех категорий. Иначе частичный snapshot (часто с нулями после сбоя projector)
- * перезаписывает корректные цифры — как у «Продукты».
+ * Snapshot'ы месяца (OPEN/CLOSED) накладываются на derive.
+ * При неполном наборе или stale-строках остаётся derive.
  */
 export function mergeBudgetMonthWithDerived(
   derived: readonly CategoryBudgetItem[],
@@ -32,13 +16,7 @@ export function mergeBudgetMonthWithDerived(
   categories: readonly Category[],
   periodMonth: string,
 ): CategoryBudgetItem[] {
-  // Для открытого месяца источник истины — derive из событий.
-  // Snapshot'ы безопасно показывать только в закрытом месяце.
-  if (
-    !view?.snapshots.length ||
-    view.periodMonth !== periodMonth ||
-    view.status !== 'CLOSED'
-  ) {
+  if (!view?.snapshots.length || view.periodMonth !== periodMonth) {
     return [...derived]
   }
 
@@ -47,7 +25,6 @@ export function mergeBudgetMonthWithDerived(
     return [...derived]
   }
 
-  // Неполный набор snapshot'ов — показываем только derive.
   if (fromSnapshots.length < derived.length) {
     return [...derived]
   }

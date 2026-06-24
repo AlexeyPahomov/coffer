@@ -23,6 +23,7 @@ export function usePlanningPeriodBudget(
     allocations: core.allocations,
     expenses: core.expenses,
     budgetCycle: budgetCycleQuery.data,
+    budgetMonthView: core.budgetMonthView,
     plannedExpenses,
   })
 

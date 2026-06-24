@@ -8,7 +8,7 @@ import {
 import type { Income, Prisma } from '../generated/prisma/client';
 import { BudgetMonthService } from '../budget/budget-month.service';
 import { BudgetProjectorService } from '../budget/budget-projector.service';
-import { runBudgetProjection } from '../lib/budget-projection';
+import { awaitBudgetProjection } from '../lib/budget-projection';
 import { DEV_USER_ID } from '../lib/dev-user';
 import { sumPrismaMoneyAmounts, toMoneyNumber } from '../lib/money';
 import { PrismaService } from '../prisma/prisma.service';
@@ -97,7 +97,7 @@ export class AllocationService {
       },
     });
 
-    runBudgetProjection(
+    await awaitBudgetProjection(
       this.logger,
       'allocation create',
       this.budgetProjector.onAllocationCreated(this.prisma, allocation),
@@ -187,7 +187,7 @@ export class AllocationService {
 
     const after = { ...afterRow, category: afterCategory, income: afterIncome };
 
-    runBudgetProjection(
+    await awaitBudgetProjection(
       this.logger,
       'allocation update',
       this.budgetProjector.onAllocationUpdated(this.prisma, before, after),

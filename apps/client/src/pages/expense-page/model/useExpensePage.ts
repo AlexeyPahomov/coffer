@@ -5,6 +5,8 @@ import {
   useActiveCycleBudgetCore,
   useExpensePeriodBudget,
 } from '@/entities/budget'
+import { isBudgetEnvelopeLoading } from '@/entities/budget/lib/isBudgetEnvelopeLoading'
+import { useBudgetMonthQuery } from '@/entities/budget-month/api/useBudgetMonthQuery'
 import { usePrefetchBudgetMonth } from '@/entities/budget-month/api/usePrefetchBudgetMonth'
 import { filterExpenseCategories } from '@/entities/category/lib/filterExpenseCategories'
 import { currentMonthInputValue } from '@/shared/lib/date'
@@ -20,6 +22,7 @@ export function useExpensePage() {
   usePrefetchBudgetMonth(periodMonth)
 
   const core = useActiveCycleBudgetCore()
+  const budgetMonthQuery = useBudgetMonthQuery(periodMonth)
 
   const periodBudget = useExpensePeriodBudget({
     periodMonth,
@@ -28,6 +31,7 @@ export function useExpensePage() {
     allocations: core.allocations,
     expenses: core.expenses,
     budgetCycle: core.budgetCycle,
+    budgetMonthView: budgetMonthQuery.data,
   })
 
   const expenseCategories = useMemo(
@@ -65,33 +69,42 @@ export function useExpensePage() {
     [periodBudget.operationalSummary],
   )
 
-  const isBudgetPending =
-    core.categoriesQuery.isPending ||
-    core.incomesQuery.isPending ||
-    core.allocationsQuery.isPending ||
-    core.expensesQuery.isPending ||
-    (core.budgetCycleQuery.isPending && core.budgetCycleQuery.data === undefined)
+  const useCycleEnvelopes = periodBudget.useCycleEnvelopes
+
+  const isBudgetPending = isBudgetEnvelopeLoading({
+    categoriesQuery: core.categoriesQuery,
+    incomesQuery: core.incomesQuery,
+    budgetMonthQuery,
+    allocationsQuery: core.allocationsQuery,
+    expensesQuery: core.expensesQuery,
+    budgetCycleQuery: core.budgetCycleQuery,
+    trustSnapshots: periodBudget.trustSnapshots,
+    useCycleEnvelopes,
+  })
 
   const isBudgetError =
     core.categoriesQuery.isError ||
     core.incomesQuery.isError ||
+    (!useCycleEnvelopes && budgetMonthQuery.isError) ||
     core.allocationsQuery.isError ||
     core.expensesQuery.isError ||
-    core.budgetCycleQuery.isError
+    (useCycleEnvelopes && core.budgetCycleQuery.isError)
 
   const budgetError =
     core.categoriesQuery.error ??
     core.incomesQuery.error ??
+    (!useCycleEnvelopes ? budgetMonthQuery.error : null) ??
     core.allocationsQuery.error ??
     core.expensesQuery.error ??
-    core.budgetCycleQuery.error
+    (useCycleEnvelopes ? core.budgetCycleQuery.error : null)
 
   const isBudgetFetching =
     core.categoriesQuery.isFetching ||
     core.incomesQuery.isFetching ||
+    (!useCycleEnvelopes && budgetMonthQuery.isFetching) ||
     core.allocationsQuery.isFetching ||
     core.expensesQuery.isFetching ||
-    core.budgetCycleQuery.isFetching
+    (useCycleEnvelopes && core.budgetCycleQuery.isFetching)
 
   return {
     selectedCategoryId,
