@@ -4,9 +4,14 @@ import type { Expense } from '../model/types'
 import { getExpenses } from './expenseApi'
 import { expenseQueryKeys } from './expenseQueryKeys'
 
-export function useExpensesQuery() {
+type UseExpensesQueryOptions = {
+  enabled?: boolean
+}
+
+export function useExpensesQuery(options?: UseExpensesQueryOptions) {
   return useQuery<Expense[], Error>({
     queryKey: expenseQueryKeys.list(),
     queryFn: getExpenses,
+    enabled: options?.enabled ?? false,
   })
 }

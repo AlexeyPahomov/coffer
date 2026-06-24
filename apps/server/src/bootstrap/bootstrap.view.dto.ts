@@ -1,7 +1,8 @@
 import type { BudgetCycleViewDto } from '../budget/budget-cycle.view.dto';
+import type { PeriodLedgerSummaryDto } from '../budget/budget-ledger-summary.view.dto';
 import type { BudgetMonthViewDto } from '../budget/budget-month.view.dto';
 
-/** Ответ `GET /bootstrap` — начальный срез данных приложения. */
+/** Ответ `GET /bootstrap` — начальный срез данных приложения (без полных expenses/allocations). */
 export type AppBootstrapDto = {
   periodMonth: string;
   asOf: string;
@@ -10,12 +11,6 @@ export type AppBootstrapDto = {
   >;
   incomes: Awaited<
     ReturnType<import('../income/income.service').IncomeService['findAll']>
-  >;
-  allocations: Awaited<
-    ReturnType<import('../allocation/allocation.service').AllocationService['findAll']>
-  >;
-  expenses: Awaited<
-    ReturnType<import('../expense/expense.service').ExpenseService['findAll']>
   >;
   plannedExpenses: Awaited<
     ReturnType<
@@ -29,4 +24,5 @@ export type AppBootstrapDto = {
   >;
   budgetCycle: BudgetCycleViewDto | null;
   budgetMonth: BudgetMonthViewDto;
+  periodLedgerSummary: PeriodLedgerSummaryDto;
 };

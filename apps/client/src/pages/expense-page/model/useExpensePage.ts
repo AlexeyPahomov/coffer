@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useState } from 'react'
 
 import {
+  shouldUseCycleEnvelopes,
   toCurrentBudgetSummaryView,
   useActiveCycleBudgetCore,
   useExpensePeriodBudget,
 } from '@/entities/budget'
 import { isBudgetEnvelopeLoading } from '@/entities/budget/lib/isBudgetEnvelopeLoading'
-import { useBudgetMonthQuery } from '@/entities/budget-month/api/useBudgetMonthQuery'
+import { useBudgetLedgerEventsQuery } from '@/entities/budget/model/useBudgetLedgerEventsQuery'
 import { usePrefetchBudgetMonth } from '@/entities/budget-month/api/usePrefetchBudgetMonth'
+import { usePrefetchPeriodLedgerSummary } from '@/entities/period-ledger-summary'
 import { filterExpenseCategories } from '@/entities/category/lib/filterExpenseCategories'
 import { currentMonthInputValue } from '@/shared/lib/date'
 
@@ -20,18 +22,31 @@ export function useExpensePage() {
   const periodMonth = pickedPeriodMonth ?? currentMonthInputValue()
 
   usePrefetchBudgetMonth(periodMonth)
+  usePrefetchPeriodLedgerSummary(periodMonth)
 
-  const core = useActiveCycleBudgetCore()
-  const budgetMonthQuery = useBudgetMonthQuery(periodMonth)
+  const core = useActiveCycleBudgetCore(periodMonth)
+
+  const useCycleEnvelopes = shouldUseCycleEnvelopes(
+    periodMonth,
+    currentMonthInputValue(),
+    core.budgetCycle,
+  )
+  const needsCycleLedgerEvents = useCycleEnvelopes && !core.hasLedgerSummary
+  const cycleLedgerEvents = useBudgetLedgerEventsQuery(needsCycleLedgerEvents)
 
   const periodBudget = useExpensePeriodBudget({
     periodMonth,
     categories: core.categories,
     incomes: core.incomes,
-    allocations: core.allocations,
-    expenses: core.expenses,
+    allocations: needsCycleLedgerEvents
+      ? cycleLedgerEvents.allocations
+      : core.allocations,
+    expenses: needsCycleLedgerEvents
+      ? cycleLedgerEvents.expenses
+      : core.expenses,
     budgetCycle: core.budgetCycle,
-    budgetMonthView: budgetMonthQuery.data,
+    budgetMonthView: core.budgetMonthView,
+    ledgerSummary: core.ledgerSummary,
   })
 
   const expenseCategories = useMemo(
@@ -69,41 +84,53 @@ export function useExpensePage() {
     [periodBudget.operationalSummary],
   )
 
-  const useCycleEnvelopes = periodBudget.useCycleEnvelopes
-
   const isBudgetPending = isBudgetEnvelopeLoading({
     categoriesQuery: core.categoriesQuery,
     incomesQuery: core.incomesQuery,
-    budgetMonthQuery,
-    allocationsQuery: core.allocationsQuery,
-    expensesQuery: core.expensesQuery,
+    budgetMonthQuery: core.budgetMonthQuery,
+    ledgerSummaryQuery: core.ledgerSummaryQuery,
+    allocationsQuery: needsCycleLedgerEvents
+      ? cycleLedgerEvents.allocationsQuery
+      : undefined,
+    expensesQuery: needsCycleLedgerEvents
+      ? cycleLedgerEvents.expensesQuery
+      : undefined,
     budgetCycleQuery: core.budgetCycleQuery,
     trustSnapshots: periodBudget.trustSnapshots,
+    hasLedgerSummary: periodBudget.hasLedgerSummary,
+    needsLedgerEvents: needsCycleLedgerEvents,
     useCycleEnvelopes,
   })
 
   const isBudgetError =
     core.categoriesQuery.isError ||
     core.incomesQuery.isError ||
-    (!useCycleEnvelopes && budgetMonthQuery.isError) ||
-    core.allocationsQuery.isError ||
-    core.expensesQuery.isError ||
+    (!useCycleEnvelopes && core.budgetMonthQuery.isError) ||
+    core.ledgerSummaryQuery.isError ||
+    (needsCycleLedgerEvents &&
+      (cycleLedgerEvents.allocationsQuery.isError ||
+        cycleLedgerEvents.expensesQuery.isError)) ||
     (useCycleEnvelopes && core.budgetCycleQuery.isError)
 
   const budgetError =
     core.categoriesQuery.error ??
     core.incomesQuery.error ??
-    (!useCycleEnvelopes ? budgetMonthQuery.error : null) ??
-    core.allocationsQuery.error ??
-    core.expensesQuery.error ??
+    (!useCycleEnvelopes ? core.budgetMonthQuery.error : null) ??
+    core.ledgerSummaryQuery.error ??
+    (needsCycleLedgerEvents
+      ? (cycleLedgerEvents.allocationsQuery.error ??
+        cycleLedgerEvents.expensesQuery.error)
+      : null) ??
     (useCycleEnvelopes ? core.budgetCycleQuery.error : null)
 
   const isBudgetFetching =
     core.categoriesQuery.isFetching ||
     core.incomesQuery.isFetching ||
-    (!useCycleEnvelopes && budgetMonthQuery.isFetching) ||
-    core.allocationsQuery.isFetching ||
-    core.expensesQuery.isFetching ||
+    (!useCycleEnvelopes && core.budgetMonthQuery.isFetching) ||
+    core.ledgerSummaryQuery.isFetching ||
+    (needsCycleLedgerEvents &&
+      (cycleLedgerEvents.allocationsQuery.isFetching ||
+        cycleLedgerEvents.expensesQuery.isFetching)) ||
     (useCycleEnvelopes && core.budgetCycleQuery.isFetching)
 
   return {
@@ -125,8 +152,6 @@ export function useExpensePage() {
     isBudgetFetching,
     categoriesQuery: core.categoriesQuery,
     incomesQuery: core.incomesQuery,
-    allocationsQuery: core.allocationsQuery,
-    expensesQuery: core.expensesQuery,
     budgetCycleQuery: core.budgetCycleQuery,
   }
 }

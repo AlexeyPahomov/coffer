@@ -4,9 +4,14 @@ import type { Allocation } from '../model/types'
 import { getAllAllocations } from './allocationApi'
 import { allocationKeys } from './allocationQueryKeys'
 
-export function useAllAllocationsQuery() {
+type UseAllAllocationsQueryOptions = {
+  enabled?: boolean
+}
+
+export function useAllAllocationsQuery(options?: UseAllAllocationsQueryOptions) {
   return useQuery<Allocation[], Error>({
     queryKey: allocationKeys.allList(),
     queryFn: getAllAllocations,
+    enabled: options?.enabled ?? false,
   })
 }

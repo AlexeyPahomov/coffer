@@ -1,5 +1,7 @@
 import type { BudgetCycleView } from '@/entities/budget-cycle/model/types'
+import type { PeriodLedgerSummary } from '@coffer/shared'
 import type { PlannedExpense } from '@/entities/planned-expense/model/types'
+import { isPeriodLedgerSummaryForMonth } from '@/entities/period-ledger-summary/lib/isPeriodLedgerSummaryForMonth'
 
 import type { BudgetLedgerInput } from '../model/budgetLedgerInput'
 import type { CategoryBudgetItem } from '../model/types'
@@ -24,6 +26,7 @@ export type ComputeExpensePageOperationalSummaryParams = BudgetLedgerInput & {
   /** Конверты для отображения (после filterExpenseEnvelopeBudgetItems). */
   displayBudgetItems: readonly CategoryBudgetItem[]
   plannedExpenses?: readonly PlannedExpense[]
+  ledgerSummary?: PeriodLedgerSummary
 }
 
 function summarizeCycleEnvelopesWithPeriodPool(
@@ -39,23 +42,33 @@ function summarizeCycleEnvelopesWithPeriodPool(
     params.periodMonth,
   )
 
-  const periodSummary = computeOperationalSummary(
+  const cycleOverrides = isPeriodLedgerSummaryForMonth(
+    params.ledgerSummary,
+    params.periodMonth,
+  )
+    ? {
+        freePoolExpenseTotal: params.ledgerSummary.freePoolExpenseTotal,
+      }
+    : {
+        freePoolExpenseTotal: computeFreePoolExpensesInPeriodMonth(
+          ledger.expenses,
+          params.periodMonth,
+          buildEnvelopeLimitByCategoryId(periodBudgetItems),
+        ),
+      }
+
+  return computeOperationalSummary(
     periodBudgetItems,
     ledger,
     params.periodMonth,
     params.plannedExpenses ?? [],
     {
       openingFreePool,
-      freePoolExpenseTotal: computeFreePoolExpensesInPeriodMonth(
-        ledger.expenses,
-        params.periodMonth,
-        buildEnvelopeLimitByCategoryId(periodBudgetItems),
-      ),
+      ...cycleOverrides,
       overspendCharge: sumExpenseOverspendCharge(params.displayBudgetItems),
     },
+    params.ledgerSummary,
   )
-
-  return periodSummary
 }
 
 /** Сводка страницы «Расход»: конверты по циклу или месяцу, пул — по учётному месяцу. */
@@ -69,10 +82,12 @@ export function computeExpensePageOperationalSummary(
     expenses: params.expenses,
   }
 
-  const openingFreePool = computeOpeningFreePoolForPeriod(
+  const openingFreePool = isPeriodLedgerSummaryForMonth(
+    params.ledgerSummary,
     params.periodMonth,
-    ledger,
   )
+    ? params.ledgerSummary.openingFreePool
+    : computeOpeningFreePoolForPeriod(params.periodMonth, ledger)
 
   if (params.useCycleEnvelopes) {
     return summarizeCycleEnvelopesWithPeriodPool(params, ledger, openingFreePool)
@@ -84,6 +99,7 @@ export function computeExpensePageOperationalSummary(
     params.periodMonth,
     params.plannedExpenses ?? [],
     { openingFreePool },
+    params.ledgerSummary,
   )
 }
 

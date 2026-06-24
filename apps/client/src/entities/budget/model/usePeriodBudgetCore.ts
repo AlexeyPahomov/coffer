@@ -1,28 +1,23 @@
 import { useMemo } from 'react'
 
-import { useAllAllocationsQuery } from '@/entities/allocation/api/useAllAllocationsQuery'
 import { canTrustBudgetMonthSnapshots } from '@/entities/budget-month/lib/budgetMonthSnapshotTrust'
-import { useBudgetMonthQuery } from '@/entities/budget-month/api/useBudgetMonthQuery'
 import { useCategoriesQuery } from '@/entities/category/api/useCategoriesQuery'
-import { useExpensesQuery } from '@/entities/expense/api/useExpensesQuery'
 import { useIncomesQuery } from '@/entities/income/api/useIncomesQuery'
+import { EMPTY_ALLOCATIONS, EMPTY_EXPENSES } from '../lib/budgetEmptyLedger'
 import { isBudgetEnvelopeLoading } from '../lib/isBudgetEnvelopeLoading'
 import { resolveExpensePageBudgetItems } from '../lib/resolveBudgetItems'
 
 import type { CategoryBudgetItem } from './types'
+import { useBudgetPeriodQueries } from './useBudgetPeriodQueries'
 
 export function usePeriodBudgetCore(periodMonth: string) {
   const categoriesQuery = useCategoriesQuery()
   const incomesQuery = useIncomesQuery()
-  const allocationsQuery = useAllAllocationsQuery()
-  const expensesQuery = useExpensesQuery()
-  const budgetMonthQuery = useBudgetMonthQuery(periodMonth)
+  const periodQueries = useBudgetPeriodQueries(periodMonth)
 
   const categories = categoriesQuery.data ?? []
   const incomes = incomesQuery.data ?? []
-  const allocations = allocationsQuery.data ?? []
-  const expenses = expensesQuery.data ?? []
-  const budgetMonthView = budgetMonthQuery.data
+  const { budgetMonthView, hasLedgerSummary } = periodQueries
 
   const trustSnapshots = useMemo(
     () => canTrustBudgetMonthSnapshots(budgetMonthView, categories, periodMonth),
@@ -33,47 +28,37 @@ export function usePeriodBudgetCore(periodMonth: string) {
     (): CategoryBudgetItem[] =>
       resolveExpensePageBudgetItems(
         categories,
-        allocations,
-        expenses,
-        incomes,
+        EMPTY_ALLOCATIONS,
+        EMPTY_EXPENSES,
+        [],
         periodMonth,
         budgetMonthView,
         trustSnapshots,
       ),
-    [
-      allocations,
-      budgetMonthView,
-      categories,
-      expenses,
-      incomes,
-      periodMonth,
-      trustSnapshots,
-    ],
+    [budgetMonthView, categories, periodMonth, trustSnapshots],
   )
 
   const isCoreLoading = isBudgetEnvelopeLoading({
     categoriesQuery,
     incomesQuery,
-    budgetMonthQuery,
-    allocationsQuery,
-    expensesQuery,
+    budgetMonthQuery: periodQueries.budgetMonthQuery,
+    ledgerSummaryQuery: periodQueries.ledgerSummaryQuery,
     trustSnapshots,
+    hasLedgerSummary,
+    needsLedgerEvents: false,
     useCycleEnvelopes: false,
   })
 
   return {
     categories,
     incomes,
-    allocations,
-    expenses,
+    allocations: EMPTY_ALLOCATIONS,
+    expenses: EMPTY_EXPENSES,
     budgetItems,
-    budgetMonthView,
     trustSnapshots,
+    ...periodQueries,
     categoriesQuery,
     incomesQuery,
-    allocationsQuery,
-    expensesQuery,
-    budgetMonthQuery,
     isCoreLoading,
   }
 }

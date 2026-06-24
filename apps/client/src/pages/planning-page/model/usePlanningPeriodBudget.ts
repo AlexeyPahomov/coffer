@@ -6,6 +6,7 @@ import {
   usePeriodBudgetCore,
 } from '@/entities/budget'
 import { useCurrentBudgetCycleQuery } from '@/entities/budget-cycle/api/useCurrentBudgetCycleQuery'
+import { isBudgetEnvelopeLoading } from '@/entities/budget/lib/isBudgetEnvelopeLoading'
 import { currentMonthInputValue } from '@/shared/lib/date'
 
 export function usePlanningPeriodBudget(
@@ -24,20 +25,33 @@ export function usePlanningPeriodBudget(
     expenses: core.expenses,
     budgetCycle: budgetCycleQuery.data,
     budgetMonthView: core.budgetMonthView,
+    ledgerSummary: core.ledgerSummary,
     plannedExpenses,
   })
 
   const isBudgetLoading = useMemo(
     () =>
-      core.isCoreLoading ||
-      (needsBudgetCycle &&
-        budgetCycleQuery.isPending &&
-        budgetCycleQuery.data === undefined),
+      isBudgetEnvelopeLoading({
+        categoriesQuery: core.categoriesQuery,
+        incomesQuery: core.incomesQuery,
+        budgetMonthQuery: core.budgetMonthQuery,
+        ledgerSummaryQuery: core.ledgerSummaryQuery,
+        trustSnapshots: periodBudget.trustSnapshots,
+        hasLedgerSummary: periodBudget.hasLedgerSummary,
+        needsLedgerEvents: false,
+        useCycleEnvelopes: periodBudget.useCycleEnvelopes,
+        budgetCycleQuery: needsBudgetCycle ? budgetCycleQuery : undefined,
+      }),
     [
-      budgetCycleQuery.data,
-      budgetCycleQuery.isPending,
-      core.isCoreLoading,
+      budgetCycleQuery,
+      core.budgetMonthQuery,
+      core.categoriesQuery,
+      core.incomesQuery,
+      core.ledgerSummaryQuery,
       needsBudgetCycle,
+      periodBudget.hasLedgerSummary,
+      periodBudget.trustSnapshots,
+      periodBudget.useCycleEnvelopes,
     ],
   )
 

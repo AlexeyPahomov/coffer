@@ -1,14 +1,10 @@
 import type { AllocationRule } from '@/entities/allocation-rule/model/types'
-import type { Allocation } from '@/entities/allocation/model/types'
 import type { BudgetCycleView } from '@/entities/budget-cycle/model/types'
 import type { BudgetMonthView } from '@/entities/budget-month/model/types'
 import type { Category } from '@/entities/category/model/types'
-import {
-  mapExpenseFromApiRow,
-  type ExpenseApiRow,
-} from '@/entities/expense/api/expenseApi'
 import { normalizeIncomeFromApi } from '@/entities/income/api/incomeApi'
 import type { Income } from '@/entities/income/model/types'
+import type { PeriodLedgerSummary } from '@/entities/period-ledger-summary'
 import {
   mapPlannedExpenseFromApiRow,
   type PlannedExpenseApiRow,
@@ -23,12 +19,11 @@ type BootstrapApiResponse = {
   asOf: string
   categories: Category[]
   incomes: Income[]
-  allocations: Allocation[]
-  expenses: ExpenseApiRow[]
   plannedExpenses: PlannedExpenseApiRow[]
   allocationRules: AllocationRule[]
   budgetCycle: BudgetCycleView | null
   budgetMonth: BudgetMonthView
+  periodLedgerSummary: PeriodLedgerSummary
 }
 
 function mapBootstrap(response: BootstrapApiResponse): AppBootstrap {
@@ -37,12 +32,11 @@ function mapBootstrap(response: BootstrapApiResponse): AppBootstrap {
     asOf: response.asOf,
     categories: response.categories,
     incomes: response.incomes.map(normalizeIncomeFromApi),
-    allocations: response.allocations,
-    expenses: response.expenses.map(mapExpenseFromApiRow),
     plannedExpenses: response.plannedExpenses.map(mapPlannedExpenseFromApiRow),
     allocationRules: response.allocationRules,
     budgetCycle: response.budgetCycle,
     budgetMonth: response.budgetMonth,
+    periodLedgerSummary: response.periodLedgerSummary,
   }
 }
 

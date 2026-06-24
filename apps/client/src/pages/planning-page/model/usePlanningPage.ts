@@ -2,7 +2,9 @@ import { useMemo, useState } from 'react'
 import type { ForecastMonth, MonthBudgetProjection } from '@/processes/forecasting'
 
 import { formatPlanningPeriodLabel } from '@/entities/budget'
+import { useBudgetLedgerEventsQuery } from '@/entities/budget/model/useBudgetLedgerEventsQuery'
 import { usePrefetchBudgetMonth } from '@/entities/budget-month/api/usePrefetchBudgetMonth'
+import { usePrefetchPeriodLedgerSummary } from '@/entities/period-ledger-summary'
 import { resolveEnvelopeForecastInputs } from '@/entities/budget/lib/resolveEnvelopeForecastInputs'
 import { filterExpenseCategories } from '@/entities/category/lib/filterExpenseCategories'
 import {
@@ -46,6 +48,8 @@ export function usePlanningPage() {
   const [pickedPeriodMonth, setPickedPeriodMonth] = useState<string | null>(null)
   const periodMonth = pickedPeriodMonth ?? currentMonthInputValue()
   usePrefetchBudgetMonth(periodMonth)
+  usePrefetchPeriodLedgerSummary(periodMonth)
+  const ledgerEvents = useBudgetLedgerEventsQuery(true)
   const plannedQuery = usePlannedExpensesQuery()
   const allocationRulesQuery = useAllocationRulesQuery()
   const statusMutation = usePlannedExpenseStatusMutation()
@@ -140,17 +144,17 @@ export function usePlanningPage() {
         periodMonth,
         forecastMonths,
         categories: core.categories,
-        allocations: core.allocations,
-        expenses: core.expenses,
+        allocations: ledgerEvents.allocations,
+        expenses: ledgerEvents.expenses,
         incomes: core.incomes,
         periodBudgetItems: periodBudget.allBudgetItems,
         budgetCycle,
       }),
     [
       budgetCycle,
-      core.allocations,
+      ledgerEvents.allocations,
       core.categories,
-      core.expenses,
+      ledgerEvents.expenses,
       core.incomes,
       forecastMonths,
       periodBudget.allBudgetItems,
@@ -219,6 +223,7 @@ export function usePlanningPage() {
     isBudgetLoading,
     isForecastLoading:
       isBudgetLoading ||
+      ledgerEvents.isLedgerLoading ||
       (allocationRulesQuery.isPending &&
         allocationRulesQuery.data === undefined),
     isLoading:

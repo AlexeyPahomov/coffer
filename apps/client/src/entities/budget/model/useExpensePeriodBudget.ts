@@ -8,8 +8,11 @@ import type { Category } from '@/entities/category/model/types'
 import type { Expense } from '@/entities/expense/model/types'
 import type { Income } from '@/entities/income/model/types'
 import type { PlannedExpense } from '@/entities/planned-expense/model/types'
+import type { PeriodLedgerSummary } from '@/entities/period-ledger-summary'
+import { isPeriodLedgerSummaryForMonth } from '@/entities/period-ledger-summary/lib/isPeriodLedgerSummaryForMonth'
 import { currentMonthInputValue } from '@/shared/lib/date'
 
+import { alignFreePoolCategorySpentFromLedgerSummary } from '../lib/alignFreePoolCategorySpentFromLedgerSummary'
 import { alignFreePoolCategorySpentToPeriodMonth } from '../lib/alignFreePoolCategorySpentToPeriodMonth'
 import {
   buildAllExpenseBudgetItems,
@@ -34,6 +37,7 @@ export type UseExpensePeriodBudgetParams = {
   expenses: readonly Expense[]
   budgetCycle: BudgetCycleView | undefined
   budgetMonthView?: BudgetMonthView
+  ledgerSummary?: PeriodLedgerSummary
   plannedExpenses?: readonly PlannedExpense[]
 }
 
@@ -45,12 +49,18 @@ export function useExpensePeriodBudget({
   expenses,
   budgetCycle,
   budgetMonthView,
+  ledgerSummary,
   plannedExpenses = [],
 }: UseExpensePeriodBudgetParams) {
   const useCycleEnvelopes = shouldUseCycleEnvelopes(
     periodMonth,
     currentMonthInputValue(),
     budgetCycle,
+  )
+
+  const hasLedgerSummary = isPeriodLedgerSummaryForMonth(
+    ledgerSummary,
+    periodMonth,
   )
 
   const trustSnapshots = useMemo(
@@ -62,7 +72,7 @@ export function useExpensePeriodBudget({
 
   const allBudgetItems = useMemo((): CategoryBudgetItem[] => {
     if (useCycleEnvelopes && budgetCycle) {
-      const items = buildAllExpenseBudgetItems(
+      let items = buildAllExpenseBudgetItems(
         periodMonth,
         categories,
         allocations,
@@ -71,14 +81,25 @@ export function useExpensePeriodBudget({
         budgetCycle,
         true,
       )
-      return alignFreePoolCategorySpentToPeriodMonth(items, expenses, periodMonth)
+
+      if (hasLedgerSummary && ledgerSummary) {
+        items = alignFreePoolCategorySpentFromLedgerSummary(items, ledgerSummary)
+      } else {
+        items = alignFreePoolCategorySpentToPeriodMonth(
+          items,
+          expenses,
+          periodMonth,
+        )
+      }
+
+      return items
     }
 
     return resolveExpensePageBudgetItems(
       categories,
-      allocations,
-      expenses,
-      incomes,
+      trustSnapshots || hasLedgerSummary ? [] : allocations,
+      trustSnapshots || hasLedgerSummary ? [] : expenses,
+      trustSnapshots || hasLedgerSummary ? [] : incomes,
       periodMonth,
       budgetMonthView,
       trustSnapshots,
@@ -89,7 +110,9 @@ export function useExpensePeriodBudget({
     budgetMonthView,
     categories,
     expenses,
+    hasLedgerSummary,
     incomes,
+    ledgerSummary,
     periodMonth,
     trustSnapshots,
     useCycleEnvelopes,
@@ -112,6 +135,7 @@ export function useExpensePeriodBudget({
         allBudgetItems,
         displayBudgetItems: budgetItems,
         plannedExpenses,
+        ledgerSummary,
       }),
     [
       allBudgetItems,
@@ -120,6 +144,7 @@ export function useExpensePeriodBudget({
       categories,
       expenses,
       incomes,
+      ledgerSummary,
       periodMonth,
       plannedExpenses,
       useCycleEnvelopes,
@@ -129,6 +154,7 @@ export function useExpensePeriodBudget({
   return {
     useCycleEnvelopes,
     trustSnapshots,
+    hasLedgerSummary,
     allBudgetItems,
     budgetItems,
     operationalSummary,

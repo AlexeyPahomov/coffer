@@ -25,7 +25,7 @@ export function useAllocationPage() {
   const [pickedPeriodMonth, setPickedPeriodMonth] = useState<string | null>(null)
 
   const incomesQuery = useIncomesQuery()
-  const allAllocationsQuery = useAllAllocationsQuery()
+  const allAllocationsQuery = useAllAllocationsQuery({ enabled: true })
   const categoriesQuery = useCategoriesQuery()
 
   const incomes = useMemo(

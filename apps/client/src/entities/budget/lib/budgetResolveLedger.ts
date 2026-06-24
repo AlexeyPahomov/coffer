@@ -2,8 +2,8 @@ import type { Allocation } from '@/entities/allocation/model/types'
 import type { Expense } from '@/entities/expense/model/types'
 import type { Income } from '@/entities/income/model/types'
 
-const EMPTY_ALLOCATIONS: readonly Allocation[] = []
-const EMPTY_EXPENSES: readonly Expense[] = []
+import { EMPTY_ALLOCATIONS, EMPTY_EXPENSES } from './budgetEmptyLedger'
+
 const EMPTY_INCOMES: readonly Income[] = []
 
 export type BudgetResolveLedger = {

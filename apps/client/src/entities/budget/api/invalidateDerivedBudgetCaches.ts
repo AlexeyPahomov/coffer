@@ -3,6 +3,7 @@ import type { QueryClient } from '@tanstack/react-query'
 import { invalidateBootstrapCache } from '@/entities/bootstrap'
 import { invalidateBudgetCycleCache } from '@/entities/budget-cycle/api/invalidateBudgetCycleCache'
 import { invalidateBudgetMonthCache } from '@/entities/budget-month/api/invalidateBudgetMonthCache'
+import { invalidatePeriodLedgerSummaryCache } from '@/entities/period-ledger-summary'
 
 export type DerivedBudgetCacheScope = {
   periodMonth?: string
@@ -18,6 +19,7 @@ export function invalidateDerivedBudgetCaches(
 ): void {
   invalidateBudgetMonthCache(queryClient, scope)
   invalidateBudgetCycleCache(queryClient, scope)
+  invalidatePeriodLedgerSummaryCache(queryClient, scope)
 
   if (scope?.includeBootstrap) {
     invalidateBootstrapCache(queryClient)
