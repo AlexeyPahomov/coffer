@@ -1,11 +1,14 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 
 import { AllocationRuleService } from '../allocation-rule/allocation-rule.service';
+import {
+  mapPrismaIncomesToPeriodLedger,
+  sortByCreatedAtDesc,
+} from '../budget/budget-ledger.mappers';
 import { BudgetCycleService } from '../budget/budget-cycle.service';
 import { BudgetLedgerSummaryService } from '../budget/budget-ledger-summary.service';
 import { BudgetMonthService } from '../budget/budget-month.service';
-import { CategoryService } from '../category/category.service';
-import { IncomeService } from '../income/income.service';
+import { BudgetRebuildService } from '../budget/budget-rebuild.service';
 import { withTransientDbRetry } from '../prisma/db-retry';
 import { PlannedExpenseService } from '../planned-expense/planned-expense.service';
 
@@ -14,13 +17,12 @@ import type { AppBootstrapDto } from './bootstrap.view.dto';
 @Injectable()
 export class BootstrapService {
   constructor(
-    private readonly categoryService: CategoryService,
-    private readonly incomeService: IncomeService,
     private readonly plannedExpenseService: PlannedExpenseService,
     private readonly allocationRuleService: AllocationRuleService,
     private readonly budgetCycleService: BudgetCycleService,
     private readonly budgetMonthService: BudgetMonthService,
     private readonly budgetLedgerSummaryService: BudgetLedgerSummaryService,
+    private readonly rebuildService: BudgetRebuildService,
   ) {}
 
   async getBootstrap(
@@ -29,39 +31,58 @@ export class BootstrapService {
     asOf: string,
   ): Promise<AppBootstrapDto> {
     return withTransientDbRetry(async () => {
-      const [
-        categories,
-        incomes,
-        plannedExpenses,
-        allocationRules,
-        periodLedgerSummary,
-      ] = await Promise.all([
-        this.categoryService.findAll(),
-        this.incomeService.findAll(),
-        this.plannedExpenseService.findAll(),
-        this.allocationRuleService.findAll(),
-        this.budgetLedgerSummaryService.computeForPeriod(userId, periodMonth),
-      ]);
+      const ledgerBundle =
+        await this.rebuildService.loadBootstrapLedgerBundle(userId);
+
+      const plannedExpenses = await this.plannedExpenseService.findAll();
+      const allocationRules = await this.allocationRuleService.findAll();
+      const closedPeriodMonths =
+        await this.budgetCycleService.getClosedPeriodMonths(userId);
+      const budgetMonthMeta = await this.budgetMonthService.getBudgetMonthMeta(
+        userId,
+        periodMonth,
+      );
+
+      const rebuildInputs = this.rebuildService.toRebuildInputs(ledgerBundle);
+      const periodLedgerIncomes = mapPrismaIncomesToPeriodLedger(
+        ledgerBundle.incomes,
+      );
 
       let budgetCycle: AppBootstrapDto['budgetCycle'] = null;
       try {
-        budgetCycle = await this.budgetCycleService.getCurrentView(userId, asOf);
+        budgetCycle = this.budgetCycleService.getCurrentViewFromInputs(
+          asOf,
+          closedPeriodMonths,
+          ledgerBundle,
+        );
       } catch (error) {
         if (!(error instanceof NotFoundException)) {
           throw error;
         }
       }
 
-      const budgetMonth = await this.budgetMonthService.getViewOrOpen(
+      const periodLedgerSummary =
+        this.budgetLedgerSummaryService.computeFromInputs(
+          rebuildInputs,
+          periodLedgerIncomes,
+          periodMonth,
+        );
+
+      const budgetMonth = await this.budgetMonthService.getViewOrOpenFromInputs(
         userId,
         periodMonth,
+        rebuildInputs,
+        {
+          monthMeta: budgetMonthMeta,
+          categories: ledgerBundle.categories,
+        },
       );
 
       return {
         periodMonth,
         asOf,
-        categories,
-        incomes,
+        categories: sortByCreatedAtDesc(ledgerBundle.categories),
+        incomes: sortByCreatedAtDesc(ledgerBundle.incomes),
         plannedExpenses,
         allocationRules,
         budgetCycle,

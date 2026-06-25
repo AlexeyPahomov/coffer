@@ -7,6 +7,7 @@ import {
   Prisma,
   PrismaClient,
   type BudgetMonth,
+  type Category,
 } from '../generated/prisma/client';
 import { isOverspent } from '@coffer/shared';
 import { toMoneyNumber } from '../lib/money';
@@ -16,7 +17,7 @@ import {
 } from '../lib/period-month';
 import { withTransientDbRetry } from '../prisma/db-retry';
 import { PrismaService } from '../prisma/prisma.service';
-import { BudgetRebuildService } from './budget-rebuild.service';
+import { BudgetRebuildService, type RebuildInputs } from './budget-rebuild.service';
 import type { BudgetDbClient } from './budget-db';
 import type {
   BudgetMonthMeta,
@@ -41,10 +42,12 @@ function isUniqueConstraintError(error: unknown): boolean {
   );
 }
 
+type MaterializeResult = RebuiltCategoryBudget[] | 'existing';
+
 @Injectable()
 export class BudgetMonthService {
   /** Один in-flight `open` на user+period (клиент часто шлёт параллельные POST). */
-  private readonly materializeLocks = new Map<string, Promise<void>>();
+  private readonly materializeLocks = new Map<string, Promise<MaterializeResult>>();
 
   private readonly prisma: PrismaClient;
 
@@ -70,6 +73,89 @@ export class BudgetMonthService {
       spent: toMoneyNumber(row.spent.toString()),
       closingBalance: toMoneyNumber(row.closing_balance.toString()),
     };
+  }
+
+  private mapRebuiltSnapshot(
+    category: Category,
+    row: RebuiltCategoryBudget,
+  ): CategorySnapshotDto {
+    return {
+      categoryId: row.categoryId,
+      categoryName: category.name,
+      categoryType: category.type,
+      categoryIcon: category.icon,
+      openingBalance: row.openingBalance,
+      allocated: row.allocated,
+      spent: row.spent,
+      closingBalance: row.closingBalance,
+    };
+  }
+
+  private buildViewFromRebuilt(
+    periodMonth: string,
+    status: BudgetMonth['status'],
+    rebuilt: readonly RebuiltCategoryBudget[],
+    categories: readonly Category[],
+  ): BudgetMonthViewDto {
+    const parsed = this.parsePeriodOrThrow(periodMonth);
+    const categoryById = new Map(categories.map((category) => [category.id, category]));
+
+    const snapshots = rebuilt
+      .map((row) => {
+        const category = categoryById.get(row.categoryId);
+        if (!category) {
+          return null;
+        }
+        return this.mapRebuiltSnapshot(category, row);
+      })
+      .filter((row): row is CategorySnapshotDto => row != null)
+      .sort((a, b) => a.categoryName.localeCompare(b.categoryName));
+
+    return {
+      periodMonth,
+      year: parsed.year,
+      month: parsed.month,
+      status,
+      snapshots,
+    };
+  }
+
+  private runLockedMaterialize(
+    userId: string,
+    periodMonth: string,
+    materialize: () => Promise<MaterializeResult>,
+  ): Promise<MaterializeResult> {
+    const lockKey = this.materializeLockKey(userId, periodMonth);
+    let pending = this.materializeLocks.get(lockKey);
+    if (!pending) {
+      pending = materialize().finally(() => {
+        this.materializeLocks.delete(lockKey);
+      });
+      this.materializeLocks.set(lockKey, pending);
+    }
+    return pending;
+  }
+
+  private resolveViewAfterMaterialize(
+    userId: string,
+    periodMonth: string,
+    materialized: MaterializeResult,
+    categories?: readonly Category[],
+  ): Promise<BudgetMonthViewDto> {
+    if (materialized === 'existing' || !categories) {
+      return this.getView(userId, periodMonth);
+    }
+
+    return Promise.resolve(
+      this.buildViewFromRebuilt(periodMonth, 'OPEN', materialized, categories),
+    );
+  }
+
+  async getBudgetMonthMeta(
+    userId: string,
+    periodMonth: string,
+  ): Promise<BudgetMonthMeta | null> {
+    return this.findBudgetMonthMeta(userId, periodMonth);
   }
 
   private parsePeriodOrThrow(periodMonth: string): ParsedPeriodMonth {
@@ -187,21 +273,46 @@ export class BudgetMonthService {
     return this.open(userId, periodMonth);
   }
 
+  async getViewOrOpenFromInputs(
+    userId: string,
+    periodMonth: string,
+    rebuildInputs: RebuildInputs,
+    options?: {
+      monthMeta?: BudgetMonthMeta | null;
+      categories?: readonly Category[];
+    },
+  ): Promise<BudgetMonthViewDto> {
+    const meta =
+      options?.monthMeta !== undefined
+        ? options.monthMeta
+        : await this.findBudgetMonthMeta(userId, periodMonth);
+    if (meta) {
+      return this.getView(userId, periodMonth);
+    }
+
+    const materialized = await this.runLockedMaterialize(
+      userId,
+      periodMonth,
+      () => this.materializeMonthFromInputs(userId, periodMonth, rebuildInputs),
+    );
+
+    return this.resolveViewAfterMaterialize(
+      userId,
+      periodMonth,
+      materialized,
+      options?.categories,
+    );
+  }
+
   async open(userId: string, periodMonth: string): Promise<BudgetMonthViewDto> {
     const meta = await this.findBudgetMonthMeta(userId, periodMonth);
     if (meta) {
       return this.getView(userId, periodMonth);
     }
 
-    const lockKey = this.materializeLockKey(userId, periodMonth);
-    let pending = this.materializeLocks.get(lockKey);
-    if (!pending) {
-      pending = this.materializeMonth(userId, periodMonth).finally(() => {
-        this.materializeLocks.delete(lockKey);
-      });
-      this.materializeLocks.set(lockKey, pending);
-    }
-    await pending;
+    await this.runLockedMaterialize(userId, periodMonth, () =>
+      this.materializeMonth(userId, periodMonth),
+    );
 
     return this.getView(userId, periodMonth);
   }
@@ -256,21 +367,16 @@ export class BudgetMonthService {
     }));
   }
 
-  private async materializeMonth(
+  private async persistMaterializedMonth(
     userId: string,
     periodMonth: string,
-  ): Promise<void> {
-    const parsed = this.parsePeriodOrThrow(periodMonth);
-
+    rebuilt: readonly RebuiltCategoryBudget[],
+  ): Promise<MaterializeResult> {
     if (await this.findBudgetMonthMeta(userId, periodMonth)) {
-      return;
+      return 'existing';
     }
 
-    const rebuilt = await this.rebuildService.computeForPeriod(
-      userId,
-      periodMonth,
-    );
-
+    const parsed = this.parsePeriodOrThrow(periodMonth);
     let budgetMonthId: string | null = null;
 
     try {
@@ -294,9 +400,11 @@ export class BudgetMonthService {
           ),
         });
       }
+
+      return [...rebuilt];
     } catch (error) {
       if (isUniqueConstraintError(error)) {
-        return;
+        return 'existing';
       }
 
       if (budgetMonthId) {
@@ -307,6 +415,29 @@ export class BudgetMonthService {
 
       throw error;
     }
+  }
+
+  private async materializeMonthFromInputs(
+    userId: string,
+    periodMonth: string,
+    rebuildInputs: RebuildInputs,
+  ): Promise<MaterializeResult> {
+    const rebuilt = this.rebuildService.computeFromInputs(
+      rebuildInputs,
+      periodMonth,
+    );
+    return this.persistMaterializedMonth(userId, periodMonth, rebuilt);
+  }
+
+  private async materializeMonth(
+    userId: string,
+    periodMonth: string,
+  ): Promise<MaterializeResult> {
+    const rebuilt = await this.rebuildService.computeForPeriod(
+      userId,
+      periodMonth,
+    );
+    return this.persistMaterializedMonth(userId, periodMonth, rebuilt);
   }
 
   /** Закрыть учётный месяц: снимок конвертов фиксируется, месяц исключается из активного цикла. */

@@ -6,7 +6,11 @@ import {
 
 import { PrismaService } from '../prisma/prisma.service';
 
-import { BudgetRebuildService } from './budget-rebuild.service';
+import { mapPrismaIncomesToPeriodLedger } from './budget-ledger.mappers';
+import {
+  BudgetRebuildService,
+  type RebuildInputs,
+} from './budget-rebuild.service';
 import type { PeriodLedgerSummaryDto } from './budget-ledger-summary.view.dto';
 
 @Injectable()
@@ -16,18 +20,18 @@ export class BudgetLedgerSummaryService {
     private readonly prisma: PrismaService,
   ) {}
 
-  private async loadIncomesForSummary(
-    userId: string,
-  ): Promise<PeriodLedgerIncome[]> {
-    const incomes = await this.prisma.income.findMany({
-      where: { user_id: userId },
+  computeFromInputs(
+    ledgerInputs: RebuildInputs,
+    incomes: PeriodLedgerIncome[],
+    periodMonth: string,
+  ): PeriodLedgerSummaryDto {
+    return computePeriodLedgerSummary({
+      categories: ledgerInputs.categories,
+      allocations: ledgerInputs.allocations,
+      expenses: ledgerInputs.expenses,
+      incomes,
+      periodMonth,
     });
-
-    return incomes.map((income) => ({
-      amount: income.amount.toString(),
-      period_month: income.period_month.toISOString(),
-      status: income.status,
-    }));
   }
 
   async computeForPeriod(
@@ -36,15 +40,13 @@ export class BudgetLedgerSummaryService {
   ): Promise<PeriodLedgerSummaryDto> {
     const [ledgerInputs, incomes] = await Promise.all([
       this.rebuildService.loadRebuildInputs(userId),
-      this.loadIncomesForSummary(userId),
+      this.prisma.income.findMany({ where: { user_id: userId } }),
     ]);
 
-    return computePeriodLedgerSummary({
-      categories: ledgerInputs.categories,
-      allocations: ledgerInputs.allocations,
-      expenses: ledgerInputs.expenses,
-      incomes,
+    return this.computeFromInputs(
+      ledgerInputs,
+      mapPrismaIncomesToPeriodLedger(incomes),
       periodMonth,
-    });
+    );
   }
 }

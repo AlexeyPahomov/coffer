@@ -2,8 +2,6 @@ import { Module } from '@nestjs/common';
 
 import { AllocationRuleModule } from '../allocation-rule/allocation-rule.module';
 import { BudgetModule } from '../budget/budget.module';
-import { CategoryModule } from '../category/category.module';
-import { IncomeModule } from '../income/income.module';
 import { PlannedExpenseModule } from '../planned-expense/planned-expense.module';
 
 import { BootstrapController } from './bootstrap.controller';
@@ -11,8 +9,6 @@ import { BootstrapService } from './bootstrap.service';
 
 @Module({
   imports: [
-    CategoryModule,
-    IncomeModule,
     PlannedExpenseModule,
     AllocationRuleModule,
     BudgetModule,

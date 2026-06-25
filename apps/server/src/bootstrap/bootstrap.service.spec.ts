@@ -6,34 +6,45 @@ import { BootstrapService } from './bootstrap.service';
 describe('BootstrapService', () => {
   let service: BootstrapService;
 
-  const categoryService = { findAll: jest.fn() };
-  const incomeService = { findAll: jest.fn() };
   const plannedExpenseService = { findAll: jest.fn() };
   const allocationRuleService = { findAll: jest.fn() };
-  const budgetCycleService = { getCurrentView: jest.fn() };
-  const budgetMonthService = { getViewOrOpen: jest.fn() };
-  const budgetLedgerSummaryService = { computeForPeriod: jest.fn() };
+  const budgetCycleService = {
+    getClosedPeriodMonths: jest.fn(),
+    getCurrentViewFromInputs: jest.fn(),
+  };
+  const budgetMonthService = {
+    getBudgetMonthMeta: jest.fn(),
+    getViewOrOpenFromInputs: jest.fn(),
+  };
+  const budgetLedgerSummaryService = { computeFromInputs: jest.fn() };
+  const rebuildService = {
+    loadBootstrapLedgerBundle: jest.fn(),
+    toRebuildInputs: jest.fn(),
+  };
+
+  const ledgerBundle = {
+    categories: [{ id: 'cat-1', created_at: new Date('2026-06-01') }],
+    incomes: [{ id: 'income-1', created_at: new Date('2026-06-02') }],
+    allocations: [],
+    expenses: [],
+  };
+  const rebuildInputs = {
+    categories: [],
+    allocations: [],
+    expenses: [],
+  };
 
   beforeEach(() => {
     jest.clearAllMocks();
 
-    service = new BootstrapService(
-      categoryService as never,
-      incomeService as never,
-      plannedExpenseService as never,
-      allocationRuleService as never,
-      budgetCycleService as never,
-      budgetMonthService as never,
-      budgetLedgerSummaryService as never,
-    );
-  });
-
-  it('aggregates core lists and materialized budget month', async () => {
-    categoryService.findAll.mockResolvedValue([{ id: 'cat-1' }]);
-    incomeService.findAll.mockResolvedValue([{ id: 'income-1' }]);
-    plannedExpenseService.findAll.mockResolvedValue([{ id: 'plan-1' }]);
-    allocationRuleService.findAll.mockResolvedValue([{ id: 'rule-1' }]);
-    budgetLedgerSummaryService.computeForPeriod.mockResolvedValue({
+    rebuildService.loadBootstrapLedgerBundle.mockResolvedValue(ledgerBundle);
+    rebuildService.toRebuildInputs.mockReturnValue(rebuildInputs);
+    budgetCycleService.getClosedPeriodMonths.mockResolvedValue(new Set());
+    budgetMonthService.getBudgetMonthMeta.mockResolvedValue({
+      id: 'month-1',
+      status: 'OPEN',
+    });
+    budgetLedgerSummaryService.computeFromInputs.mockReturnValue({
       periodMonth: '2026-06',
       openingFreePool: 0,
       savingsReserveBalance: 0,
@@ -44,11 +55,25 @@ describe('BootstrapService', () => {
       overspendCharge: 0,
       nonEnvelopeSpentByCategoryId: {},
     });
-    budgetCycleService.getCurrentView.mockResolvedValue({
+
+    service = new BootstrapService(
+      plannedExpenseService as never,
+      allocationRuleService as never,
+      budgetCycleService as never,
+      budgetMonthService as never,
+      budgetLedgerSummaryService as never,
+      rebuildService as never,
+    );
+  });
+
+  it('aggregates core lists and materialized budget month', async () => {
+    plannedExpenseService.findAll.mockResolvedValue([{ id: 'plan-1' }]);
+    allocationRuleService.findAll.mockResolvedValue([{ id: 'rule-1' }]);
+    budgetCycleService.getCurrentViewFromInputs.mockReturnValue({
       asOf: '2026-06-24',
       snapshots: [],
     });
-    budgetMonthService.getViewOrOpen.mockResolvedValue({
+    budgetMonthService.getViewOrOpenFromInputs.mockResolvedValue({
       periodMonth: '2026-06',
       status: 'OPEN',
       snapshots: [],
@@ -65,36 +90,38 @@ describe('BootstrapService', () => {
     expect(result.categories).toHaveLength(1);
     expect(result.periodLedgerSummary.periodMonth).toBe('2026-06');
     expect(result.budgetCycle).not.toBeNull();
-    expect(budgetLedgerSummaryService.computeForPeriod).toHaveBeenCalledWith(
+    expect(rebuildService.loadBootstrapLedgerBundle).toHaveBeenCalledWith(
       'user-1',
+    );
+    expect(rebuildService.toRebuildInputs).toHaveBeenCalledWith(ledgerBundle);
+    expect(budgetLedgerSummaryService.computeFromInputs).toHaveBeenCalledWith(
+      rebuildInputs,
+      expect.any(Array),
       '2026-06',
     );
-    expect(budgetMonthService.getViewOrOpen).toHaveBeenCalledWith(
+    expect(budgetCycleService.getCurrentViewFromInputs).toHaveBeenCalledWith(
+      '2026-06-24',
+      expect.any(Set),
+      ledgerBundle,
+    );
+    expect(budgetMonthService.getViewOrOpenFromInputs).toHaveBeenCalledWith(
       'user-1',
       '2026-06',
+      rebuildInputs,
+      {
+        monthMeta: expect.objectContaining({ id: 'month-1' }),
+        categories: ledgerBundle.categories,
+      },
     );
   });
 
   it('returns null budget cycle when there is no active cycle', async () => {
-    categoryService.findAll.mockResolvedValue([]);
-    incomeService.findAll.mockResolvedValue([]);
     plannedExpenseService.findAll.mockResolvedValue([]);
     allocationRuleService.findAll.mockResolvedValue([]);
-    budgetLedgerSummaryService.computeForPeriod.mockResolvedValue({
-      periodMonth: '2026-06',
-      openingFreePool: 0,
-      savingsReserveBalance: 0,
-      incomeTotal: 0,
-      allocatedTotal: 0,
-      spentTotal: 0,
-      freePoolExpenseTotal: 0,
-      overspendCharge: 0,
-      nonEnvelopeSpentByCategoryId: {},
+    budgetCycleService.getCurrentViewFromInputs.mockImplementation(() => {
+      throw new NotFoundException('No active income cycle');
     });
-    budgetCycleService.getCurrentView.mockRejectedValue(
-      new NotFoundException('No active income cycle'),
-    );
-    budgetMonthService.getViewOrOpen.mockResolvedValue({
+    budgetMonthService.getViewOrOpenFromInputs.mockResolvedValue({
       periodMonth: '2026-06',
       status: 'OPEN',
       snapshots: [],

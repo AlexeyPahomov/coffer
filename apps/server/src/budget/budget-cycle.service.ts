@@ -10,6 +10,12 @@ import {
   resolveBudgetAsOfKey,
   toBudgetRebuildCategory,
 } from '@coffer/shared';
+import type {
+  Allocation,
+  Category,
+  Expense,
+  Income,
+} from '../generated/prisma/client';
 import { toMoneyNumber } from '../lib/money';
 import { PrismaService } from '../prisma/prisma.service';
 import type {
@@ -17,12 +23,13 @@ import type {
   BudgetCycleViewDto,
 } from './budget-cycle.view.dto';
 import type { CategorySnapshotDto } from './budget-month.view.dto';
+import type { BootstrapLedgerBundle } from './budget-rebuild.service';
 
 @Injectable()
 export class BudgetCycleService {
   constructor(private readonly prisma: PrismaService) {}
 
-  private async loadClosedPeriodMonths(userId: string): Promise<Set<string>> {
+  async getClosedPeriodMonths(userId: string): Promise<Set<string>> {
     const rows = await this.prisma.budgetMonth.findMany({
       where: { user_id: userId, status: 'CLOSED' },
       select: { year: true, month: true },
@@ -62,31 +69,14 @@ export class BudgetCycleService {
     };
   }
 
-  async getCurrentView(
-    userId: string,
-    asOfParam?: string,
-  ): Promise<BudgetCycleViewDto> {
-    const asOf = resolveBudgetAsOfKey(asOfParam);
-
-    const closedPeriodMonths = await this.loadClosedPeriodMonths(userId);
-
-    const [incomes, categories, allocations, expenses] = await Promise.all([
-      this.prisma.income.findMany({
-        where: { user_id: userId },
-        orderBy: { received_at: 'asc' },
-      }),
-      this.prisma.category.findMany({
-        where: { user_id: userId },
-      }),
-      this.prisma.allocation.findMany({
-        where: { user_id: userId },
-        include: { income: true },
-      }),
-      this.prisma.expense.findMany({
-        where: { user_id: userId },
-      }),
-    ]);
-
+  private buildCurrentView(
+    asOf: string,
+    closedPeriodMonths: Set<string>,
+    incomes: Income[],
+    categories: Category[],
+    allocations: (Allocation & { income: Income })[],
+    expenses: Expense[],
+  ): BudgetCycleViewDto {
     const receivedAllocations = filterAllocationsExcludingClosedPeriods(
       allocations
         .filter((allocation) => allocation.income.status === 'RECEIVED')
@@ -179,5 +169,56 @@ export class BudgetCycleService {
       income: incomeDto,
       snapshots,
     };
+  }
+
+  getCurrentViewFromInputs(
+    asOfParam: string | undefined,
+    closedPeriodMonths: Set<string>,
+    ledger: BootstrapLedgerBundle,
+  ): BudgetCycleViewDto {
+    const asOf = resolveBudgetAsOfKey(asOfParam);
+    return this.buildCurrentView(
+      asOf,
+      closedPeriodMonths,
+      ledger.incomes,
+      ledger.categories,
+      ledger.allocations,
+      ledger.expenses,
+    );
+  }
+
+  async getCurrentView(
+    userId: string,
+    asOfParam?: string,
+  ): Promise<BudgetCycleViewDto> {
+    const asOf = resolveBudgetAsOfKey(asOfParam);
+
+    const closedPeriodMonths = await this.getClosedPeriodMonths(userId);
+
+    const [incomes, categories, allocations, expenses] = await Promise.all([
+      this.prisma.income.findMany({
+        where: { user_id: userId },
+        orderBy: { received_at: 'asc' },
+      }),
+      this.prisma.category.findMany({
+        where: { user_id: userId },
+      }),
+      this.prisma.allocation.findMany({
+        where: { user_id: userId },
+        include: { income: true },
+      }),
+      this.prisma.expense.findMany({
+        where: { user_id: userId },
+      }),
+    ]);
+
+    return this.buildCurrentView(
+      asOf,
+      closedPeriodMonths,
+      incomes,
+      categories,
+      allocations,
+      expenses,
+    );
   }
 }

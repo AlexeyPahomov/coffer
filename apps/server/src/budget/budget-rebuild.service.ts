@@ -4,7 +4,13 @@ import {
   toBudgetRebuildCategory,
   type RebuiltCategoryBudget,
 } from '@coffer/shared';
-import type { Prisma } from '../generated/prisma/client';
+import type {
+  Allocation,
+  Category,
+  Expense,
+  Income,
+  Prisma,
+} from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
 type AllocationRebuildRow = {
@@ -12,6 +18,29 @@ type AllocationRebuildRow = {
   amount: { toString(): string };
   period_month: Date;
   income: { status: string };
+};
+
+type RebuildCategory = ReturnType<typeof toBudgetRebuildCategory>;
+
+export type RebuildInputs = {
+  categories: RebuildCategory[];
+  allocations: {
+    category_id: string;
+    amount: string;
+    period_month: string;
+  }[];
+  expenses: {
+    category_id: string;
+    amount: string;
+    date: string;
+  }[];
+};
+
+export type BootstrapLedgerBundle = {
+  categories: Category[];
+  incomes: Income[];
+  allocations: (Allocation & { income: Income })[];
+  expenses: Expense[];
 };
 
 @Injectable()
@@ -34,8 +63,25 @@ export class BudgetRebuildService {
     return categories.map(toBudgetRebuildCategory);
   }
 
-  async loadRebuildInputs(userId: string) {
+  toRebuildInputs(bundle: BootstrapLedgerBundle): RebuildInputs {
+    return {
+      categories: this.mapCategoriesForRebuild(bundle.categories),
+      allocations: this.mapReceivedAllocations(bundle.allocations),
+      expenses: bundle.expenses.map((e) => ({
+        category_id: e.category_id,
+        amount: e.amount.toString(),
+        date: e.date.toISOString(),
+      })),
+    };
+  }
+
+  async loadBootstrapLedgerBundle(
+    userId: string,
+  ): Promise<BootstrapLedgerBundle> {
     const categories = await this.prisma.category.findMany({
+      where: { user_id: userId },
+    });
+    const incomes = await this.prisma.income.findMany({
       where: { user_id: userId },
     });
     const allocations = await this.prisma.allocation.findMany({
@@ -46,15 +92,24 @@ export class BudgetRebuildService {
       where: { user_id: userId },
     });
 
-    return {
-      categories: this.mapCategoriesForRebuild(categories),
-      allocations: this.mapReceivedAllocations(allocations),
-      expenses: expenses.map((e) => ({
-        category_id: e.category_id,
-        amount: e.amount.toString(),
-        date: e.date.toISOString(),
-      })),
-    };
+    return { categories, incomes, allocations, expenses };
+  }
+
+  async loadRebuildInputs(userId: string): Promise<RebuildInputs> {
+    const bundle = await this.loadBootstrapLedgerBundle(userId);
+    return this.toRebuildInputs(bundle);
+  }
+
+  computeFromInputs(
+    inputs: RebuildInputs,
+    periodMonth: string,
+  ): RebuiltCategoryBudget[] {
+    return computeCategoryBudgetsForPeriod(
+      inputs.categories,
+      inputs.allocations,
+      inputs.expenses,
+      periodMonth,
+    );
   }
 
   async computeForPeriod(
@@ -62,12 +117,7 @@ export class BudgetRebuildService {
     periodMonth: string,
   ): Promise<RebuiltCategoryBudget[]> {
     const inputs = await this.loadRebuildInputs(userId);
-    return computeCategoryBudgetsForPeriod(
-      inputs.categories,
-      inputs.allocations,
-      inputs.expenses,
-      periodMonth,
-    );
+    return this.computeFromInputs(inputs, periodMonth);
   }
 
   async computeForPeriodInTransaction(
