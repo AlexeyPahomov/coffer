@@ -36,9 +36,7 @@ export class BudgetCycleService {
     });
 
     return new Set(
-      rows.map(
-        (row) => `${row.year}-${String(row.month).padStart(2, '0')}`,
-      ),
+      rows.map((row) => `${row.year}-${String(row.month).padStart(2, '0')}`),
     );
   }
 
@@ -84,9 +82,15 @@ export class BudgetCycleService {
         .map((allocation) => ({
           category_id: allocation.category_id,
           income_id: allocation.income_id,
-          income_received_at: formatReceivedAtFromDate(allocation.income.received_at!),
-          income_period_month: formatPeriodMonthKeyFromDate(allocation.income.period_month),
-          allocation_period_month: formatPeriodMonthKeyFromDate(allocation.period_month),
+          income_received_at: formatReceivedAtFromDate(
+            allocation.income.received_at!,
+          ),
+          income_period_month: formatPeriodMonthKeyFromDate(
+            allocation.income.period_month,
+          ),
+          allocation_period_month: formatPeriodMonthKeyFromDate(
+            allocation.period_month,
+          ),
           amount: allocation.amount.toString(),
         })),
       closedPeriodMonths,

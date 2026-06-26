@@ -36,8 +36,7 @@ export class BudgetProjectorService {
     }
 
     const opening = toMoneyNumber(snap.opening_balance.toString());
-    const allocated =
-      toMoneyNumber(snap.allocated.toString()) + allocatedDelta;
+    const allocated = toMoneyNumber(snap.allocated.toString()) + allocatedDelta;
     const spent = toMoneyNumber(snap.spent.toString()) + spentDelta;
     const closing_balance = computeClosing(opening, allocated, spent);
 

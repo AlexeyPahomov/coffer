@@ -17,7 +17,10 @@ import {
 } from '../lib/period-month';
 import { withTransientDbRetry } from '../prisma/db-retry';
 import { PrismaService } from '../prisma/prisma.service';
-import { BudgetRebuildService, type RebuildInputs } from './budget-rebuild.service';
+import {
+  BudgetRebuildService,
+  type RebuildInputs,
+} from './budget-rebuild.service';
 import type { BudgetDbClient } from './budget-db';
 import type {
   BudgetMonthMeta,
@@ -47,7 +50,10 @@ type MaterializeResult = RebuiltCategoryBudget[] | 'existing';
 @Injectable()
 export class BudgetMonthService {
   /** Один in-flight `open` на user+period (клиент часто шлёт параллельные POST). */
-  private readonly materializeLocks = new Map<string, Promise<MaterializeResult>>();
+  private readonly materializeLocks = new Map<
+    string,
+    Promise<MaterializeResult>
+  >();
 
   private readonly prisma: PrismaClient;
 
@@ -98,7 +104,9 @@ export class BudgetMonthService {
     categories: readonly Category[],
   ): BudgetMonthViewDto {
     const parsed = this.parsePeriodOrThrow(periodMonth);
-    const categoryById = new Map(categories.map((category) => [category.id, category]));
+    const categoryById = new Map(
+      categories.map((category) => [category.id, category]),
+    );
 
     const snapshots = rebuilt
       .map((row) => {
@@ -441,7 +449,10 @@ export class BudgetMonthService {
   }
 
   /** Закрыть учётный месяц: снимок конвертов фиксируется, месяц исключается из активного цикла. */
-  async close(userId: string, periodMonth: string): Promise<BudgetMonthViewDto> {
+  async close(
+    userId: string,
+    periodMonth: string,
+  ): Promise<BudgetMonthViewDto> {
     await this.open(userId, periodMonth);
     await this.rebuildFrom(userId, periodMonth);
 

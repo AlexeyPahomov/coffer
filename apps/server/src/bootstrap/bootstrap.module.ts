@@ -8,11 +8,7 @@ import { BootstrapController } from './bootstrap.controller';
 import { BootstrapService } from './bootstrap.service';
 
 @Module({
-  imports: [
-    PlannedExpenseModule,
-    AllocationRuleModule,
-    BudgetModule,
-  ],
+  imports: [PlannedExpenseModule, AllocationRuleModule, BudgetModule],
   controllers: [BootstrapController],
   providers: [BootstrapService],
 })

@@ -7,7 +7,9 @@ export type AppBootstrapDto = {
   periodMonth: string;
   asOf: string;
   categories: Awaited<
-    ReturnType<import('../category/category.service').CategoryService['findAll']>
+    ReturnType<
+      import('../category/category.service').CategoryService['findAll']
+    >
   >;
   incomes: Awaited<
     ReturnType<import('../income/income.service').IncomeService['findAll']>

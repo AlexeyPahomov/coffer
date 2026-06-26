@@ -9,7 +9,11 @@ import { BudgetProjectorService } from './budget-projector.service';
 import { BudgetRebuildService } from './budget-rebuild.service';
 
 @Module({
-  controllers: [BudgetMonthController, BudgetCycleController, BudgetLedgerSummaryController],
+  controllers: [
+    BudgetMonthController,
+    BudgetCycleController,
+    BudgetLedgerSummaryController,
+  ],
   providers: [
     BudgetRebuildService,
     BudgetMonthService,

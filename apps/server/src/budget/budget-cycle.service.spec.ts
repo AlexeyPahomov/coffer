@@ -133,8 +133,8 @@ describe('BudgetCycleService', () => {
     };
     prisma.income.findMany.mockResolvedValue([]);
 
-    await expect(service.getCurrentView('user-1', '2026-06-04')).rejects.toBeInstanceOf(
-      NotFoundException,
-    );
+    await expect(
+      service.getCurrentView('user-1', '2026-06-04'),
+    ).rejects.toBeInstanceOf(NotFoundException);
   });
 });

@@ -41,5 +41,7 @@ export function didPlannedDateEndChange(
   next: Date | null,
   before: Date | null,
 ): boolean {
-  return dateKeyFromUtcDateOptional(next) !== dateKeyFromUtcDateOptional(before);
+  return (
+    dateKeyFromUtcDateOptional(next) !== dateKeyFromUtcDateOptional(before)
+  );
 }
