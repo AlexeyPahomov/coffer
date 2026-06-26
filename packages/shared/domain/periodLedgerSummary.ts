@@ -37,8 +37,14 @@ export type PeriodLedgerSummary = {
 
 export type ComputePeriodLedgerSummaryInput = {
   categories: readonly BudgetRebuildCategory[]
+  /**
+   * КОНТРАКТ: аллокации обязаны быть уже отфильтрованы по статусу дохода RECEIVED
+   * до передачи сюда (сервер — `mapReceivedAllocations`, клиент — `filterReceivedAllocations`).
+   * В отличие от `incomes`, received-фильтр здесь внутри НЕ применяется.
+   */
   allocations: readonly BudgetRebuildAllocation[]
   expenses: readonly BudgetRebuildExpense[]
+  /** Доходы любого статуса: received-фильтр применяется внутри (`filterReceivedIncomes`). */
   incomes: readonly PeriodLedgerIncome[]
   periodMonth: string
 }
@@ -279,7 +285,16 @@ function computeNonEnvelopeSpentByCategoryId(
   return result
 }
 
-/** Серверный агрегат свободного пула и итогов месяца без полной выгрузки events на клиент. */
+/**
+ * Серверный агрегат свободного пула и итогов месяца без полной выгрузки events на клиент.
+ *
+ * Канон closing-математики: клиент (derive) и сервер (projection) обязаны давать
+ * одинаковый результат для одних и тех же событий. Паритет с клиентской оркестрацией
+ * закреплён тестом `apps/client/src/entities/budget/lib/periodLedgerParity.spec.ts`.
+ *
+ * Контракт входа: `allocations` — уже отфильтрованы по RECEIVED (см. тип),
+ * `incomes` — любого статуса (фильтруются внутри).
+ */
 export function computePeriodLedgerSummary(
   input: ComputePeriodLedgerSummaryInput,
 ): PeriodLedgerSummary {
