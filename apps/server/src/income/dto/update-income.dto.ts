@@ -1,5 +1,4 @@
 export class UpdateIncomeDto {
-  user_id!: string;
   amount!: number;
   source?: string;
   income_type?: string;

@@ -11,7 +11,7 @@ describe('AllocationService', () => {
     income: { findUnique: jest.Mock };
     allocation: {
       findMany: jest.Mock;
-      findUnique: jest.Mock;
+      findFirst: jest.Mock;
       create: jest.Mock;
       update: jest.Mock;
     };
@@ -23,7 +23,7 @@ describe('AllocationService', () => {
       income: { findUnique: jest.fn() },
       allocation: {
         findMany: jest.fn(),
-        findUnique: jest.fn(),
+        findFirst: jest.fn(),
         create: jest.fn(),
         update: jest.fn(),
       },
@@ -61,7 +61,7 @@ describe('AllocationService', () => {
   });
 
   it('rejects updating allocation for expected income', async () => {
-    prisma.allocation.findUnique.mockResolvedValue({
+    prisma.allocation.findFirst.mockResolvedValue({
       id: 'allocation-1',
       income_id: 'income-1',
       category_id: 'category-1',
@@ -76,7 +76,7 @@ describe('AllocationService', () => {
     });
 
     await expect(
-      service.update('allocation-1', {
+      service.update('allocation-1', 'user-1', {
         category_id: 'category-1',
         amount: 1000,
       }),

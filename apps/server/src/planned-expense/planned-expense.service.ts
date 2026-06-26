@@ -10,7 +10,6 @@ import { monthValueFromDate, parsePeriodMonthKey } from '@coffer/shared';
 import { BudgetMonthService } from '../budget/budget-month.service';
 import { BudgetProjectorService } from '../budget/budget-projector.service';
 import { awaitBudgetProjection } from '../lib/budget-projection';
-import { DEV_USER_ID } from '../lib/dev-user';
 import { withTransientDbRetry } from '../prisma/db-retry';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreatePlannedExpenseDto } from './dto/create-planned-expense.dto';
@@ -166,21 +165,18 @@ export class PlannedExpenseService {
     return withRelations;
   }
 
-  async create(dto: CreatePlannedExpenseDto) {
+  async create(userId: string, dto: CreatePlannedExpenseDto) {
     await this.assertCategoryExists(dto.category_id);
 
     const plannedDate = new Date(dto.planned_date);
     const plannedDateEnd = parseOptionalIsoDate(dto.planned_date_end);
     assertPlannedDateRange(plannedDate, plannedDateEnd);
     const periodMonth = monthValueFromDate(plannedDate);
-    const budgetMonthId = await this.resolveBudgetMonthId(
-      DEV_USER_ID,
-      periodMonth,
-    );
+    const budgetMonthId = await this.resolveBudgetMonthId(userId, periodMonth);
 
     const created = await this.prisma.plannedExpense.create({
       data: {
-        user_id: DEV_USER_ID,
+        user_id: userId,
         title: dto.title.trim(),
         description: dto.description?.trim() || null,
         icon_name: dto.icon_name?.trim() || 'gift',
@@ -197,11 +193,11 @@ export class PlannedExpenseService {
     return withRelations;
   }
 
-  async findAll(periodMonth?: string) {
+  async findAll(userId: string, periodMonth?: string) {
     const where: {
       user_id: string;
       budgetMonth?: { year: number; month: number };
-    } = { user_id: DEV_USER_ID };
+    } = { user_id: userId };
 
     if (periodMonth) {
       const { year, month } = this.parsePeriodOrThrow(periodMonth);

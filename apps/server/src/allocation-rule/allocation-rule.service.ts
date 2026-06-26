@@ -11,7 +11,6 @@ import {
 import { formatPeriodMonthKeyFromDate } from '../lib/period-month';
 
 import type { AllocationRuleLineMode } from '../generated/prisma/client';
-import { DEV_USER_ID } from '../lib/dev-user';
 import { sumPrismaMoneyAmounts, toMoneyNumber } from '../lib/money';
 import { BudgetMonthService } from '../budget/budget-month.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -73,7 +72,9 @@ export class AllocationRuleService {
 
     if (line.mode === 'FIXED') {
       if (line.amount == null || line.amount <= 0) {
-        throw new BadRequestException('Fixed allocation rule line needs amount');
+        throw new BadRequestException(
+          'Fixed allocation rule line needs amount',
+        );
       }
       return;
     }
@@ -85,7 +86,10 @@ export class AllocationRuleService {
     }
   }
 
-  private async validateRuleDto(dto: CreateAllocationRuleDto): Promise<void> {
+  private async validateRuleDto(
+    userId: string,
+    dto: CreateAllocationRuleDto,
+  ): Promise<void> {
     if (!dto.name?.trim()) {
       throw new BadRequestException('Rule name is required');
     }
@@ -97,7 +101,7 @@ export class AllocationRuleService {
 
     const categoryIds = [...new Set(dto.lines.map((line) => line.category_id))];
     const categories = await this.prisma.category.findMany({
-      where: { id: { in: categoryIds }, user_id: DEV_USER_ID },
+      where: { id: { in: categoryIds }, user_id: userId },
     });
 
     if (categories.length !== categoryIds.length) {
@@ -125,9 +129,9 @@ export class AllocationRuleService {
     };
   }
 
-  private async findOwnedRule(id: string) {
+  private async findOwnedRule(id: string, userId: string) {
     const rule = await this.prisma.allocationRule.findFirst({
-      where: { id, user_id: DEV_USER_ID },
+      where: { id, user_id: userId },
     });
     if (!rule) {
       throw new NotFoundException('Allocation rule not found');
@@ -164,12 +168,12 @@ export class AllocationRuleService {
     return normalized || undefined;
   }
 
-  async create(dto: CreateAllocationRuleDto) {
-    await this.validateRuleDto(dto);
+  async create(userId: string, dto: CreateAllocationRuleDto) {
+    await this.validateRuleDto(userId, dto);
 
     const rule = await this.prisma.allocationRule.create({
       data: {
-        user_id: DEV_USER_ID,
+        user_id: userId,
         name: dto.name.trim(),
         trigger_income_type: this.normalizeTriggerIncomeType(
           dto.trigger_income_type,
@@ -190,18 +194,18 @@ export class AllocationRuleService {
     return this.findRuleById(rule.id);
   }
 
-  findAll() {
+  findAll(userId: string) {
     return this.prisma.allocationRule.findMany({
-      where: { user_id: DEV_USER_ID },
+      where: { user_id: userId },
       orderBy: [{ is_active: 'desc' }, { created_at: 'desc' }],
       include: this.includeRuleRelations(),
     });
   }
 
-  async update(id: string, dto: UpdateAllocationRuleDto) {
-    await this.validateRuleDto(dto);
+  async update(id: string, userId: string, dto: UpdateAllocationRuleDto) {
+    await this.validateRuleDto(userId, dto);
 
-    await this.findOwnedRule(id);
+    await this.findOwnedRule(id, userId);
 
     await this.prisma.allocationRule.update({
       where: { id },
@@ -219,19 +223,16 @@ export class AllocationRuleService {
     return this.findRuleById(id);
   }
 
-  async remove(id: string): Promise<void> {
-    await this.findOwnedRule(id);
+  async remove(id: string, userId: string): Promise<void> {
+    await this.findOwnedRule(id, userId);
 
     await this.prisma.allocationRule.delete({ where: { id } });
   }
 
-  private async requireIncome(incomeId: string) {
-    const normalizedIncomeId = this.normalizeRequiredId(
-      incomeId,
-      'income_id',
-    );
+  private async requireIncome(incomeId: string, userId: string) {
+    const normalizedIncomeId = this.normalizeRequiredId(incomeId, 'income_id');
     const income = await this.prisma.income.findFirst({
-      where: { id: normalizedIncomeId, user_id: DEV_USER_ID },
+      where: { id: normalizedIncomeId, user_id: userId },
     });
     if (!income) {
       throw new NotFoundException('Income not found');
@@ -239,11 +240,15 @@ export class AllocationRuleService {
     return income;
   }
 
-  private findMatchingRules(income: { income_type: string }, ruleId?: string) {
+  private findMatchingRules(
+    income: { income_type: string },
+    userId: string,
+    ruleId?: string,
+  ) {
     const normalizedRuleId = this.normalizeOptionalId(ruleId);
     return this.prisma.allocationRule.findMany({
       where: {
-        user_id: DEV_USER_ID,
+        user_id: userId,
         is_active: true,
         id: normalizedRuleId,
         OR: [
@@ -260,7 +265,10 @@ export class AllocationRuleService {
     return Math.round(value * 100) / 100;
   }
 
-  private previewLine(line: RuleWithLines['lines'][number], incomeAmount: number) {
+  private previewLine(
+    line: RuleWithLines['lines'][number],
+    incomeAmount: number,
+  ) {
     const mode = line.mode;
     const amount =
       mode === 'FIXED'
@@ -281,7 +289,8 @@ export class AllocationRuleService {
       },
       mode,
       amount,
-      percent: line.percent == null ? null : toMoneyNumber(line.percent.toString()),
+      percent:
+        line.percent == null ? null : toMoneyNumber(line.percent.toString()),
     };
   }
 
@@ -290,7 +299,9 @@ export class AllocationRuleService {
     incomeAmount: number,
     alreadyAllocated: number,
   ): PreviewRule {
-    const lines = rule.lines.map((line) => this.previewLine(line, incomeAmount));
+    const lines = rule.lines.map((line) =>
+      this.previewLine(line, incomeAmount),
+    );
     const total = lines.reduce((sum, line) => sum + line.amount, 0);
     const remainingAfterApply = incomeAmount - alreadyAllocated - total;
 
@@ -307,12 +318,9 @@ export class AllocationRuleService {
     };
   }
 
-  async preview(incomeId: string, ruleId?: string) {
-    const normalizedIncomeId = this.normalizeRequiredId(
-      incomeId,
-      'income_id',
-    );
-    const income = await this.requireIncome(incomeId);
+  async preview(userId: string, incomeId: string, ruleId?: string) {
+    const normalizedIncomeId = this.normalizeRequiredId(incomeId, 'income_id');
+    const income = await this.requireIncome(incomeId, userId);
     const incomeAmount = toMoneyNumber(income.amount.toString());
     const alreadyAllocated =
       income.status === 'RECEIVED'
@@ -322,7 +330,7 @@ export class AllocationRuleService {
             }),
           )
         : 0;
-    const rules = await this.findMatchingRules(income, ruleId);
+    const rules = await this.findMatchingRules(income, userId, ruleId);
 
     return {
       income: {
@@ -345,7 +353,7 @@ export class AllocationRuleService {
     return lines
       .filter((line) => line.amount > 0)
       .map((line) => ({
-        user_id: DEV_USER_ID,
+        user_id: income.user_id,
         income_id: income.id,
         category_id: line.category_id,
         amount: line.amount,
@@ -354,13 +362,13 @@ export class AllocationRuleService {
       }));
   }
 
-  async apply(dto: ApplyAllocationRuleDto) {
-    const income = await this.requireIncome(dto.income_id);
+  async apply(userId: string, dto: ApplyAllocationRuleDto) {
+    const income = await this.requireIncome(dto.income_id, userId);
     if (income.status !== 'RECEIVED') {
       throw new BadRequestException('Expected income cannot be allocated');
     }
 
-    const preview = await this.preview(dto.income_id, dto.rule_id);
+    const preview = await this.preview(userId, dto.income_id, dto.rule_id);
     const normalizedRuleId = this.normalizeOptionalId(dto.rule_id);
     const rulesToApply = normalizedRuleId
       ? preview.rules.filter((rule) => rule.rule.id === normalizedRuleId)

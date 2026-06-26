@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -9,9 +8,9 @@ import {
   Param,
   Patch,
   Post,
-  Query,
 } from '@nestjs/common';
 import type { Income } from '../generated/prisma/client';
+import { CurrentUser } from '../lib/current-user.decorator';
 import { CreateIncomeDto } from './dto/create-income.dto';
 import { UpdateIncomeDto } from './dto/update-income.dto';
 import { IncomeService } from './income.service';
@@ -20,46 +19,42 @@ import { IncomeService } from './income.service';
 export class IncomeController {
   constructor(private readonly incomeService: IncomeService) {}
 
-  private resolveUserId(userId: string | undefined): string {
-    const trimmedUserId = userId?.trim() ?? '';
-    if (!trimmedUserId) {
-      throw new BadRequestException('Query user_id is required');
-    }
-    return trimmedUserId;
-  }
-
   @Post()
-  create(@Body() dto: CreateIncomeDto): Promise<Income> {
-    return this.incomeService.create(dto);
+  create(
+    @CurrentUser() userId: string,
+    @Body() dto: CreateIncomeDto,
+  ): Promise<Income> {
+    return this.incomeService.create(userId, dto);
   }
 
   @Get()
-  findAll(): Promise<Income[]> {
-    return this.incomeService.findAll();
+  findAll(@CurrentUser() userId: string): Promise<Income[]> {
+    return this.incomeService.findAll(userId);
   }
 
   @Patch(':id')
   update(
     @Param('id') id: string,
+    @CurrentUser() userId: string,
     @Body() dto: UpdateIncomeDto,
   ): Promise<Income> {
-    return this.incomeService.update(id, dto);
+    return this.incomeService.update(id, userId, dto);
   }
 
   @Patch(':id/receive')
   receive(
     @Param('id') id: string,
-    @Query('user_id') userId: string | undefined,
+    @CurrentUser() userId: string,
   ): Promise<Income> {
-    return this.incomeService.receive(id, this.resolveUserId(userId));
+    return this.incomeService.receive(id, userId);
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   async deleteById(
     @Param('id') id: string,
-    @Query('user_id') userId: string | undefined,
+    @CurrentUser() userId: string,
   ): Promise<void> {
-    await this.incomeService.remove(id, this.resolveUserId(userId));
+    await this.incomeService.remove(id, userId);
   }
 }

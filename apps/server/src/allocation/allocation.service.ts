@@ -9,7 +9,6 @@ import type { Income, Prisma } from '../generated/prisma/client';
 import { BudgetMonthService } from '../budget/budget-month.service';
 import { BudgetProjectorService } from '../budget/budget-projector.service';
 import { awaitBudgetProjection } from '../lib/budget-projection';
-import { DEV_USER_ID } from '../lib/dev-user';
 import { sumPrismaMoneyAmounts, toMoneyNumber } from '../lib/money';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateAllocationDto } from './dto/create-allocation.dto';
@@ -71,7 +70,7 @@ export class AllocationService {
     }
   }
 
-  async create(dto: CreateAllocationDto) {
+  async create(userId: string, dto: CreateAllocationDto) {
     const income = await this.requireIncome(dto.income_id);
 
     await this.assertAllocationFitsIncome(
@@ -81,14 +80,13 @@ export class AllocationService {
     );
 
     await this.budgetMonthService.ensurePeriodOpen(
-      DEV_USER_ID,
+      userId,
       monthValueFromDate(income.period_month),
     );
 
     const allocation = await this.prisma.allocation.create({
       data: {
-        // TODO убрать хардкод после добавления пользователей
-        user_id: DEV_USER_ID,
+        user_id: userId,
         income_id: dto.income_id,
         category_id: dto.category_id,
         amount: dto.amount,
@@ -106,9 +104,14 @@ export class AllocationService {
     return allocation;
   }
 
-  async findAll(incomeId?: string) {
+  async findAll(userId: string, incomeId?: string) {
+    const where: Prisma.AllocationWhereInput = { user_id: userId };
+    if (incomeId) {
+      where.income_id = incomeId;
+    }
+
     const rows = await this.prisma.allocation.findMany({
-      where: incomeId ? { income_id: incomeId } : undefined,
+      where,
       orderBy: { created_at: 'desc' },
     });
 
@@ -141,9 +144,9 @@ export class AllocationService {
     });
   }
 
-  async update(id: string, dto: UpdateAllocationDto) {
-    const beforeRow = await this.prisma.allocation.findUnique({
-      where: { id },
+  async update(id: string, userId: string, dto: UpdateAllocationDto) {
+    const beforeRow = await this.prisma.allocation.findFirst({
+      where: { id, user_id: userId },
     });
 
     if (!beforeRow) {
@@ -163,7 +166,7 @@ export class AllocationService {
     );
 
     await this.budgetMonthService.ensurePeriodOpen(
-      DEV_USER_ID,
+      userId,
       monthValueFromDate(before.period_month),
     );
 

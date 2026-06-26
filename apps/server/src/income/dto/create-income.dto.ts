@@ -1,5 +1,4 @@
 export class CreateIncomeDto {
-  user_id!: string;
   amount!: number;
   source?: string;
   income_type?: string;

@@ -50,28 +50,30 @@ export class CategoryService {
     };
   }
 
-  create(dto: CreateCategoryDto) {
+  create(userId: string, dto: CreateCategoryDto) {
     this.validateFields(dto);
 
     return this.prisma.category.create({
       data: {
-        // TODO убрать хардкод после добавления пользователей
-        user_id: '00000000-0000-0000-0000-000000000001',
+        user_id: userId,
         ...this.toWriteData(dto),
       },
     });
   }
 
-  findAll() {
+  findAll(userId: string) {
     return this.prisma.category.findMany({
+      where: { user_id: userId },
       orderBy: { created_at: 'desc' },
     });
   }
 
-  async update(id: string, dto: UpdateCategoryDto) {
+  async update(id: string, userId: string, dto: UpdateCategoryDto) {
     this.validateFields(dto);
 
-    const existing = await this.prisma.category.findUnique({ where: { id } });
+    const existing = await this.prisma.category.findFirst({
+      where: { id, user_id: userId },
+    });
     if (!existing) {
       throw new NotFoundException('Category not found');
     }

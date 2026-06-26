@@ -8,7 +8,6 @@ import { monthValueFromDate } from '@coffer/shared';
 import type { Prisma } from '../generated/prisma/client';
 
 import { awaitBudgetProjection } from '../lib/budget-projection';
-import { DEV_USER_ID } from '../lib/dev-user';
 import { parsePeriodMonthKey } from '../lib/period-month';
 import { BudgetMonthService } from '../budget/budget-month.service';
 import { BudgetProjectorService } from '../budget/budget-projector.service';
@@ -52,9 +51,9 @@ export class ExpenseService {
     return expense;
   }
 
-  private async attachCategories<
-    T extends { category_id: string },
-  >(rows: readonly T[]) {
+  private async attachCategories<T extends { category_id: string }>(
+    rows: readonly T[],
+  ) {
     if (rows.length === 0) {
       return [];
     }
@@ -100,18 +99,18 @@ export class ExpenseService {
     return where;
   }
 
-  async create(dto: CreateExpenseDto) {
+  async create(userId: string, dto: CreateExpenseDto) {
     await this.assertCategoryExists(dto.category_id);
 
     const expenseDate = new Date(dto.date);
     await this.budgetMonthService.ensurePeriodOpen(
-      DEV_USER_ID,
+      userId,
       monthValueFromDate(expenseDate),
     );
 
     const expense = await this.prisma.expense.create({
       data: {
-        user_id: DEV_USER_ID,
+        user_id: userId,
         category_id: dto.category_id,
         amount: dto.amount,
         description: dto.description,
@@ -128,8 +127,9 @@ export class ExpenseService {
     return expense;
   }
 
-  async findAll() {
+  async findAll(userId: string) {
     const rows = await this.prisma.expense.findMany({
+      where: { user_id: userId },
       orderBy: [{ date: 'desc' }, { created_at: 'desc' }],
     });
 
@@ -158,7 +158,7 @@ export class ExpenseService {
 
     return {
       items,
-      nextCursor: hasMore ? pageRows[pageRows.length - 1]?.id ?? null : null,
+      nextCursor: hasMore ? (pageRows[pageRows.length - 1]?.id ?? null) : null,
     };
   }
 

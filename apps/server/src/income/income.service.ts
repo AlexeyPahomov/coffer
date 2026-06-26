@@ -65,12 +65,11 @@ export class IncomeService {
     private readonly budgetMonthService: BudgetMonthService,
   ) {}
 
-  create(dto: CreateIncomeDto): Promise<Income> {
+  create(userId: string, dto: CreateIncomeDto): Promise<Income> {
     const status = resolveIncomeStatusValue(dto.status);
     return this.prisma.income.create({
       data: {
-        // TODO убрать хардкод после добавления пользователей
-        user_id: '00000000-0000-0000-0000-000000000001',
+        user_id: userId,
         amount: dto.amount,
         source: dto.source,
         income_type: resolveDtoIncomeType(dto.income_type),
@@ -91,8 +90,9 @@ export class IncomeService {
     return resolveIncomeStatusValue(dto.status);
   }
 
-  findAll(): Promise<Income[]> {
+  findAll(userId: string): Promise<Income[]> {
     return this.prisma.income.findMany({
+      where: { user_id: userId },
       orderBy: { created_at: 'desc' },
     });
   }
@@ -107,8 +107,12 @@ export class IncomeService {
     return income;
   }
 
-  async update(id: string, dto: UpdateIncomeDto): Promise<Income> {
-    const existing = await this.findOwned(id, dto.user_id);
+  async update(
+    id: string,
+    userId: string,
+    dto: UpdateIncomeDto,
+  ): Promise<Income> {
+    const existing = await this.findOwned(id, userId);
 
     const nextStatus = this.resolveNextStatus(dto, existing);
     if (nextStatus === 'EXPECTED') {

@@ -34,8 +34,8 @@ export class BootstrapService {
       const ledgerBundle =
         await this.rebuildService.loadBootstrapLedgerBundle(userId);
 
-      const plannedExpenses = await this.plannedExpenseService.findAll();
-      const allocationRules = await this.allocationRuleService.findAll();
+      const plannedExpenses = await this.plannedExpenseService.findAll(userId);
+      const allocationRules = await this.allocationRuleService.findAll(userId);
       const closedPeriodMonths =
         await this.budgetCycleService.getClosedPeriodMonths(userId);
       const budgetMonthMeta = await this.budgetMonthService.getBudgetMonthMeta(

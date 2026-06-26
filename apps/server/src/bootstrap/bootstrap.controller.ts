@@ -1,11 +1,7 @@
-import {
-  BadRequestException,
-  Controller,
-  Get,
-  Query,
-} from '@nestjs/common';
+import { BadRequestException, Controller, Get, Query } from '@nestjs/common';
 import { getCalendarDateKey, monthValueFromDate } from '@coffer/shared';
 
+import { CurrentUser } from '../lib/current-user.decorator';
 import { BootstrapService } from './bootstrap.service';
 import type { AppBootstrapDto } from './bootstrap.view.dto';
 
@@ -13,17 +9,9 @@ import type { AppBootstrapDto } from './bootstrap.view.dto';
 export class BootstrapController {
   constructor(private readonly bootstrapService: BootstrapService) {}
 
-  private resolveUserId(userId: string | undefined): string {
-    const trimmed = userId?.trim() ?? '';
-    if (!trimmed) {
-      throw new BadRequestException('Query user_id is required');
-    }
-    return trimmed;
-  }
-
   @Get()
   getBootstrap(
-    @Query('user_id') userId: string | undefined,
+    @CurrentUser() userId: string,
     @Query('period_month') periodMonth: string | undefined,
     @Query('as_of') asOf: string | undefined,
   ): Promise<AppBootstrapDto> {
@@ -34,7 +22,7 @@ export class BootstrapController {
     }
 
     return this.bootstrapService.getBootstrap(
-      this.resolveUserId(userId),
+      userId,
       periodMonth?.trim() || monthValueFromDate(now),
       asOf?.trim() || defaultAsOf,
     );
