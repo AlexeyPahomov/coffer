@@ -1,6 +1,7 @@
 import type { ChangeEvent, ReactNode } from 'react';
 
 import type { Allocation } from '@/entities/allocation/model/types';
+import type { CategoryBudgetSnapshot } from '@/entities/budget';
 import type { Category } from '@/entities/category/model/types';
 import { CategorySelect } from '@/entities/category/ui/CategorySelect';
 import type { Expense } from '@/entities/expense/model/types';
@@ -19,7 +20,6 @@ import {
 } from '@/shared/ui';
 
 import { buildSavingsTransferHint } from '../lib/savingsTransferHint';
-import type { CategoryBudgetSnapshot } from '../model/budget';
 import type { CreateExpenseFormValues } from '../model/types';
 import { useCreateExpenseForm } from '../model/useCreateExpenseForm';
 import { useSyncSelectedCategory } from '../model/useSyncSelectedCategory';

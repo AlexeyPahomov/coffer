@@ -1,7 +1,7 @@
 /** Публичный API сущности budget (импорт: `@/entities/budget`). */
 
 export type { BudgetLedgerInput } from './model/budgetLedgerInput'
-export type { CategoryBudgetItem } from './model/types'
+export type { CategoryBudgetItem, CategoryBudgetSnapshot } from './model/types'
 export type { OperationalSummary } from './model/operationalSummary'
 export type { CurrentBudgetSummaryView } from './model/currentBudgetSummaryView'
 

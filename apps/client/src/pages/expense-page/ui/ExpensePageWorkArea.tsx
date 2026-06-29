@@ -27,17 +27,15 @@ import {
   type ExpensePageWorkSlideId,
 } from '../lib/expensePageWorkAreaSlides'
 import { useExpensePageWorkCarousel } from '../model/useExpensePageWorkCarousel'
+import { useExpensePageWorkAreaContext } from '../model/expensePageWorkAreaContext'
 
-import type { ExpensePageWorkAreaPanelsProps } from './expensePageWorkAreaPanels'
 import {
   ExpensePageCategoriesPanel,
   ExpensePageHistoryPanel,
 } from './expensePageWorkAreaPanels'
 import { ExpensePageWorkAreaSwitcher } from './ExpensePageWorkAreaSwitcher'
 
-export type ExpensePageWorkAreaProps = ExpensePageWorkAreaPanelsProps
-
-export function ExpensePageWorkArea(props: ExpensePageWorkAreaProps) {
+export function ExpensePageWorkArea() {
   const isMobile = useIsMobile()
   const listLayout = usePageListLayout()
   const { setCarouselApi, activeIndex, selectSlide } = useExpensePageWorkCarousel()
@@ -46,7 +44,8 @@ export function ExpensePageWorkArea(props: ExpensePageWorkAreaProps) {
   const [historyViewMode, setHistoryViewMode] = useState<ExpenseListViewMode>('list')
   const isHistorySlide = activeSlideId === EXPENSE_PAGE_WORK_SLIDE.history
 
-  const { selectedCategoryId, onCategorySelect, onAddExpense } = props
+  const { selectedCategoryId, onCategorySelect, onAddExpense } =
+    useExpensePageWorkAreaContext()
 
   const handleSwitcherSelect = useCallback(
     (slideId: ExpensePageWorkSlideId) => {
@@ -67,8 +66,6 @@ export function ExpensePageWorkArea(props: ExpensePageWorkAreaProps) {
     [onCategorySelect, selectSlide, selectedCategoryId],
   )
 
-  const panelProps = { ...props, onCategorySelect: handleCategorySelect }
-
   return (
     <div className={expensePageWorkCarouselRootClassName}>
       <ExpensePageWorkAreaSwitcher
@@ -87,7 +84,7 @@ export function ExpensePageWorkArea(props: ExpensePageWorkAreaProps) {
             <ExpensePageCategoriesPanel
               listLayout={listLayout}
               hideListTitle
-              {...panelProps}
+              onCategorySelect={handleCategorySelect}
             />
           </CarouselItem>
 
@@ -98,7 +95,6 @@ export function ExpensePageWorkArea(props: ExpensePageWorkAreaProps) {
               hideHeaderViewSwitcher={isMobile}
               historyViewMode={historyViewMode}
               onHistoryViewModeChange={setHistoryViewMode}
-              {...panelProps}
             />
           </CarouselItem>
         </CarouselContent>

@@ -1,4 +1,5 @@
 import type { Allocation } from '@/entities/allocation/model/types'
+import type { CategoryBudgetSnapshot } from '@/entities/budget'
 import type { Category } from '@/entities/category/model/types'
 import type { Expense } from '@/entities/expense/model/types'
 import type { Income } from '@/entities/income/model/types'
@@ -14,7 +15,6 @@ import {
   expenseFormDialogDescription,
   expenseFormDialogTitle,
 } from '../lib/expenseFormDialogCopy'
-import type { CategoryBudgetSnapshot } from '../model/budget'
 
 import { CreateExpenseForm } from './CreateExpenseForm'
 

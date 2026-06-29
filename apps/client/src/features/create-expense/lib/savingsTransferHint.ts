@@ -1,6 +1,7 @@
+import type { CategoryBudgetSnapshot } from '@/entities/budget'
 import { isSavingsCategory } from '@/entities/category/lib/categoryKind'
 
-import type { CategoryBudgetSnapshot, ExpenseBudgetPreview } from '../model/budget'
+import type { ExpenseBudgetPreview } from '../model/budget'
 
 export type SavingsTransferHint = {
   savingsName: string

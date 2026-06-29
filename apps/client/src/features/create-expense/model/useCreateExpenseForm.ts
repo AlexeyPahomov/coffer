@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { pickIncomeForTopUp } from '@/entities/allocation/lib/pickIncomeForTopUp'
 import { useCreateAllocationMutation } from '@/entities/allocation/api/useCreateAllocationMutation'
 import type { Allocation } from '@/entities/allocation/model/types'
+import type { CategoryBudgetSnapshot } from '@/entities/budget'
 import { useCreateExpenseMutation } from '@/entities/expense/api/useCreateExpenseMutation'
 import { useUpdateExpenseMutation } from '@/entities/expense/api/useUpdateExpenseMutation'
 import type { Expense } from '@/entities/expense/model/types'
@@ -15,10 +16,7 @@ import { resolveCreateExpenseFormValues } from '../lib/expenseFormValues'
 import { budgetPreviewStressKey } from '../lib/stressCategoryId'
 
 import { QUICK_TOP_UP_CHECK_AMOUNT } from './constants'
-import {
-  type CategoryBudgetSnapshot,
-  computeExpenseBudgetPreview,
-} from './budget'
+import { computeExpenseBudgetPreview } from './budget'
 import type { CreateExpenseFormValues } from './types'
 import { validateCreateExpenseForm } from './validation'
 

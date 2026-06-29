@@ -1,6 +1,7 @@
-import type { CategoryBudgetSnapshot } from '@/features/create-expense/model/budget'
-
-import type { CategoryBudgetItem } from '@/entities/budget/model/types'
+import type {
+  CategoryBudgetItem,
+  CategoryBudgetSnapshot,
+} from '@/entities/budget'
 
 export function toBudgetSnapshots(
   items: readonly CategoryBudgetItem[],

@@ -22,6 +22,7 @@ import { useExpensePageCategorySelection } from '../model/useExpensePageCategory
 import { useExpensePageOutsideInteraction } from '../model/useExpensePageOutsideInteraction';
 import { useExpenseFormDialog } from '../model/useExpenseFormDialog';
 import { useExpensePage } from '../model/useExpensePage';
+import { ExpensePageWorkAreaContext } from '../model/expensePageWorkAreaContext';
 
 import { ExpensePageBudgetSection } from './ExpensePageBudgetSection';
 import { ExpensePageToolbar } from './ExpensePageToolbar';
@@ -145,42 +146,36 @@ export function ExpensePage() {
         />
 
         <div className={expensePageShellWorkScrollClassName}>
-          <ExpensePageWorkArea
-            periodMonth={periodMonth}
-            expenseCategories={expenseCategories}
-            budgetSnapshots={budgetSnapshots}
-            incomes={incomes}
-            allocations={allocations}
-            budgetItems={budgetItems}
-            selectedCategoryId={selectedCategoryId}
-            editingExpense={editingExpense}
-            onCancelEdit={() => setEditingExpense(null)}
-            stressCategoryId={stressCategoryId}
-            onStressCategoryChange={handleStressCategoryChange}
-            onCategorySelect={handleCategorySelect}
-            isBudgetPending={isBudgetPending}
-            isBudgetError={isBudgetError}
-            budgetError={budgetError}
-            isBudgetFetching={isBudgetFetching}
-            sortedExpenses={sortedExpenses}
-            expenseCategoryFilter={expenseCategoryFilter}
-            isHistoryPending={
-              historyQuery.isPending && historyQuery.data === undefined
-            }
-            isHistoryError={historyQuery.isError}
-            historyError={historyQuery.error}
-            isHistoryFetching={historyQuery.isFetchingNextPage}
-            onHistoryScroll={handleHistoryScroll}
-            editingExpenseId={editingExpense?.id ?? null}
-            deletingExpenseId={
-              deleteExpenseMutation.isPending
+          <ExpensePageWorkAreaContext.Provider
+            value={{
+              periodMonth,
+              budgetItems,
+              selectedCategoryId,
+              stressCategoryId,
+              onCategorySelect: handleCategorySelect,
+              onAddExpense: expenseFormDialog.openForAdd,
+              isBudgetPending,
+              isBudgetError,
+              budgetError,
+              isBudgetFetching,
+              sortedExpenses,
+              expenseCategoryFilter,
+              isHistoryPending:
+                historyQuery.isPending && historyQuery.data === undefined,
+              isHistoryError: historyQuery.isError,
+              historyError: historyQuery.error,
+              isHistoryFetching: historyQuery.isFetchingNextPage,
+              onHistoryScroll: handleHistoryScroll,
+              editingExpenseId: editingExpense?.id ?? null,
+              deletingExpenseId: deleteExpenseMutation.isPending
                 ? (deleteExpenseMutation.variables ?? null)
-                : null
-            }
-            onEditExpense={handleEditExpense}
-            onDeleteExpense={handleDeleteExpense}
-            onAddExpense={expenseFormDialog.openForAdd}
-          />
+                : null,
+              onEditExpense: handleEditExpense,
+              onDeleteExpense: handleDeleteExpense,
+            }}
+          >
+            <ExpensePageWorkArea />
+          </ExpensePageWorkAreaContext.Provider>
         </div>
       </div>
 

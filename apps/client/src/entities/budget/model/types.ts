@@ -9,6 +9,20 @@ export type ReserveCategorySummary = {
   type: CategoryType
 }
 
+/**
+ * Плоский снапшот конверта категории для форм/превью расхода
+ * (в отличие от {@link CategoryBudgetItem}, поля категории развёрнуты инлайн).
+ */
+export type CategoryBudgetSnapshot = {
+  categoryId: string
+  categoryName: string
+  categoryType: CategoryType
+  carriedFromPrevious: number
+  allocated: number
+  spent: number
+  remaining: number
+}
+
 /** Конверт категории за месяц (с opening balance). */
 export type CategoryBudgetItem = {
   category: Category
