@@ -15,9 +15,6 @@ describe('BudgetMonthService', () => {
     budgetMonth: {
       findUnique: jest.Mock;
       findMany: jest.Mock;
-      create: jest.Mock;
-      update: jest.Mock;
-      delete: jest.Mock;
     };
     categoryMonthSnapshot: {
       findMany: jest.Mock;
@@ -31,7 +28,6 @@ describe('BudgetMonthService', () => {
   };
   let rebuildService: {
     computeForPeriod: jest.Mock;
-    computeFromInputs: jest.Mock;
   };
   let tx: {
     monthCloseReport: { deleteMany: jest.Mock; create: jest.Mock };
@@ -47,9 +43,6 @@ describe('BudgetMonthService', () => {
       budgetMonth: {
         findUnique: jest.fn(),
         findMany: jest.fn(),
-        create: jest.fn(),
-        update: jest.fn(),
-        delete: jest.fn(),
       },
       categoryMonthSnapshot: {
         findMany: jest.fn(),
@@ -66,7 +59,6 @@ describe('BudgetMonthService', () => {
     );
     rebuildService = {
       computeForPeriod: jest.fn(),
-      computeFromInputs: jest.fn(),
     };
 
     service = new BudgetMonthService(prisma as never, rebuildService as never);
