@@ -10,6 +10,7 @@ import {
   resolveBudgetAsOfKey,
   toBudgetRebuildCategory,
 } from '@coffer/shared';
+import type { RebuiltCycleCategoryBudget } from '@coffer/shared';
 import type {
   Allocation,
   Category,
@@ -67,15 +68,11 @@ export class BudgetCycleService {
     };
   }
 
-  private buildCurrentView(
-    asOf: string,
-    closedPeriodMonths: Set<string>,
-    incomes: Income[],
-    categories: Category[],
+  private mapReceivedAllocations(
     allocations: (Allocation & { income: Income })[],
-    expenses: Expense[],
-  ): BudgetCycleViewDto {
-    const receivedAllocations = filterAllocationsExcludingClosedPeriods(
+    closedPeriodMonths: Set<string>,
+  ) {
+    return filterAllocationsExcludingClosedPeriods(
       allocations
         .filter((allocation) => allocation.income.status === 'RECEIVED')
         .filter((allocation) => allocation.income.received_at != null)
@@ -95,8 +92,10 @@ export class BudgetCycleService {
         })),
       closedPeriodMonths,
     );
+  }
 
-    const activeIncomes = filterIncomesExcludingClosedPeriods(
+  private mapActiveIncomes(incomes: Income[], closedPeriodMonths: Set<string>) {
+    return filterIncomesExcludingClosedPeriods(
       incomes.map((income) => ({
         id: income.id,
         status: String(income.status),
@@ -108,6 +107,50 @@ export class BudgetCycleService {
       })),
       closedPeriodMonths,
     );
+  }
+
+  private mapExpenseRows(expenses: Expense[], closedPeriodMonths: Set<string>) {
+    return filterExpensesExcludingClosedPeriods(
+      expenses.map((expense) => ({
+        category_id: expense.category_id,
+        amount: expense.amount.toString(),
+        date: formatReceivedAtFromDate(expense.date),
+      })),
+      closedPeriodMonths,
+    );
+  }
+
+  private buildSnapshots(
+    rebuilt: readonly RebuiltCycleCategoryBudget[],
+    categories: Category[],
+  ): CategorySnapshotDto[] {
+    const categoryById = new Map(categories.map((c) => [c.id, c]));
+
+    return rebuilt
+      .map((row) => {
+        const category = categoryById.get(row.categoryId);
+        if (!category) {
+          return null;
+        }
+        return this.mapSnapshot(category, row);
+      })
+      .filter((row): row is CategorySnapshotDto => row != null)
+      .sort((a, b) => a.categoryName.localeCompare(b.categoryName));
+  }
+
+  private buildCurrentView(
+    asOf: string,
+    closedPeriodMonths: Set<string>,
+    incomes: Income[],
+    categories: Category[],
+    allocations: (Allocation & { income: Income })[],
+    expenses: Expense[],
+  ): BudgetCycleViewDto {
+    const receivedAllocations = this.mapReceivedAllocations(
+      allocations,
+      closedPeriodMonths,
+    );
+    const activeIncomes = this.mapActiveIncomes(incomes, closedPeriodMonths);
 
     const cycle = resolveActiveIncomeCycle(
       activeIncomes,
@@ -125,14 +168,7 @@ export class BudgetCycleService {
       throw new NotFoundException('Active income has no received_at');
     }
 
-    const expenseRows = filterExpensesExcludingClosedPeriods(
-      expenses.map((expense) => ({
-        category_id: expense.category_id,
-        amount: expense.amount.toString(),
-        date: formatReceivedAtFromDate(expense.date),
-      })),
-      closedPeriodMonths,
-    );
+    const expenseRows = this.mapExpenseRows(expenses, closedPeriodMonths);
 
     const rebuilt = computeCategoryBudgetsForCycle(
       categories.map(toBudgetRebuildCategory),
@@ -144,18 +180,7 @@ export class BudgetCycleService {
       activeIncomes,
     );
 
-    const categoryById = new Map(categories.map((c) => [c.id, c]));
-
-    const snapshots = rebuilt
-      .map((row) => {
-        const category = categoryById.get(row.categoryId);
-        if (!category) {
-          return null;
-        }
-        return this.mapSnapshot(category, row);
-      })
-      .filter((row): row is CategorySnapshotDto => row != null)
-      .sort((a, b) => a.categoryName.localeCompare(b.categoryName));
+    const snapshots = this.buildSnapshots(rebuilt, categories);
 
     const incomeDto: BudgetCycleIncomeDto = {
       id: activeIncome.id,

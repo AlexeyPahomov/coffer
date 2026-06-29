@@ -9,6 +9,7 @@ import type { Income, Prisma } from '../generated/prisma/client';
 import { BudgetMonthService } from '../budget/budget-month.service';
 import { BudgetProjectorService } from '../budget/budget-projector.service';
 import { awaitBudgetProjection } from '../lib/budget-projection';
+import { indexRelatedByIds } from '../lib/attach-relation';
 import { sumPrismaMoneyAmounts, toMoneyNumber } from '../lib/money';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateAllocationDto } from './dto/create-allocation.dto';
@@ -115,23 +116,16 @@ export class AllocationService {
       orderBy: { created_at: 'desc' },
     });
 
-    if (rows.length === 0) {
-      return [];
-    }
-
-    const categoryIds = [...new Set(rows.map((row) => row.category_id))];
-    const incomeIds = [...new Set(rows.map((row) => row.income_id))];
-    const categories = await this.prisma.category.findMany({
-      where: { id: { in: categoryIds } },
-    });
-    const incomes = await this.prisma.income.findMany({
-      where: { id: { in: incomeIds } },
-    });
-
-    const categoryById = new Map(
-      categories.map((category) => [category.id, category]),
+    const categoryById = await indexRelatedByIds(
+      rows,
+      (row) => row.category_id,
+      (ids) => this.prisma.category.findMany({ where: { id: { in: ids } } }),
     );
-    const incomeById = new Map(incomes.map((income) => [income.id, income]));
+    const incomeById = await indexRelatedByIds(
+      rows,
+      (row) => row.income_id,
+      (ids) => this.prisma.income.findMany({ where: { id: { in: ids } } }),
+    );
 
     return rows.map((row) => {
       const category = categoryById.get(row.category_id);

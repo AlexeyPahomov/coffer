@@ -8,6 +8,7 @@ import { monthValueFromDate } from '@coffer/shared';
 import type { Prisma } from '../generated/prisma/client';
 
 import { awaitBudgetProjection } from '../lib/budget-projection';
+import { indexRelatedByIds } from '../lib/attach-relation';
 import { parsePeriodMonthKey } from '../lib/period-month';
 import { BudgetMonthService } from '../budget/budget-month.service';
 import { BudgetProjectorService } from '../budget/budget-projector.service';
@@ -54,16 +55,10 @@ export class ExpenseService {
   private async attachCategories<T extends { category_id: string }>(
     rows: readonly T[],
   ) {
-    if (rows.length === 0) {
-      return [];
-    }
-
-    const categoryIds = [...new Set(rows.map((row) => row.category_id))];
-    const categories = await this.prisma.category.findMany({
-      where: { id: { in: categoryIds } },
-    });
-    const categoryById = new Map(
-      categories.map((category) => [category.id, category]),
+    const categoryById = await indexRelatedByIds(
+      rows,
+      (row) => row.category_id,
+      (ids) => this.prisma.category.findMany({ where: { id: { in: ids } } }),
     );
 
     return rows.map((row) => {

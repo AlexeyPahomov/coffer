@@ -10,6 +10,7 @@ import { monthValueFromDate, parsePeriodMonthKey } from '@coffer/shared';
 import { BudgetMonthService } from '../budget/budget-month.service';
 import { BudgetProjectorService } from '../budget/budget-projector.service';
 import { awaitBudgetProjection } from '../lib/budget-projection';
+import { indexRelatedByIds } from '../lib/attach-relation';
 import { withTransientDbRetry } from '../prisma/db-retry';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreatePlannedExpenseDto } from './dto/create-planned-expense.dto';
@@ -108,34 +109,15 @@ export class PlannedExpenseService {
   }
 
   private async attachRelations(rows: PlannedExpenseRow[]) {
-    if (rows.length === 0) {
-      return [];
-    }
-
-    const categoryIds = [
-      ...new Set(
-        rows
-          .map((row) => row.category_id)
-          .filter((id): id is string => id != null),
-      ),
-    ];
-    const budgetMonthIds = [...new Set(rows.map((row) => row.budget_month_id))];
-
-    const categories =
-      categoryIds.length > 0
-        ? await this.prisma.category.findMany({
-            where: { id: { in: categoryIds } },
-          })
-        : [];
-    const budgetMonths = await this.prisma.budgetMonth.findMany({
-      where: { id: { in: budgetMonthIds } },
-    });
-
-    const categoryById = new Map(
-      categories.map((category) => [category.id, category]),
+    const categoryById = await indexRelatedByIds(
+      rows,
+      (row) => row.category_id,
+      (ids) => this.prisma.category.findMany({ where: { id: { in: ids } } }),
     );
-    const budgetMonthById = new Map(
-      budgetMonths.map((budgetMonth) => [budgetMonth.id, budgetMonth]),
+    const budgetMonthById = await indexRelatedByIds(
+      rows,
+      (row) => row.budget_month_id,
+      (ids) => this.prisma.budgetMonth.findMany({ where: { id: { in: ids } } }),
     );
 
     return rows.map((row) => {

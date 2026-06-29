@@ -10,6 +10,7 @@ import {
   type Category,
 } from '../generated/prisma/client';
 import { isOverspent } from '@coffer/shared';
+import { indexRelatedByIds } from '../lib/attach-relation';
 import { toMoneyNumber } from '../lib/money';
 import {
   parsePeriodMonthKey,
@@ -46,6 +47,14 @@ function isUniqueConstraintError(error: unknown): boolean {
 }
 
 type MaterializeResult = RebuiltCategoryBudget[] | 'existing';
+
+type CloseReportTotals = {
+  income_total: number;
+  spent_total: number;
+  reserved_total: number;
+  overspent_total: number;
+  carry_forward_total: number;
+};
 
 @Injectable()
 export class BudgetMonthService {
@@ -227,15 +236,10 @@ export class BudgetMonthService {
       where: { budget_month_id: month.id },
     });
 
-    const categoryIds = [...new Set(snapshots.map((snap) => snap.category_id))];
-    const categories =
-      categoryIds.length > 0
-        ? await this.prisma.category.findMany({
-            where: { id: { in: categoryIds } },
-          })
-        : [];
-    const categoryById = new Map(
-      categories.map((category) => [category.id, category]),
+    const categoryById = await indexRelatedByIds(
+      snapshots,
+      (snap) => snap.category_id,
+      (ids) => this.prisma.category.findMany({ where: { id: { in: ids } } }),
     );
 
     const snapshotsWithCategory = snapshots
@@ -456,7 +460,6 @@ export class BudgetMonthService {
     await this.open(userId, periodMonth);
     await this.rebuildFrom(userId, periodMonth);
 
-    const parsed = this.parsePeriodOrThrow(periodMonth);
     const row = await this.findBudgetMonthRow(userId, periodMonth);
     if (!row) {
       throw new NotFoundException('Budget month not found');
@@ -466,8 +469,19 @@ export class BudgetMonthService {
       return this.getView(userId, periodMonth);
     }
 
-    const periodStart = new Date(parsed.year, parsed.month - 1, 1);
-    const periodEnd = new Date(parsed.year, parsed.month, 1);
+    const totals = await this.aggregateCloseReport(userId, row);
+    await this.persistCloseReport(row.id, totals);
+
+    return this.getView(userId, periodMonth);
+  }
+
+  /** Свести итоги месяца из снапшотов и полученных доходов в данные `MonthCloseReport`. */
+  private async aggregateCloseReport(
+    userId: string,
+    row: BudgetMonthWithSnapshots,
+  ): Promise<CloseReportTotals> {
+    const periodStart = new Date(row.year, row.month - 1, 1);
+    const periodEnd = new Date(row.year, row.month, 1);
 
     const periodIncomes = await this.prisma.income.findMany({
       where: {
@@ -506,34 +520,39 @@ export class BudgetMonthService {
       _sum: { reserved_amount: true },
     });
 
+    return {
+      income_total: incomeTotal,
+      spent_total: spentTotal,
+      reserved_total: toMoneyNumber(
+        reservedTotal._sum.reserved_amount?.toString() ?? '0',
+      ),
+      overspent_total: overspentTotal,
+      carry_forward_total: carryForwardTotal,
+    };
+  }
+
+  /** Атомарно переписать отчёт закрытия и перевести месяц в CLOSED. */
+  private async persistCloseReport(
+    budgetMonthId: string,
+    totals: CloseReportTotals,
+  ): Promise<void> {
     await this.prisma.$transaction(async (tx) => {
       await tx.monthCloseReport.deleteMany({
-        where: { budget_month_id: row.id },
+        where: { budget_month_id: budgetMonthId },
       });
 
       await tx.monthCloseReport.create({
-        data: {
-          budget_month_id: row.id,
-          income_total: incomeTotal,
-          spent_total: spentTotal,
-          reserved_total: toMoneyNumber(
-            reservedTotal._sum.reserved_amount?.toString() ?? '0',
-          ),
-          overspent_total: overspentTotal,
-          carry_forward_total: carryForwardTotal,
-        },
+        data: { budget_month_id: budgetMonthId, ...totals },
       });
 
       await tx.budgetMonth.update({
-        where: { id: row.id },
+        where: { id: budgetMonthId },
         data: {
           status: 'CLOSED',
           closed_at: new Date(),
         },
       });
     });
-
-    return this.getView(userId, periodMonth);
   }
 
   /** Детерминированный rebuild OPEN месяца и всех последующих (для reopen / repair). */
