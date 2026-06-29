@@ -25,10 +25,11 @@ describe('BudgetCycleService', () => {
         {
           provide: PrismaService,
           useValue: {
-            income: { findMany: jest.fn() },
-            category: { findMany: jest.fn() },
-            allocation: { findMany: jest.fn() },
-            expense: { findMany: jest.fn() },
+            budgetMonth: { findMany: jest.fn().mockResolvedValue([]) },
+            income: { findMany: jest.fn().mockResolvedValue([]) },
+            category: { findMany: jest.fn().mockResolvedValue([]) },
+            allocation: { findMany: jest.fn().mockResolvedValue([]) },
+            expense: { findMany: jest.fn().mockResolvedValue([]) },
           },
         },
       ],
@@ -97,9 +98,11 @@ describe('BudgetCycleService', () => {
         category_id: 'groceries',
         income_id: 'may-advance',
         amount: { toString: () => '72000' },
+        period_month: new Date('2026-05-01'),
         income: {
           status: 'RECEIVED',
           received_at: new Date('2026-05-22'),
+          period_month: new Date('2026-05-01'),
         },
       },
     ]);
@@ -119,7 +122,7 @@ describe('BudgetCycleService', () => {
     const view = await service.getCurrentView('user-1', '2026-06-04');
     const groceries = view.snapshots.find((s) => s.categoryId === 'groceries');
 
-    expect(view.income.id).toBe('may-extra');
+    expect(view.income.id).toBe('may-advance');
     expect(view.cycleStart).toBe('2026-05-22');
     expect(view.cycleEnd).toBe('2026-06-05');
     expect(groceries?.allocated).toBe(72_000);

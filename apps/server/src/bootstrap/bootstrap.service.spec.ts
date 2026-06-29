@@ -24,7 +24,16 @@ describe('BootstrapService', () => {
 
   const ledgerBundle = {
     categories: [{ id: 'cat-1', created_at: new Date('2026-06-01') }],
-    incomes: [{ id: 'income-1', created_at: new Date('2026-06-02') }],
+    incomes: [
+      {
+        id: 'income-1',
+        amount: { toString: () => '1000' },
+        status: 'RECEIVED',
+        period_month: new Date('2026-06-01'),
+        received_at: new Date('2026-06-02'),
+        created_at: new Date('2026-06-02'),
+      },
+    ],
     allocations: [],
     expenses: [],
   };
