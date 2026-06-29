@@ -9,7 +9,15 @@ const ruMoneyFormatter = new Intl.NumberFormat('ru-RU', {
   useGrouping: true,
 })
 
-/** Prisma Decimal и JSON-строки сумм → число для арифметики (пока без Decimal.js). */
+/**
+ * Prisma Decimal и JSON-строки сумм → число для арифметики на JS-стороне.
+ *
+ * Инвариант: суммы — рубли с точностью до копейки (≤ 2 знаков после запятой,
+ * «целые копейки»). Точное хранение — Decimal в БД; в `number` переводим только
+ * для расчётов. При длинных цепочках сложений/переносов (closing → opening
+ * следующего месяца) возможен дрейф двоичного float. Централизованного
+ * округления пока нет (Decimal.js намеренно отложен) — не вводите доли копейки.
+ */
 export function toMoneyNumber(value: MoneyInput): number {
   return Number(value)
 }

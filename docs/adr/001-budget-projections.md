@@ -53,7 +53,7 @@ Projector runs in a transaction with row lock (`SELECT … FOR UPDATE`) or optim
 
 ### Client / server parity
 
-All closing math lives in `@coffer/shared` (`computeClosing`, `applyExpenseDelta`, etc.). Client derive and server projector must use the same functions.
+All closing math lives in `@coffer/shared` (`computeClosing`, `addToSpent`, etc.). Client derive and server projector must use the same functions.
 
 ## Consequences
 

@@ -28,11 +28,13 @@ export function isOverspent(closingBalance: number): boolean {
   return closingBalance < 0
 }
 
-export function applyExpenseDelta(spent: number, amount: number): number {
+/** Новое значение `spent` после расхода — полная сумма, НЕ дельта: `spent + amount`. */
+export function addToSpent(spent: number, amount: number): number {
   return spent + amount
 }
 
-export function applyAllocationDelta(allocated: number, amount: number): number {
+/** Новое значение `allocated` после аллокации — полная сумма, НЕ дельта: `allocated + amount`. */
+export function addToAllocated(allocated: number, amount: number): number {
   return allocated + amount
 }
 

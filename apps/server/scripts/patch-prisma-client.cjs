@@ -15,11 +15,23 @@ let s = fs.readFileSync(clientPath, 'utf8');
 const needle =
   "globalThis['__dirname'] = path.dirname(fileURLToPath(import.meta.url))";
 if (!s.includes(needle)) {
+  // Уже пропатчено — идемпотентный повторный запуск.
   if (s.includes("globalThis['__dirname'] = __dirname")) {
     process.exit(0);
   }
+  // Ожидаемой строки нет, но import.meta ещё присутствует → codegen Prisma
+  // изменился и патч молча перестал срабатывать. Падаем громко, иначе CJS-сборка
+  // Nest упадёт позже с непрозрачным "exports is not defined".
+  if (s.includes('import.meta')) {
+    console.error(
+      '[patch-prisma-client] client.ts содержит import.meta, но ожидаемая строка для замены не найдена. ' +
+        'Вероятно, изменился codegen Prisma — обновите needle в scripts/patch-prisma-client.cjs.',
+    );
+    process.exit(1);
+  }
+  // import.meta нет вовсе → Prisma больше не требует патча.
   console.warn(
-    '[patch-prisma-client] Ожидаемая строка import.meta в client.ts не найдена, пропуск.',
+    '[patch-prisma-client] import.meta в client.ts не найден — патч, похоже, больше не нужен (изменился codegen Prisma?).',
   );
   process.exit(0);
 }

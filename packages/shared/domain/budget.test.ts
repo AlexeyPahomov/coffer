@@ -2,8 +2,8 @@ import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
 import {
-  applyAllocationDelta,
-  applyExpenseDelta,
+  addToAllocated,
+  addToSpent,
   bootstrapOpening,
   computeClosing,
   computeRemaining,
@@ -44,13 +44,13 @@ describe('recomputeSnapshot', () => {
     state = recomputeSnapshot({
       openingBalance: state.openingBalance,
       allocated: state.allocated,
-      spent: applyExpenseDelta(state.spent, 7_000),
+      spent: addToSpent(state.spent, 7_000),
     })
     assert.equal(state.closingBalance, 49_000)
 
     state = recomputeSnapshot({
       openingBalance: state.openingBalance,
-      allocated: applyAllocationDelta(state.allocated, 10_000),
+      allocated: addToAllocated(state.allocated, 10_000),
       spent: state.spent,
     })
     assert.equal(state.closingBalance, 59_000)
