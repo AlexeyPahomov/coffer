@@ -158,6 +158,23 @@ export function useCreateExpenseForm({
     [],
   )
 
+  /** Записать расход (create/update). Бросает при ошибке мутации. */
+  const submitExpense = useCallback(async () => {
+    const amount = parseMoneyInput(values.amount)!
+    const payload = {
+      category_id: values.category_id,
+      amount,
+      description: values.description.trim() || undefined,
+      date: values.date,
+    }
+
+    if (isEditing && editingExpense) {
+      await updateMutation.mutateAsync({ id: editingExpense.id, payload })
+    } else {
+      await createMutation.mutateAsync({ user_id: DEV_USER_ID, ...payload })
+    }
+  }, [createMutation, editingExpense, isEditing, updateMutation, values])
+
   const handleSubmit = useCallback(async () => {
     setValidationError(null)
     setTopUpError(null)
@@ -170,41 +187,14 @@ export function useCreateExpenseForm({
       return
     }
 
-    const amount = parseMoneyInput(values.amount)!
-    const payload = {
-      category_id: values.category_id,
-      amount,
-      description: values.description.trim() || undefined,
-      date: values.date,
-    }
-
     try {
-      if (isEditing && editingExpense) {
-        await updateMutation.mutateAsync({
-          id: editingExpense.id,
-          payload,
-        })
-      } else {
-        await createMutation.mutateAsync({
-          user_id: DEV_USER_ID,
-          ...payload,
-        })
-      }
-
+      await submitExpense()
       onComplete?.()
-
       setValues(resolveCreateExpenseFormValues(null))
     } catch {
       // mutation.error handles UI state
     }
-  }, [
-    createMutation,
-    editingExpense,
-    isEditing,
-    onComplete,
-    updateMutation,
-    values,
-  ])
+  }, [createMutation, onComplete, submitExpense, updateMutation, values])
 
   const handleQuickTopUp = useCallback(
     async (topUpAmount: number) => {
@@ -238,26 +228,54 @@ export function useCreateExpenseForm({
     [allocationMutation, allocations, incomes, values.category_id],
   )
 
+  /**
+   * Записать расход И тут же покрыть его перерасход переводом из накоплений —
+   * единое действие (иначе деньги бы переехали под несуществующую трату).
+   * Порядок: сначала расход (факт траты), затем покрытие на ровно перерасход.
+   */
   const handleCoverFromSavings = useCallback(async () => {
+    setValidationError(null)
     setTopUpError(null)
+    createMutation.reset()
+    updateMutation.reset()
     transferMutation.reset()
 
-    if (!savingsTransfer || !values.category_id) {
+    const transfer = savingsTransfer
+    if (!transfer) {
+      return
+    }
+
+    const error = validateCreateExpenseForm(values)
+    if (error) {
+      setValidationError(error)
       return
     }
 
     try {
+      await submitExpense()
       await transferMutation.mutateAsync({
-        from_category_id: savingsTransfer.savingsCategoryId,
+        from_category_id: transfer.savingsCategoryId,
         // null-получатель (списание в пул) → поле опускается в payload.
-        to_category_id: savingsTransfer.toCategoryId ?? undefined,
-        amount: savingsTransfer.shortfall,
+        to_category_id: transfer.toCategoryId ?? undefined,
+        amount: transfer.shortfall,
         period_month: `${values.date.slice(0, 7)}-01`,
       })
+      onComplete?.()
+      setValues(resolveCreateExpenseFormValues(null))
     } catch (err) {
+      // Расход мог записаться, а перевод — нет: форму не сбрасываем, чтобы было
+      // видно состояние; serverError покажет проблему с расходом, topUpError — с покрытием.
       setTopUpError(getErrorMessage(err, 'Не удалось покрыть из накоплений'))
     }
-  }, [savingsTransfer, transferMutation, values.category_id, values.date])
+  }, [
+    createMutation,
+    onComplete,
+    savingsTransfer,
+    submitExpense,
+    transferMutation,
+    updateMutation,
+    values,
+  ])
 
   const activeMutation = isEditing ? updateMutation : createMutation
 
