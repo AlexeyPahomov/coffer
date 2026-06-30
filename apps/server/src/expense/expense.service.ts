@@ -81,9 +81,11 @@ export class ExpenseService {
       if (!parsed) {
         throw new BadRequestException('Invalid period month');
       }
+      // Границы в UTC: даты расходов хранятся как UTC-полночь, а локальный
+      // конструктор Date смещал бы граничные дни в соседний месяц.
       where.date = {
-        gte: new Date(parsed.year, parsed.month - 1, 1),
-        lt: new Date(parsed.year, parsed.month, 1),
+        gte: new Date(Date.UTC(parsed.year, parsed.month - 1, 1)),
+        lt: new Date(Date.UTC(parsed.year, parsed.month, 1)),
       };
     }
 

@@ -480,8 +480,9 @@ export class BudgetMonthService {
     userId: string,
     row: BudgetMonthWithSnapshots,
   ): Promise<CloseReportTotals> {
-    const periodStart = new Date(row.year, row.month - 1, 1);
-    const periodEnd = new Date(row.year, row.month, 1);
+    // Границы в UTC: period_month хранится как UTC-полночь (см. фильтр истории расходов).
+    const periodStart = new Date(Date.UTC(row.year, row.month - 1, 1));
+    const periodEnd = new Date(Date.UTC(row.year, row.month, 1));
 
     const periodIncomes = await this.prisma.income.findMany({
       where: {
