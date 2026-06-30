@@ -1,6 +1,11 @@
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 function isTransientDbError(error: unknown): boolean {
+  // P1017 «Server has closed the connection» — pooler оборвал соединение (транзиентно).
+  if ((error as { code?: unknown })?.code === 'P1017') {
+    return true;
+  }
+
   const message =
     error instanceof Error
       ? error.message.toLowerCase()
@@ -9,6 +14,7 @@ function isTransientDbError(error: unknown): boolean {
   return (
     message.includes('connection terminated unexpectedly') ||
     message.includes('connection closed') ||
+    message.includes('closed the connection') ||
     message.includes('connection terminated due to connection timeout') ||
     message.includes('timeout exceeded when trying to connect') ||
     message.includes('econnreset')
