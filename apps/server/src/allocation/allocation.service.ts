@@ -102,7 +102,14 @@ export class AllocationService {
       this.budgetProjector.onAllocationCreated(this.prisma, allocation),
     );
 
-    return allocation;
+    const category = await this.prisma.category.findUnique({
+      where: { id: allocation.category_id },
+    });
+    if (!category) {
+      throw new NotFoundException();
+    }
+
+    return { ...allocation, category, income };
   }
 
   async findAll(userId: string, incomeId?: string) {
