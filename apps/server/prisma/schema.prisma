@@ -72,6 +72,8 @@ model Category {
   expenses               Expense[]
   plannedExpenses        PlannedExpense[]
   categoryMonthSnapshots CategoryMonthSnapshot[]
+  transfersFrom          Transfer[]              @relation("TransferFrom")
+  transfersTo            Transfer[]              @relation("TransferTo")
 }
 
 model AllocationRule {
@@ -115,6 +117,21 @@ model Allocation {
   type         AllocationType @default(INCOME_ASSIGNMENT)
   period_month DateTime
   created_at   DateTime       @default(now())
+
+  @@index([user_id, period_month])
+}
+
+model Transfer {
+  id               String    @id @default(uuid())
+  user_id          String
+  from_category_id String
+  from_category    Category  @relation("TransferFrom", fields: [from_category_id], references: [id])
+  /** null = списание из накоплений в свободный пул (без конверта-получателя). */
+  to_category_id   String?
+  to_category      Category? @relation("TransferTo", fields: [to_category_id], references: [id])
+  amount           Decimal
+  period_month     DateTime
+  created_at       DateTime  @default(now())
 
   @@index([user_id, period_month])
 }

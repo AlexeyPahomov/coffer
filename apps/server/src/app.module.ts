@@ -10,6 +10,7 @@ import { PlanningModule } from './planning/planning.module';
 import { BudgetModule } from './budget/budget.module';
 import { AllocationRuleModule } from './allocation-rule/allocation-rule.module';
 import { BootstrapModule } from './bootstrap/bootstrap.module';
+import { TransferModule } from './transfer/transfer.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { BootstrapModule } from './bootstrap/bootstrap.module';
     BudgetModule,
     AllocationRuleModule,
     BootstrapModule,
+    TransferModule,
   ],
   controllers: [AppController],
 })

@@ -1,4 +1,9 @@
-import { createContext, useContext, type UIEventHandler } from 'react'
+import {
+  createContext,
+  useContext,
+  type ReactNode,
+  type UIEventHandler,
+} from 'react'
 
 import type { CategoryBudgetItem } from '@/entities/budget'
 import type { ExpenseListItem } from '@/widgets/expense-list'
@@ -17,6 +22,8 @@ export type ExpensePageWorkAreaContextValue = {
   stressCategoryId: string | null
   /** Базовый обработчик; рабочая область оборачивает его переключением слайда. */
   onCategorySelect: (categoryId: string) => void
+  /** Доп. действие в карточке конверта («вернуть в накопления»); null, если нечего. */
+  renderItemAction?: (item: CategoryBudgetItem) => ReactNode
   onAddExpense: () => void
   isBudgetPending: boolean
   isBudgetError: boolean

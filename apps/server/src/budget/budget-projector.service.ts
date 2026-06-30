@@ -261,4 +261,79 @@ export class BudgetProjectorService {
     await this.onAllocationRemoved(db, before);
     await this.onAllocationCreated(db, after);
   }
+
+  /**
+   * Перевод: −amount у источника и +amount у получателя в одном периоде.
+   * При `to_category_id = null` получателя нет — это списание из накоплений в
+   * свободный пул (одна дельта источника; суммарный allocated падает → пул растёт).
+   * Суммарный allocated при переводе конверт→конверт не меняется (money-инвариант).
+   * Снапшоты — через resolveSnapshotId, поэтому операция применима только в OPEN-месяце.
+   */
+  async onTransferCreated(
+    db: BudgetDbClient,
+    transfer: {
+      user_id: string;
+      from_category_id: string;
+      to_category_id: string | null;
+      amount: { toString(): string };
+      period_month: Date;
+    },
+  ): Promise<void> {
+    const periodMonth = monthValueFromDate(transfer.period_month);
+    const amount = toMoneyNumber(transfer.amount.toString());
+
+    const fromSnapshotId = await this.resolveSnapshotId(
+      db,
+      transfer.user_id,
+      periodMonth,
+      transfer.from_category_id,
+    );
+    await this.applySnapshotDeltas(db, fromSnapshotId, -amount, 0);
+
+    if (transfer.to_category_id == null) {
+      return;
+    }
+
+    const toSnapshotId = await this.resolveSnapshotId(
+      db,
+      transfer.user_id,
+      periodMonth,
+      transfer.to_category_id,
+    );
+    await this.applySnapshotDeltas(db, toSnapshotId, amount, 0);
+  }
+
+  async onTransferRemoved(
+    db: BudgetDbClient,
+    transfer: {
+      user_id: string;
+      from_category_id: string;
+      to_category_id: string | null;
+      amount: { toString(): string };
+      period_month: Date;
+    },
+  ): Promise<void> {
+    const periodMonth = monthValueFromDate(transfer.period_month);
+    const amount = toMoneyNumber(transfer.amount.toString());
+
+    const fromSnapshotId = await this.resolveSnapshotId(
+      db,
+      transfer.user_id,
+      periodMonth,
+      transfer.from_category_id,
+    );
+    await this.applySnapshotDeltas(db, fromSnapshotId, amount, 0);
+
+    if (transfer.to_category_id == null) {
+      return;
+    }
+
+    const toSnapshotId = await this.resolveSnapshotId(
+      db,
+      transfer.user_id,
+      periodMonth,
+      transfer.to_category_id,
+    );
+    await this.applySnapshotDeltas(db, toSnapshotId, -amount, 0);
+  }
 }

@@ -19,7 +19,6 @@ import {
   MoneyInput,
 } from '@/shared/ui';
 
-import { buildSavingsTransferHint } from '../lib/savingsTransferHint';
 import type { CreateExpenseFormValues } from '../model/types';
 import { useCreateExpenseForm } from '../model/useCreateExpenseForm';
 import { useSyncSelectedCategory } from '../model/useSyncSelectedCategory';
@@ -33,6 +32,8 @@ export type CreateExpenseFormProps = {
   budgets: CategoryBudgetSnapshot[];
   incomes: Income[];
   allocations: Allocation[];
+  /** Свободный пул периода — для подсказки «покрыть из накоплений» при минус-пуле. */
+  freePoolAvailable: number;
   selectedCategoryId?: string;
   editingExpense?: Expense | null;
   onCancelEdit?: () => void;
@@ -56,20 +57,19 @@ function fieldChangeHandler(
 function CreateExpenseFormFields({
   form,
   categories,
-  budgets,
   variant,
   onCancelEdit,
 }: {
   form: ReturnType<typeof useCreateExpenseForm>;
   categories: Category[];
-  budgets: CategoryBudgetSnapshot[];
   variant: CreateExpenseFormVariant;
   onCancelEdit?: () => void;
 }) {
   const noCategories = categories.length === 0;
   const onFieldChange = fieldChangeHandler(form.handleChange);
-  const showOverBudgetWarning = form.budgetPreview?.isOverBudget === true;
-  const savingsTransfer = buildSavingsTransferHint(budgets, form.budgetPreview);
+  const savingsTransfer = form.savingsTransfer;
+  const showOverBudgetWarning =
+    form.budgetPreview?.isOverBudget === true || savingsTransfer != null;
   const showCancel =
     onCancelEdit != null && (variant === 'plain' || form.isEditing);
 
@@ -148,9 +148,13 @@ function CreateExpenseFormFields({
         isBusy={form.isBusy}
         isRecording={form.isRecording}
         isTopUpPending={form.isTopUpPending}
+        isCoverPending={form.isCoverPending}
         topUpError={form.topUpError}
         canTopUp={form.canQuickTopUp}
         onQuickTopUp={(amount) => void form.handleQuickTopUp(amount)}
+        onCoverFromSavings={
+          savingsTransfer ? () => void form.handleCoverFromSavings() : undefined
+        }
         submitLabel={form.isEditing ? 'Сохранить' : 'Добавить расход'}
         onCancelEdit={showCancel ? onCancelEdit : undefined}
         staticPreview={variant === 'plain'}
@@ -191,6 +195,7 @@ export function CreateExpenseForm({
   budgets,
   incomes,
   allocations,
+  freePoolAvailable,
   selectedCategoryId,
   editingExpense = null,
   onCancelEdit,
@@ -203,6 +208,7 @@ export function CreateExpenseForm({
     budgets,
     incomes,
     allocations,
+    freePoolAvailable,
     editingExpense,
     onComplete,
     onStressCategoryChange,
@@ -223,7 +229,6 @@ export function CreateExpenseForm({
       <CreateExpenseFormFields
         form={form}
         categories={categories}
-        budgets={budgets}
         variant={variant}
         onCancelEdit={onCancelEdit}
       />

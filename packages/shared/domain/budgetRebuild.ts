@@ -42,6 +42,47 @@ export type BudgetRebuildExpense = {
   date: string
 }
 
+export type BudgetTransfer = {
+  from_category_id: string
+  /** null = списание из накоплений в свободный пул (без конверта-получателя). */
+  to_category_id: string | null
+  amount: MoneyInput
+  period_month: string
+}
+
+/**
+ * Перевод раскладывается в знаковые allocation-строки:
+ * −amount у источника и (если есть получатель) +amount у него в том же периоде.
+ *
+ * - Перевод конверт→конверт (to ≠ null): две строки, сумма дельт = 0 → суммарный
+ *   allocated не меняется (money-инвариант), деньги переезжают между конвертами.
+ * - Списание в свободный пул (to = null): одна строка −amount у источника. Суммарный
+ *   allocated падает на amount → свободный пул растёт на amount (деньги «распакованы»).
+ *
+ * Раскладка нужна, чтобы rebuild и инкрементальный проектор видели эффект одинаково.
+ */
+export function expandTransfersToAllocations(
+  transfers: readonly BudgetTransfer[],
+): BudgetRebuildAllocation[] {
+  const rows: BudgetRebuildAllocation[] = []
+  for (const transfer of transfers) {
+    const amount = toMoneyNumber(transfer.amount)
+    rows.push({
+      category_id: transfer.from_category_id,
+      amount: -amount,
+      period_month: transfer.period_month,
+    })
+    if (transfer.to_category_id != null) {
+      rows.push({
+        category_id: transfer.to_category_id,
+        amount,
+        period_month: transfer.period_month,
+      })
+    }
+  }
+  return rows
+}
+
 export type RebuiltCategoryBudget = CategoryMonthSnapshotState & {
   categoryId: string
   closingBalance: number

@@ -31,6 +31,8 @@ export type CategoryBudgetListProps = {
   layout?: ItemsListLayout;
   /** Скрыть заголовок списка (например, заголовок вынесен в табы). */
   hideListTitle?: boolean;
+  /** Доп. действие в карточке конверта (компонуется страницей; по умолчанию нет). */
+  renderItemAction?: (item: CategoryBudgetListItem) => ReactNode;
 };
 
 export function CategoryBudgetList({
@@ -48,6 +50,7 @@ export function CategoryBudgetList({
   onTitleClick,
   layout = 'fill',
   hideListTitle = false,
+  renderItemAction,
 }: CategoryBudgetListProps) {
   const listClassName = cn(
     categoryBudgetListGridClassName,
@@ -89,6 +92,7 @@ export function CategoryBudgetList({
                 item={item}
                 stressOverBudget={stressCategoryId === item.category.id}
                 onSelect={onCategorySelect}
+                action={renderItemAction?.(item)}
               />
             </li>
           );

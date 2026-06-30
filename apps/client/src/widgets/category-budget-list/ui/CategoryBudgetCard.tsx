@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react';
+
 import { isSavingsCategory } from '@/entities/category/lib/categoryKind';
 import { formatAmount } from '@/shared/lib/format';
 import { cn } from '@/shared/lib/utils';
@@ -44,12 +46,15 @@ type CategoryBudgetCardProps = {
   item: CategoryBudgetListItem;
   stressOverBudget?: boolean;
   onSelect?: (categoryId: string) => void;
+  /** Доп. действие в футере (например, «вернуть в накопления»); рендерится как есть. */
+  action?: ReactNode;
 };
 
 export function CategoryBudgetCard({
   item,
   stressOverBudget = false,
   onSelect,
+  action,
 }: CategoryBudgetCardProps) {
   const { category, spent, remaining } = item;
   const isSavings = isSavingsCategory(category.type);
@@ -145,6 +150,8 @@ export function CategoryBudgetCard({
             {fromFreePool ? 'Свободные средства' : formatEnvelopeBalance(remaining)}
           </span>
         </div>
+
+        {action ? <div className="flex justify-end">{action}</div> : null}
       </CardContent>
     </Card>
   );

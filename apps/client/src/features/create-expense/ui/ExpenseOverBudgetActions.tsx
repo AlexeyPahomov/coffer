@@ -10,8 +10,10 @@ import type { SavingsTransferHint } from '../lib/savingsTransferHint';
 type ExpenseOverBudgetActionsProps = {
   savingsTransfer?: SavingsTransferHint | null;
   onQuickTopUp: (amount: number) => void;
+  onCoverFromSavings?: () => void;
   isRecording: boolean;
   isTopUpPending: boolean;
+  isCoverPending: boolean;
   topUpError: string | null;
   canTopUp: boolean;
 };
@@ -19,25 +21,33 @@ type ExpenseOverBudgetActionsProps = {
 export function ExpenseOverBudgetActions({
   savingsTransfer,
   onQuickTopUp,
+  onCoverFromSavings,
   isRecording,
   isTopUpPending,
+  isCoverPending,
   topUpError,
   canTopUp,
 }: ExpenseOverBudgetActionsProps) {
-  const actionsDisabled = isRecording || isTopUpPending;
+  const actionsDisabled = isRecording || isTopUpPending || isCoverPending;
 
   return (
     <div className="space-y-2">
-      {savingsTransfer ? (
-        <>
-          {/* 
-          // TODO подумать над текстом
+      {savingsTransfer && onCoverFromSavings ? (
+        <div className="space-y-1">
           <p className="text-sm text-emerald-900/90">
             В «{savingsTransfer.savingsName}» —{' '}
-            {formatAmount(savingsTransfer.available)}. Можно перераспределить на
-            странице «Бюджет».
-          </p> */}
-        </>
+            {formatAmount(savingsTransfer.available)}.
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            size="default"
+            disabled={actionsDisabled}
+            onClick={() => onCoverFromSavings()}
+          >
+            Покрыть из накоплений: +{formatAmount(savingsTransfer.shortfall)}
+          </Button>
+        </div>
       ) : null}
 
       <div className="flex flex-wrap gap-2">

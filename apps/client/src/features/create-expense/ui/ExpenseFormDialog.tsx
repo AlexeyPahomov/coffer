@@ -27,6 +27,7 @@ export type ExpenseFormDialogProps = {
   budgets: CategoryBudgetSnapshot[]
   incomes: Income[]
   allocations: Allocation[]
+  freePoolAvailable: number
   selectedCategoryId?: string
   editingExpense?: Expense | null
   onStressCategoryChange?: (categoryId: string | null) => void
@@ -41,6 +42,7 @@ export function ExpenseFormDialog({
   budgets,
   incomes,
   allocations,
+  freePoolAvailable,
   selectedCategoryId,
   editingExpense = null,
   onStressCategoryChange,
@@ -67,6 +69,7 @@ export function ExpenseFormDialog({
             budgets={budgets}
             incomes={incomes}
             allocations={allocations}
+            freePoolAvailable={freePoolAvailable}
             selectedCategoryId={selectedCategoryId}
             editingExpense={editingExpense}
             onCancelEdit={onClose}

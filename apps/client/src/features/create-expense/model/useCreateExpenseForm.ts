@@ -5,6 +5,7 @@ import { pickIncomeForTopUp } from '@/entities/allocation/lib/pickIncomeForTopUp
 import { useCreateAllocationMutation } from '@/entities/allocation/api/useCreateAllocationMutation'
 import type { Allocation } from '@/entities/allocation/model/types'
 import type { CategoryBudgetSnapshot } from '@/entities/budget'
+import { useCreateTransferMutation } from '@/entities/transfer'
 import { useCreateExpenseMutation } from '@/entities/expense/api/useCreateExpenseMutation'
 import { useUpdateExpenseMutation } from '@/entities/expense/api/useUpdateExpenseMutation'
 import type { Expense } from '@/entities/expense/model/types'
@@ -13,6 +14,7 @@ import { DEV_USER_ID } from '@/shared/lib/constants'
 import { getErrorMessage } from '@/shared/lib/errors'
 
 import { resolveCreateExpenseFormValues } from '../lib/expenseFormValues'
+import { buildSavingsTransferHint } from '../lib/savingsTransferHint'
 import { budgetPreviewStressKey } from '../lib/stressCategoryId'
 
 import { QUICK_TOP_UP_CHECK_AMOUNT } from './constants'
@@ -24,6 +26,8 @@ type UseCreateExpenseFormParams = {
   budgets: CategoryBudgetSnapshot[]
   incomes: Income[]
   allocations: Allocation[]
+  /** Свободный пул периода (до этой траты) — для подсказки «покрыть из накоплений». */
+  freePoolAvailable: number
   editingExpense?: Expense | null
   onComplete?: () => void
   onStressCategoryChange?: (categoryId: string | null) => void
@@ -33,6 +37,7 @@ export function useCreateExpenseForm({
   budgets,
   incomes,
   allocations,
+  freePoolAvailable,
   editingExpense = null,
   onComplete,
   onStressCategoryChange,
@@ -46,6 +51,7 @@ export function useCreateExpenseForm({
   const createMutation = useCreateExpenseMutation()
   const updateMutation = useUpdateExpenseMutation()
   const allocationMutation = useCreateAllocationMutation()
+  const transferMutation = useCreateTransferMutation()
 
   const isEditing = editingExpense != null
 
@@ -117,6 +123,17 @@ export function useCreateExpenseForm({
     })
     return () => cancelAnimationFrame(frameId)
   }, [previewStressKey])
+
+  const savingsTransfer = useMemo(() => {
+    const replaced =
+      editingExpense != null &&
+      budgetPreview?.categoryId === editingExpense.category_id
+        ? editingExpense.amount
+        : 0
+    const freePoolAfter =
+      freePoolAvailable + replaced - (budgetPreview?.amount ?? 0)
+    return buildSavingsTransferHint(budgets, budgetPreview, freePoolAfter)
+  }, [budgets, budgetPreview, editingExpense, freePoolAvailable])
 
   const canQuickTopUp = useMemo(
     () =>
@@ -221,6 +238,27 @@ export function useCreateExpenseForm({
     [allocationMutation, allocations, incomes, values.category_id],
   )
 
+  const handleCoverFromSavings = useCallback(async () => {
+    setTopUpError(null)
+    transferMutation.reset()
+
+    if (!savingsTransfer || !values.category_id) {
+      return
+    }
+
+    try {
+      await transferMutation.mutateAsync({
+        from_category_id: savingsTransfer.savingsCategoryId,
+        // null-получатель (списание в пул) → поле опускается в payload.
+        to_category_id: savingsTransfer.toCategoryId ?? undefined,
+        amount: savingsTransfer.shortfall,
+        period_month: `${values.date.slice(0, 7)}-01`,
+      })
+    } catch (err) {
+      setTopUpError(getErrorMessage(err, 'Не удалось покрыть из накоплений'))
+    }
+  }, [savingsTransfer, transferMutation, values.category_id, values.date])
+
   const activeMutation = isEditing ? updateMutation : createMutation
 
   const serverError = activeMutation.isError
@@ -233,12 +271,14 @@ export function useCreateExpenseForm({
   const isBusy =
     createMutation.isPending ||
     updateMutation.isPending ||
-    allocationMutation.isPending
+    allocationMutation.isPending ||
+    transferMutation.isPending
 
   return {
     values,
     validationError,
     budgetPreview,
+    savingsTransfer,
     topUpError,
     canQuickTopUp,
     serverError,
@@ -246,8 +286,10 @@ export function useCreateExpenseForm({
     isEditing,
     isRecording: createMutation.isPending || updateMutation.isPending,
     isTopUpPending: allocationMutation.isPending,
+    isCoverPending: transferMutation.isPending,
     handleChange,
     handleSubmit,
     handleQuickTopUp,
+    handleCoverFromSavings,
   }
 }

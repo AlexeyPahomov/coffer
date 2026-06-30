@@ -172,4 +172,104 @@ describe('BudgetProjectorService', () => {
       },
     });
   });
+
+  const transfer = {
+    user_id: 'user-1',
+    from_category_id: 'savings',
+    to_category_id: 'repair',
+    amount: { toString: () => '1000' },
+    period_month: new Date('2026-06-01T00:00:00.000Z'),
+  };
+
+  it('onTransferCreated moves allocated from source to target', async () => {
+    requireOpenMonth.mockResolvedValue({ id: 'bm-1' });
+    snapshot.findUnique
+      .mockResolvedValueOnce({ id: 'snap-from' }) // resolveSnapshotId: source
+      .mockResolvedValueOnce(snapshotState({ id: 'snap-from', allocated: 5_000 }))
+      .mockResolvedValueOnce({ id: 'snap-to' }) // resolveSnapshotId: target
+      .mockResolvedValueOnce(
+        snapshotState({ id: 'snap-to', allocated: 500, spent: 1_500 }),
+      );
+
+    await projector.onTransferCreated(db as never, transfer);
+
+    // source: computeClosing(0, 5000 - 1000, 0) = 4000
+    expect(snapshot.update).toHaveBeenNthCalledWith(1, {
+      where: { id: 'snap-from' },
+      data: {
+        allocated: 4_000,
+        spent: 0,
+        closing_balance: 4_000,
+        version: { increment: 1 },
+      },
+    });
+    // target (перерасход покрыт): computeClosing(0, 500 + 1000, 1500) = 0
+    expect(snapshot.update).toHaveBeenNthCalledWith(2, {
+      where: { id: 'snap-to' },
+      data: {
+        allocated: 1_500,
+        spent: 1_500,
+        closing_balance: 0,
+        version: { increment: 1 },
+      },
+    });
+  });
+
+  it('onTransferCreated with null target withdraws from source only (free pool)', async () => {
+    requireOpenMonth.mockResolvedValue({ id: 'bm-1' });
+    snapshot.findUnique
+      .mockResolvedValueOnce({ id: 'snap-from' })
+      .mockResolvedValueOnce(snapshotState({ id: 'snap-from', allocated: 5_000 }));
+
+    await projector.onTransferCreated(db as never, {
+      ...transfer,
+      to_category_id: null,
+    });
+
+    // только источник: computeClosing(0, 5000 - 1000, 0) = 4000, получателя нет
+    expect(snapshot.update).toHaveBeenCalledTimes(1);
+    expect(snapshot.update).toHaveBeenCalledWith({
+      where: { id: 'snap-from' },
+      data: {
+        allocated: 4_000,
+        spent: 0,
+        closing_balance: 4_000,
+        version: { increment: 1 },
+      },
+    });
+  });
+
+  it('onTransferRemoved reverses the move', async () => {
+    requireOpenMonth.mockResolvedValue({ id: 'bm-1' });
+    snapshot.findUnique
+      .mockResolvedValueOnce({ id: 'snap-from' })
+      .mockResolvedValueOnce(snapshotState({ id: 'snap-from', allocated: 4_000 }))
+      .mockResolvedValueOnce({ id: 'snap-to' })
+      .mockResolvedValueOnce(
+        snapshotState({ id: 'snap-to', allocated: 1_500, spent: 1_500 }),
+      );
+
+    await projector.onTransferRemoved(db as never, transfer);
+
+    // source restored: computeClosing(0, 4000 + 1000, 0) = 5000
+    expect(snapshot.update).toHaveBeenNthCalledWith(1, {
+      where: { id: 'snap-from' },
+      data: {
+        allocated: 5_000,
+        spent: 0,
+        closing_balance: 5_000,
+        version: { increment: 1 },
+      },
+    });
+    // target back to overspent: computeClosing(0, 1500 - 1000, 1500) = -1000
+    expect(snapshot.update).toHaveBeenNthCalledWith(2, {
+      where: { id: 'snap-to' },
+      data: {
+        allocated: 500,
+        spent: 1_500,
+        closing_balance: -1_000,
+        version: { increment: 1 },
+      },
+    });
+  });
 });

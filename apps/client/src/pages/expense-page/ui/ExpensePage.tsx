@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState, type UIEventHandler } from 'react';
 
+import type { CategoryBudgetItem } from '@/entities/budget';
 import { useDeleteExpenseMutation } from '@/entities/expense/api/useDeleteExpenseMutation';
 import {
   flattenExpenseHistoryPages,
@@ -8,6 +9,10 @@ import {
 import type { Expense } from '@/entities/expense/model/types';
 import type { ExpenseListItem } from '@/widgets/expense-list';
 import { ExpenseFormDialog } from '@/features/create-expense/ui/ExpenseFormDialog';
+import {
+  buildReturnToSavingsHint,
+  ReturnToSavingsButton,
+} from '@/features/return-to-savings';
 import { Fab, PageSection } from '@/shared/ui';
 
 import {
@@ -93,6 +98,23 @@ export function ExpensePage() {
     [allBudgetItems],
   );
 
+  const renderBudgetItemAction = useCallback(
+    (item: CategoryBudgetItem) => {
+      const hint = buildReturnToSavingsHint(item, budgetSnapshots);
+      if (!hint) {
+        return null;
+      }
+      return (
+        <ReturnToSavingsButton
+          fromCategoryId={item.category.id}
+          hint={hint}
+          periodMonth={periodMonth}
+        />
+      );
+    },
+    [budgetSnapshots, periodMonth],
+  );
+
   const expenseFormDialog = useExpenseFormDialog(editingExpense, () => {
     setEditingExpense(null);
   });
@@ -153,6 +175,7 @@ export function ExpensePage() {
               selectedCategoryId,
               stressCategoryId,
               onCategorySelect: handleCategorySelect,
+              renderItemAction: renderBudgetItemAction,
               onAddExpense: expenseFormDialog.openForAdd,
               isBudgetPending,
               isBudgetError,
@@ -190,6 +213,7 @@ export function ExpensePage() {
         budgets={budgetSnapshots}
         incomes={incomes}
         allocations={allocations}
+        freePoolAvailable={currentBudgetView?.available ?? 0}
         selectedCategoryId={selectedCategoryId ?? undefined}
         editingExpense={editingExpense}
         onStressCategoryChange={handleStressCategoryChange}

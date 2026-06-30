@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react';
+
 import type { CategoryBudgetItem } from '@/entities/budget/model/types';
 import { cn } from '@/shared/lib/utils';
 import type { ItemsListLayout } from '@/shared/ui/items-list/ItemsList';
@@ -14,6 +16,7 @@ type ExpenseWorkspaceProps = {
   isBudgetError: boolean;
   budgetError: unknown;
   isBudgetFetching: boolean;
+  renderItemAction?: (item: CategoryBudgetItem) => ReactNode;
   listLayout?: ItemsListLayout;
   hideListTitle?: boolean;
 };
@@ -27,6 +30,7 @@ export function ExpenseWorkspace({
   isBudgetError,
   budgetError,
   isBudgetFetching,
+  renderItemAction,
   listLayout = 'fill',
   hideListTitle = false,
 }: ExpenseWorkspaceProps) {
@@ -43,6 +47,7 @@ export function ExpenseWorkspace({
       selectedCategoryId={selectedCategoryId}
       stressCategoryId={stressCategoryId}
       onCategorySelect={onCategorySelect}
+      renderItemAction={renderItemAction}
     />
   );
 }

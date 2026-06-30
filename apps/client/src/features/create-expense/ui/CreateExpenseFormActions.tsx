@@ -16,9 +16,11 @@ type CreateExpenseFormActionsProps = {
   isBusy: boolean
   isRecording: boolean
   isTopUpPending: boolean
+  isCoverPending: boolean
   topUpError: string | null
   canTopUp: boolean
   onQuickTopUp: (amount: number) => void
+  onCoverFromSavings?: () => void
   submitLabel: string
   onCancelEdit?: () => void
   /** Без collapse-анимации превью (модалка). */
@@ -33,9 +35,11 @@ export function CreateExpenseFormActions({
   isBusy,
   isRecording,
   isTopUpPending,
+  isCoverPending,
   topUpError,
   canTopUp,
   onQuickTopUp,
+  onCoverFromSavings,
   submitLabel,
   onCancelEdit,
   staticPreview = false,
@@ -82,8 +86,10 @@ export function CreateExpenseFormActions({
         <ExpenseOverBudgetActions
           savingsTransfer={savingsTransfer}
           onQuickTopUp={onQuickTopUp}
+          onCoverFromSavings={onCoverFromSavings}
           isRecording={isRecording}
           isTopUpPending={isTopUpPending}
+          isCoverPending={isCoverPending}
           topUpError={topUpError}
           canTopUp={canTopUp}
         />

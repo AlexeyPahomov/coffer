@@ -39,6 +39,7 @@ export function ExpensePageCategoriesPanel({
     isBudgetError,
     budgetError,
     isBudgetFetching,
+    renderItemAction,
   } = useExpensePageWorkAreaContext()
 
   return (
@@ -54,6 +55,7 @@ export function ExpensePageCategoriesPanel({
         isBudgetError={isBudgetError}
         budgetError={budgetError}
         isBudgetFetching={isBudgetFetching}
+        renderItemAction={renderItemAction}
       />
     </ExpensePageTabPanel>
   )

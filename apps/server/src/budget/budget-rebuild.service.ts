@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import {
   computeCategoryBudgetsForPeriod,
+  expandTransfersToAllocations,
   toBudgetRebuildCategory,
   type RebuiltCategoryBudget,
 } from '@coffer/shared';
@@ -10,6 +11,7 @@ import type {
   Expense,
   Income,
   Prisma,
+  Transfer,
 } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -18,6 +20,13 @@ type AllocationRebuildRow = {
   amount: { toString(): string };
   period_month: Date;
   income: { status: string };
+};
+
+type TransferRebuildRow = {
+  from_category_id: string;
+  to_category_id: string | null;
+  amount: { toString(): string };
+  period_month: Date;
 };
 
 type RebuildCategory = ReturnType<typeof toBudgetRebuildCategory>;
@@ -41,6 +50,7 @@ export type BootstrapLedgerBundle = {
   incomes: Income[];
   allocations: (Allocation & { income: Income })[];
   expenses: Expense[];
+  transfers: Transfer[];
 };
 
 @Injectable()
@@ -63,16 +73,56 @@ export class BudgetRebuildService {
     return categories.map(toBudgetRebuildCategory);
   }
 
-  toRebuildInputs(bundle: BootstrapLedgerBundle): RebuildInputs {
+  /** Перевод → две знаковые allocation-строки, чтобы rebuild видел его как проектор. */
+  private mapTransfersToAllocationRows(
+    transfers: readonly TransferRebuildRow[],
+  ) {
+    return expandTransfersToAllocations(
+      transfers.map((t) => ({
+        from_category_id: t.from_category_id,
+        to_category_id: t.to_category_id,
+        amount: t.amount.toString(),
+        period_month: t.period_month.toISOString(),
+      })),
+    ).map((row) => ({
+      category_id: row.category_id,
+      amount: String(row.amount),
+      period_month: row.period_month,
+    }));
+  }
+
+  /** Сборка входов rebuild из сырых строк — единый путь для bundle и tx-запросов. */
+  private buildRebuildInputs(
+    categories: readonly { id: string; type: string; carry_over_policy: string }[],
+    allocations: readonly AllocationRebuildRow[],
+    expenses: readonly {
+      category_id: string;
+      amount: { toString(): string };
+      date: Date;
+    }[],
+    transfers: readonly TransferRebuildRow[],
+  ): RebuildInputs {
     return {
-      categories: this.mapCategoriesForRebuild(bundle.categories),
-      allocations: this.mapReceivedAllocations(bundle.allocations),
-      expenses: bundle.expenses.map((e) => ({
+      categories: this.mapCategoriesForRebuild(categories),
+      allocations: [
+        ...this.mapReceivedAllocations(allocations),
+        ...this.mapTransfersToAllocationRows(transfers),
+      ],
+      expenses: expenses.map((e) => ({
         category_id: e.category_id,
         amount: e.amount.toString(),
         date: e.date.toISOString(),
       })),
     };
+  }
+
+  toRebuildInputs(bundle: BootstrapLedgerBundle): RebuildInputs {
+    return this.buildRebuildInputs(
+      bundle.categories,
+      bundle.allocations,
+      bundle.expenses,
+      bundle.transfers,
+    );
   }
 
   async loadBootstrapLedgerBundle(
@@ -91,8 +141,11 @@ export class BudgetRebuildService {
     const expenses = await this.prisma.expense.findMany({
       where: { user_id: userId },
     });
+    const transfers = await this.prisma.transfer.findMany({
+      where: { user_id: userId },
+    });
 
-    return { categories, incomes, allocations, expenses };
+    return { categories, incomes, allocations, expenses, transfers };
   }
 
   async loadRebuildInputs(userId: string): Promise<RebuildInputs> {
@@ -135,16 +188,16 @@ export class BudgetRebuildService {
     const expenses = await tx.expense.findMany({
       where: { user_id: userId },
     });
+    const transfers = await tx.transfer.findMany({
+      where: { user_id: userId },
+    });
 
-    return computeCategoryBudgetsForPeriod(
-      this.mapCategoriesForRebuild(categories),
-      this.mapReceivedAllocations(allocations),
-      expenses.map((e) => ({
-        category_id: e.category_id,
-        amount: e.amount.toString(),
-        date: e.date.toISOString(),
-      })),
-      periodMonth,
+    const inputs = this.buildRebuildInputs(
+      categories,
+      allocations,
+      expenses,
+      transfers,
     );
+    return this.computeFromInputs(inputs, periodMonth);
   }
 }
