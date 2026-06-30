@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(pnpm typecheck*)",
+      "PowerShell(pnpm --filter @coffer/shared test*)",
+      "PowerShell(pnpm --filter @coffer/planning-core test*)",
+      "PowerShell(pnpm --filter server test*)",
+      "PowerShell(pnpm --filter client test*)",
+      "PowerShell(pnpm --filter server exec tsc*)",
+      "PowerShell(pnpm --filter server db:generate*)"
+    ]
+  }
+}

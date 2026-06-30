@@ -3,3 +3,4 @@ package-lock.json
 .env
 packages/shared/dist
 packages/planning-core/dist
+.claude/settings.local.json
