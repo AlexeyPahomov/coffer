@@ -7,7 +7,15 @@
       "PowerShell(pnpm --filter server test*)",
       "PowerShell(pnpm --filter client test*)",
       "PowerShell(pnpm --filter server exec tsc*)",
-      "PowerShell(pnpm --filter server db:generate*)"
+      "PowerShell(pnpm --filter client exec tsc*)",
+      "PowerShell(pnpm --filter server db:generate*)",
+      "PowerShell(git status*)",
+      "PowerShell(git diff*)",
+      "PowerShell(git log*)",
+      "PowerShell(git show*)",
+      "PowerShell(git add*)",
+      "PowerShell(git commit*)",
+      "PowerShell(Get-ChildItem*)"
     ]
   }
 }
