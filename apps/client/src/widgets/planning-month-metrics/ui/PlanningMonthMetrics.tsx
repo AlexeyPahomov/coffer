@@ -22,11 +22,11 @@ export function PlanningMonthMetrics({
   return (
     <div className={cn(planningMonthMetricsGridClassName, className)}>
       <PlanningMetricCard
-        accent="pool"
-        title={copy.pool.title}
-        caption={copy.pool.caption}
-        infoText={copy.pool.infoText}
-        value={projection.available}
+        accent="forecast"
+        title={copy.forecast.title}
+        caption={copy.forecast.caption}
+        infoText={copy.forecast.infoText}
+        value={projection.projectedFree}
       />
       <PlanningMetricCard
         accent="reserved"
@@ -43,11 +43,11 @@ export function PlanningMonthMetrics({
         value={projection.plannedTotal}
       />
       <PlanningMetricCard
-        accent="forecast"
-        title={copy.forecast.title}
-        caption={copy.forecast.caption}
-        infoText={copy.forecast.infoText}
-        value={projection.projectedFree}
+        accent="pool"
+        title={copy.pool.title}
+        caption={copy.pool.caption}
+        infoText={copy.pool.infoText}
+        value={projection.available}
       />
       <PlanningMetricCard
         accent="savings"
