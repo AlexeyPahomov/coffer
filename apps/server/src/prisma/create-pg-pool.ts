@@ -1,15 +1,15 @@
 import { Pool, type PoolConfig } from 'pg';
 
-import { resolveDatabaseUrl } from '../database-url';
+import { describeDatabaseTarget, resolveDatabaseUrl } from '../database-url';
 
 let sharedPool: Pool | undefined;
 
 function resolvePoolMax(): number {
-  const raw = Number(process.env.DATABASE_POOL_MAX ?? 1);
+  const raw = Number(process.env.DATABASE_POOL_MAX ?? 5);
   if (!Number.isFinite(raw) || raw < 1) {
-    return 1;
+    return 5;
   }
-  return Math.min(Math.floor(raw), 1);
+  return Math.min(Math.floor(raw), 20);
 }
 
 export function getSharedPgPool(): Pool {
@@ -17,16 +17,23 @@ export function getSharedPgPool(): Pool {
     return sharedPool;
   }
 
+  const connectionString = resolveDatabaseUrl();
   const config: PoolConfig = {
-    connectionString: resolveDatabaseUrl(),
+    connectionString,
     max: resolvePoolMax(),
     min: 0,
-    idleTimeoutMillis: 1_000,
+    // Держим соединение тёплым между запросами — без этого каждый запрос платил
+    // полный TCP+TLS+pooler handshake (раньше idle=1s + maxUses=1 рвали коннект
+    // после каждого запроса). idle < серверного таймаута Supavisor, чтобы отдавать
+    // из пула живые соединения; обрывы всё равно ловит withTransientDbRetry.
+    idleTimeoutMillis: 30_000,
     connectionTimeoutMillis: 60_000,
     allowExitOnIdle: true,
     keepAlive: true,
     keepAliveInitialDelayMillis: 1_000,
-    maxUses: 1,
+    // Периодически пересоздаём соединение (защита от залипания на pooler),
+    // но не на каждый запрос.
+    maxUses: 200,
   };
 
   if (process.env.DATABASE_SSL_REJECT_UNAUTHORIZED === 'false') {
@@ -34,6 +41,9 @@ export function getSharedPgPool(): Pool {
   }
 
   sharedPool = new Pool(config);
+  console.log(
+    `[pg Pool] target=${describeDatabaseTarget(connectionString)} max=${config.max} idle=${config.idleTimeoutMillis}ms maxUses=${config.maxUses}`,
+  );
   sharedPool.on('error', (error) => {
     console.error('[pg Pool] idle client error', error.message);
   });
