@@ -1,38 +1,26 @@
 import type { MonthBudgetProjection } from '@/processes/forecasting'
 import { cn } from '@/shared/lib/utils'
 
-import {
-  PLANNING_METRIC_COPY,
-  planningForecastMetricTitle,
-} from '@/entities/budget'
+import { PLANNING_METRIC_COPY } from '@/entities/budget'
 import { planningMonthMetricsGridClassName } from '../lib/planningMonthMetricsLayout'
 
 import { PlanningMetricCard } from './PlanningMetricCard'
 
 export type PlanningMonthMetricsProps = {
   projection: MonthBudgetProjection
-  periodMonth: string
-  expectedIncomeTotal: number
+  savingsTotal: number
   className?: string
 }
 
 export function PlanningMonthMetrics({
   projection,
-  periodMonth,
-  expectedIncomeTotal,
+  savingsTotal,
   className,
 }: PlanningMonthMetricsProps) {
   const copy = PLANNING_METRIC_COPY
 
   return (
     <div className={cn(planningMonthMetricsGridClassName, className)}>
-      <PlanningMetricCard
-        accent="forecast"
-        title={planningForecastMetricTitle(periodMonth)}
-        caption={copy.forecast.caption}
-        infoText={copy.forecast.infoText}
-        value={projection.projectedFree}
-      />
       <PlanningMetricCard
         accent="pool"
         title={copy.pool.title}
@@ -41,11 +29,11 @@ export function PlanningMonthMetrics({
         value={projection.available}
       />
       <PlanningMetricCard
-        accent="income"
-        title={copy.income.title}
-        caption={copy.income.caption}
-        infoText={copy.income.infoText}
-        value={expectedIncomeTotal}
+        accent="reserved"
+        title={copy.reserved.title}
+        caption={copy.reserved.caption}
+        infoText={copy.reserved.infoText}
+        value={projection.reservedTotal}
       />
       <PlanningMetricCard
         accent="planned"
@@ -55,12 +43,19 @@ export function PlanningMonthMetrics({
         value={projection.plannedTotal}
       />
       <PlanningMetricCard
-        accent="reserved"
-        title={copy.reserved.title}
-        caption={copy.reserved.caption}
-        infoText={copy.reserved.infoText}
+        accent="forecast"
+        title={copy.forecast.title}
+        caption={copy.forecast.caption}
+        infoText={copy.forecast.infoText}
+        value={projection.projectedFree}
+      />
+      <PlanningMetricCard
+        accent="savings"
+        title={copy.savings.title}
+        caption={copy.savings.caption}
+        infoText={copy.savings.infoText}
         infoBottomOnMax240
-        value={projection.reservedTotal}
+        value={savingsTotal}
       />
     </div>
   )

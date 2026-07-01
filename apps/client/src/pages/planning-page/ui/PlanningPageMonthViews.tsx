@@ -78,8 +78,7 @@ export function PlanningPageMonthBody({
           <PlanningMonthMetrics
             className="hidden md:grid"
             projection={page.projection}
-            periodMonth={page.periodMonth}
-            expectedIncomeTotal={page.expectedIncomeTotal}
+            savingsTotal={page.savingsTotal}
           />
         )}
 

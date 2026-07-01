@@ -29,7 +29,4 @@ export {
   formatPeriodMonthGenitive,
 } from './lib/periodLabels'
 
-export {
-  PLANNING_METRIC_COPY,
-  planningForecastMetricTitle,
-} from './lib/planningMetricCopy'
+export { PLANNING_METRIC_COPY } from './lib/planningMetricCopy'

@@ -266,6 +266,7 @@ export function usePlanningPage() {
     periodLabel: operationalSummary.periodLabel,
     periodPlanned,
     projection,
+    savingsTotal: operationalSummary.inReserve,
     forecast,
     forecastMonth,
     forecastMetadata: forecast.metadata,
