@@ -29,16 +29,6 @@ export const expensePageWorkCarouselItemClassName =
 export const expensePageWorkSwitcherBarClassName =
   'relative z-10 w-full min-h-8 shrink-0 px-px pe-2 pb-1 md:min-h-9 md:pe-0 md:pb-3';
 
-/** Сегментированный переключатель: компактная ширина по содержимому. */
-export const expensePageWorkSwitcherClassName =
-  'inline-flex w-auto max-w-full gap-0.5 rounded-xl bg-zinc-100/90 p-0.5 shadow-sm';
-
-export const expensePageWorkSwitcherButtonClassName =
-  'h-8 min-h-8 rounded-lg border-0 px-3 text-xs font-medium whitespace-nowrap shadow-none sm:text-sm';
-
 /** Десктоп: кнопка поверх правого края шапки, не растягивает табы. */
 export const expensePageWorkAddButtonClassName =
   'absolute top-0 right-0 z-10 hidden shrink-0 md:inline-flex';
-
-export const expensePageWorkSwitcherButtonActiveClassName =
-  'bg-white font-semibold text-zinc-900 shadow-none hover:bg-white';

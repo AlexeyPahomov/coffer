@@ -52,6 +52,11 @@ export { DatePicker } from './date-picker/DatePicker'
 export { DateRangePicker } from './date-picker/DateRangePicker'
 export { MonthPicker } from './month-picker/MonthPicker'
 export { ResponsiveLabel } from './responsive-label/ResponsiveLabel'
+export { SegmentedSwitcher } from './segmented-switcher'
+export type {
+  SegmentedSwitcherItem,
+  SegmentedSwitcherProps,
+} from './segmented-switcher'
 export {
   Tabs,
   TabsContent,
