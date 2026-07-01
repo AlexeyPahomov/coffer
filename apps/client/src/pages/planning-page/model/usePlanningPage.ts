@@ -243,7 +243,6 @@ export function usePlanningPage() {
 
     return {
       horizon: outcomeHorizon,
-      horizonLabel: lastPoint?.label ?? '',
       poolNow: operationalSummary.available,
       poolAtHorizon: lastPoint?.projectedFree ?? operationalSummary.available,
       savingsNow: operationalSummary.inReserve,

@@ -15,8 +15,6 @@ export type PlanningOutcomeMonth = {
 
 export type PlanningOutcome = {
   horizon: OutcomeHorizon
-  /** Подпись целевого месяца («через N месяцев»). */
-  horizonLabel: string
   poolNow: number
   poolAtHorizon: number
   savingsNow: number
