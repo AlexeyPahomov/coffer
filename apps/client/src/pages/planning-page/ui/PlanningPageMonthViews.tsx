@@ -1,4 +1,5 @@
 import type { PlannedExpense } from '@/entities/planned-expense/model/types'
+import { cn } from '@/shared/lib/utils'
 import {
   PageContentLoader,
   Spinner,
@@ -22,10 +23,19 @@ type PlanningPageMonthViewsProps = {
   onFinishPlanned: (item: PlannedExpense) => void
 }
 
-function PlanningSectionFallback({ label }: { label: string }) {
+function PlanningSectionFallback({
+  label,
+  className,
+}: {
+  label: string
+  className?: string
+}) {
   return (
     <div
-      className="flex min-h-24 items-center justify-center rounded-xl border border-dashed border-zinc-200 bg-white/60"
+      className={cn(
+        'flex min-h-24 items-center justify-center rounded-xl border border-dashed border-zinc-200 bg-white/60',
+        className,
+      )}
       aria-busy="true"
     >
       <Spinner className="size-6 text-zinc-400" aria-label={label} />
@@ -73,7 +83,10 @@ export function PlanningPageMonthBody({
         className="flex min-h-0 flex-col gap-4 md:gap-6"
       >
         {page.isBudgetLoading ? (
-          <PlanningSectionFallback label="Загрузка метрик" />
+          <PlanningSectionFallback
+            label="Загрузка метрик"
+            className="hidden md:flex"
+          />
         ) : (
           <PlanningMonthMetrics
             className="hidden md:grid"
@@ -109,7 +122,10 @@ export function PlanningPageMonthBody({
         className="flex min-h-0 flex-col gap-4 md:gap-6"
       >
         {page.isBudgetLoading ? (
-          <PlanningSectionFallback label="Загрузка ликвидности" />
+          <PlanningSectionFallback
+            label="Загрузка ликвидности"
+            className="hidden md:flex"
+          />
         ) : (
           <MonthLiquidityFlow
             className="hidden md:flex"
