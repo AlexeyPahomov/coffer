@@ -29,6 +29,13 @@ export function PlanningMonthMetrics({
         value={projection.projectedFree}
       />
       <PlanningMetricCard
+        accent="pool"
+        title={copy.pool.title}
+        caption={copy.pool.caption}
+        infoText={copy.pool.infoText}
+        value={projection.available}
+      />
+      <PlanningMetricCard
         accent="reserved"
         title={copy.reserved.title}
         caption={copy.reserved.caption}
@@ -41,13 +48,6 @@ export function PlanningMonthMetrics({
         caption={copy.planned.caption}
         infoText={copy.planned.infoText}
         value={projection.plannedTotal}
-      />
-      <PlanningMetricCard
-        accent="pool"
-        title={copy.pool.title}
-        caption={copy.pool.caption}
-        infoText={copy.pool.infoText}
-        value={projection.available}
       />
       <PlanningMetricCard
         accent="savings"
