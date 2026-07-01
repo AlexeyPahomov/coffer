@@ -1,9 +1,17 @@
-import { useState } from 'react'
-
 import type { PlannedExpense } from '@/entities/planned-expense/model/types'
+import { useCarouselTabs } from '@/shared/hooks/useCarouselTabs'
+import {
+  carouselTabsContentClassName,
+  carouselTabsItemClassName,
+  carouselTabsOptions,
+  carouselTabsRootClassName,
+  carouselTabsViewportClassName,
+} from '@/shared/lib/carouselTabsLayout'
 import { cn } from '@/shared/lib/utils'
 import {
-  ContentTransition,
+  Carousel,
+  CarouselContent,
+  CarouselItem,
   PageContentLoader,
   SegmentedSwitcher,
   Spinner,
@@ -29,8 +37,6 @@ const PLANNING_TABS = [
   { id: 'forecast', label: 'Прогноз' },
   { id: 'overview', label: 'Обзор' },
 ] as const
-
-type PlanningTabId = (typeof PLANNING_TABS)[number]['id']
 
 function PlanningSectionFallback({
   label,
@@ -74,7 +80,10 @@ export function PlanningPageMonthBody({
   onEditPlanned,
   onFinishPlanned,
 }: PlanningPageMonthViewsProps) {
-  const [activeTab, setActiveTab] = useState<PlanningTabId>('plans')
+  const { setCarouselApi, activeIndex, selectSlide } = useCarouselTabs(
+    PLANNING_TABS.length,
+  )
+  const activeSlideId = PLANNING_TABS[activeIndex]?.id ?? PLANNING_TABS[0].id
   const liquidityFlowProps = {
     projection: page.projection,
     expectedIncomeTotal: page.expectedIncomeTotal,
@@ -135,29 +144,37 @@ export function PlanningPageMonthBody({
     </div>
   )
 
-  const activePanel =
-    activeTab === 'plans'
-      ? plansPanel
-      : activeTab === 'forecast'
-        ? forecastPanel
-        : overviewPanel
+  const panels = [plansPanel, forecastPanel, overviewPanel]
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4 md:gap-6">
-      <SegmentedSwitcher
-        items={PLANNING_TABS}
-        activeId={activeTab}
-        onSelect={setActiveTab}
-        ariaLabel="Разделы планирования"
-        className="shrink-0 self-start"
-      />
+    <div className={carouselTabsRootClassName}>
+      <div className="pb-2 md:pb-3">
+        <SegmentedSwitcher
+          items={PLANNING_TABS}
+          activeId={activeSlideId}
+          onSelect={(id) =>
+            selectSlide(PLANNING_TABS.findIndex((tab) => tab.id === id))
+          }
+          ariaLabel="Разделы планирования"
+        />
+      </div>
 
-      <ContentTransition
-        contentKey={activeTab}
-        className={planningPageTabPanelScrollClassName}
+      <Carousel
+        className={carouselTabsViewportClassName}
+        opts={carouselTabsOptions}
+        setApi={setCarouselApi}
       >
-        {activePanel}
-      </ContentTransition>
+        <CarouselContent className={carouselTabsContentClassName}>
+          {panels.map((panel, index) => (
+            <CarouselItem
+              key={PLANNING_TABS[index].id}
+              className={carouselTabsItemClassName}
+            >
+              <div className={planningPageTabPanelScrollClassName}>{panel}</div>
+            </CarouselItem>
+          ))}
+        </CarouselContent>
+      </Carousel>
     </div>
   )
 }

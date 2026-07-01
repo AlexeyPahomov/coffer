@@ -33,9 +33,9 @@ export const planningPageMonthBodyClassName = cn(
   'flex min-h-0 min-w-0 flex-1 flex-col gap-4 md:gap-6 max-md:gap-2',
 )
 
-/** Скролл только тела активной вкладки (под шапкой вкладок). */
+/** Скролл только тела активной вкладки (слайд карусели). */
 export const planningPageTabPanelScrollClassName = cn(
-  'flex min-h-0 min-w-0 flex-1 flex-col overflow-x-hidden',
+  'flex h-full min-h-0 w-full min-w-0 flex-col overflow-x-hidden',
   scrollAreaClassName,
   mobileFabScrollReserveClassName,
   pageScrollRingInsetClassName,
