@@ -2,6 +2,7 @@ import { useState } from 'react'
 
 import type { Category } from '@/entities/category/model/types'
 import { CreatePlannedExpenseDialog } from '@/features/create-planned-expense/ui/CreatePlannedExpenseDialog'
+import { cn } from '@/shared/lib/utils'
 import { AddButton, Fab } from '@/shared/ui'
 import { PlanningMonthTimeline } from '@/widgets/planning-month-timeline/ui/PlanningMonthTimeline'
 
@@ -54,9 +55,18 @@ export function PlanningPageToolbar({
         </div>
       </div>
 
-      {showAddFab ? (
-        <Fab label="Новый план" onClick={() => setCreateOpen(true)} />
-      ) : null}
+      <Fab
+        label="Новый план"
+        onClick={() => setCreateOpen(true)}
+        aria-hidden={!showAddFab}
+        tabIndex={showAddFab ? undefined : -1}
+        className={cn(
+          'transition-[opacity,transform] duration-200 ease-out motion-reduce:transition-none',
+          showAddFab
+            ? 'scale-100 opacity-100'
+            : 'pointer-events-none scale-90 opacity-0',
+        )}
+      />
 
       <CreatePlannedExpenseDialog
         open={createOpen}
