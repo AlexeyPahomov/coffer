@@ -15,11 +15,6 @@ export type PlanningOutcomeMonth = {
 
 export type PlanningOutcome = {
   horizon: OutcomeHorizon
-  poolNow: number
-  poolAtHorizon: number
-  savingsNow: number
-  savingsAtHorizon: number
   hasDeficit: boolean
-  firstDeficitMonth: string | null
   months: PlanningOutcomeMonth[]
 }

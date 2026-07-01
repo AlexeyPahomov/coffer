@@ -239,16 +239,10 @@ export function usePlanningPage() {
       savingsBalance: savingsTrajectory[index]?.balance ?? 0,
       deficit: forecastMonthPoint.deficit,
     }))
-    const lastPoint = months[months.length - 1]
 
     return {
       horizon: outcomeHorizon,
-      poolNow: operationalSummary.available,
-      poolAtHorizon: lastPoint?.projectedFree ?? operationalSummary.available,
-      savingsNow: operationalSummary.inReserve,
-      savingsAtHorizon: lastPoint?.savingsBalance ?? operationalSummary.inReserve,
       hasDeficit: outcomeForecast.metadata.hasDeficit,
-      firstDeficitMonth: outcomeForecast.metadata.firstDeficitMonth,
       months,
     }
   }, [

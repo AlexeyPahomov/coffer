@@ -14,24 +14,6 @@ export type PlanningOutcomeForecastProps = {
   className?: string
 }
 
-function formatSignedAmount(delta: number): string {
-  if (delta === 0) {
-    return formatAmount(0)
-  }
-  const sign = delta > 0 ? '+' : '−'
-  return `${sign}${formatAmount(Math.abs(delta))}`
-}
-
-function deltaToneClassName(delta: number): string {
-  if (delta > 0) {
-    return 'text-emerald-600'
-  }
-  if (delta < 0) {
-    return 'text-rose-600'
-  }
-  return 'text-zinc-500'
-}
-
 function HorizonSelector({
   value,
   onChange,
@@ -57,40 +39,6 @@ function HorizonSelector({
         ))}
       </TabsList>
     </Tabs>
-  )
-}
-
-function OutcomeCard({
-  title,
-  now,
-  then,
-}: {
-  title: string
-  now: number
-  then: number
-}) {
-  const delta = then - now
-
-  return (
-    <article className="rounded-xl border border-zinc-200 bg-zinc-50/60 p-4">
-      <p className="text-xs font-medium text-zinc-600">{title}</p>
-      <div className="mt-2 flex items-baseline gap-2">
-        <span className="text-lg font-bold tracking-tight tabular-nums text-zinc-900 sm:text-2xl">
-          {formatAmount(then)}
-        </span>
-        <span
-          className={cn(
-            'text-xs font-semibold tabular-nums',
-            deltaToneClassName(delta),
-          )}
-        >
-          {formatSignedAmount(delta)}
-        </span>
-      </div>
-      <p className="mt-1 text-xs text-zinc-500 tabular-nums">
-        сейчас {formatAmount(now)}
-      </p>
-    </article>
   )
 }
 
@@ -160,19 +108,6 @@ export function PlanningOutcomeForecast({
         </h3>
         <HorizonSelector value={outcome.horizon} onChange={onHorizonChange} />
       </header>
-
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <OutcomeCard
-          title="Свободный пул"
-          now={outcome.poolNow}
-          then={outcome.poolAtHorizon}
-        />
-        <OutcomeCard
-          title="Накопления"
-          now={outcome.savingsNow}
-          then={outcome.savingsAtHorizon}
-        />
-      </div>
 
       {outcome.hasDeficit ? (
         <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700">
