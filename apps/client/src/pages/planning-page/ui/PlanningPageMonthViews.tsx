@@ -1,5 +1,12 @@
 import type { PlannedExpense } from '@/entities/planned-expense/model/types'
-import { PageContentLoader, Spinner } from '@/shared/ui'
+import {
+  PageContentLoader,
+  Spinner,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from '@/shared/ui'
 import { MonthLiquidityFlow, PlanningMobileLiquidityHeader } from '@/widgets/liquidity-flow-preview'
 import { PlanningMonthMetrics } from '@/widgets/planning-month-metrics'
 import { PlanningOutcomeForecast } from '@/widgets/planning-outcome-forecast'
@@ -54,49 +61,61 @@ export function PlanningPageMonthBody({
   }
 
   return (
-    <>
-      {page.isBudgetLoading ? (
-        <PlanningSectionFallback label="Загрузка метрик" />
-      ) : (
-        <>
-          <PlanningMonthMetrics
-            className="hidden md:grid"
-            projection={page.projection}
-            periodMonth={page.periodMonth}
-            expectedIncomeTotal={page.expectedIncomeTotal}
+    <Tabs defaultValue="plans" className="min-h-0 flex-1">
+      <TabsList className="max-md:w-full">
+        <TabsTrigger value="plans">Планы</TabsTrigger>
+        <TabsTrigger value="overview">Обзор</TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="plans" className="min-h-0">
+        {page.isPlansLoading ? (
+          <PageContentLoader className="min-h-40" />
+        ) : (
+          <PlanningPagePlansSection
+            page={page}
+            onEditPlanned={onEditPlanned}
+            onFinishPlanned={onFinishPlanned}
           />
+        )}
+      </TabsContent>
 
-          <MonthLiquidityFlow
-            className="hidden md:flex"
-            {...liquidityFlowProps}
+      <TabsContent
+        value="overview"
+        className="flex min-h-0 flex-col gap-4 md:gap-6"
+      >
+        {page.isBudgetLoading ? (
+          <PlanningSectionFallback label="Загрузка метрик" />
+        ) : (
+          <>
+            <PlanningMonthMetrics
+              className="hidden md:grid"
+              projection={page.projection}
+              periodMonth={page.periodMonth}
+              expectedIncomeTotal={page.expectedIncomeTotal}
+            />
+
+            <MonthLiquidityFlow
+              className="hidden md:flex"
+              {...liquidityFlowProps}
+            />
+          </>
+        )}
+
+        {page.isForecastLoading ? (
+          <PlanningSectionFallback label="Загрузка прогноза по месяцам" />
+        ) : (
+          <PlanningOutcomeForecast
+            outcome={page.outcome}
+            onHorizonChange={page.setOutcomeHorizon}
           />
-        </>
-      )}
+        )}
 
-      {page.isForecastLoading ? (
-        <PlanningSectionFallback label="Загрузка прогноза результата" />
-      ) : (
-        <PlanningOutcomeForecast
-          outcome={page.outcome}
-          onHorizonChange={page.setOutcomeHorizon}
-        />
-      )}
-
-      {page.isForecastLoading ? (
-        <PlanningSectionFallback label="Загрузка прогноза конвертов" />
-      ) : (
-        <PlanningEnvelopeForecastSection forecast={page.envelopeForecast} />
-      )}
-
-      {page.isPlansLoading ? (
-        <PageContentLoader className="min-h-40" />
-      ) : (
-        <PlanningPagePlansSection
-          page={page}
-          onEditPlanned={onEditPlanned}
-          onFinishPlanned={onFinishPlanned}
-        />
-      )}
-    </>
+        {page.isForecastLoading ? (
+          <PlanningSectionFallback label="Загрузка прогноза конвертов" />
+        ) : (
+          <PlanningEnvelopeForecastSection forecast={page.envelopeForecast} />
+        )}
+      </TabsContent>
+    </Tabs>
   )
 }

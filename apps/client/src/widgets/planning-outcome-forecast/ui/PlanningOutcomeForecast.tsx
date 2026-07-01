@@ -157,7 +157,7 @@ export function PlanningOutcomeForecast({
       <header className="flex items-center justify-between gap-3">
         <div>
           <h3 className="text-sm font-semibold text-zinc-800">
-            Если продолжу как сейчас
+            Прогноз по месяцам
           </h3>
           <p className="text-xs text-zinc-500">Прогноз на {outcome.horizonLabel}</p>
         </div>
