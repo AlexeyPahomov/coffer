@@ -9,17 +9,22 @@ function recurringStreamKey(income: Income): string {
   return `${income.income_type}::${source}`
 }
 
+/** Поток считается повторяющимся, если встречался минимум в стольких месяцах. */
+const RECURRING_STREAM_MIN_MONTHS = 2
+
 /**
- * «Типичный месяц»: все фактические поступления каждого потока
- * (income_type + source) за его последний месяц. Несколько выплат одного
- * потока в этом месяце сохраняются целиком (не схлопываются в одну), чтобы не
- * недооценить доход и корректно применить fixed-amount правила. Источник
- * сохраняется — от него зависит матчинг allocation-rules (аванс / расчёт).
+ * «Типичный месяц» для экстраполяции дохода на будущее.
+ *
+ * Берём только ПОВТОРЯЮЩИЕСЯ потоки (income_type + source), встречавшиеся
+ * минимум в {@link RECURRING_STREAM_MIN_MONTHS} разных месяцах — от каждого
+ * все поступления за его последний месяц. Разовые доходы (бонус, возврат,
+ * помощь и т.п.) не проецируются как ежемесячные, иначе шаблон раздувается.
+ * Источник сохраняется — от него зависит матчинг allocation-rules.
  */
 export function resolveRecurringIncomeTemplate(
   incomes: readonly Income[],
 ): Income[] {
-  const latestMonthByStream = new Map<string, string>()
+  const monthsByStream = new Map<string, Set<string>>()
 
   for (const income of incomes) {
     if (!isReceivedIncome(income)) {
@@ -27,18 +32,29 @@ export function resolveRecurringIncomeTemplate(
     }
 
     const key = recurringStreamKey(income)
-    const month = getIncomePeriodMonth(income)
-    const previous = latestMonthByStream.get(key)
-    if (!previous || month > previous) {
-      latestMonthByStream.set(key, month)
+    const months = monthsByStream.get(key) ?? new Set<string>()
+    months.add(getIncomePeriodMonth(income))
+    monthsByStream.set(key, months)
+  }
+
+  const latestMonthByRecurringStream = new Map<string, string>()
+
+  for (const [key, months] of monthsByStream) {
+    if (months.size < RECURRING_STREAM_MIN_MONTHS) {
+      continue
     }
+
+    latestMonthByRecurringStream.set(
+      key,
+      [...months].reduce((latest, month) => (month > latest ? month : latest)),
+    )
   }
 
   return incomes.filter(
     (income) =>
       isReceivedIncome(income) &&
       getIncomePeriodMonth(income) ===
-        latestMonthByStream.get(recurringStreamKey(income)),
+        latestMonthByRecurringStream.get(recurringStreamKey(income)),
   )
 }
 

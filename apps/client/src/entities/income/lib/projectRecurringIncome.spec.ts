@@ -24,16 +24,34 @@ function income(overrides: Partial<Income>): Income {
 }
 
 describe('resolveRecurringIncomeTemplate', () => {
-  it('берёт последний факт по каждому потоку (тип + источник)', () => {
+  it('берёт последний месяц по каждому повторяющемуся потоку', () => {
     const template = resolveRecurringIncomeTemplate([
-      income({ id: 'a', source: 'Аванс', period_month: '2026-04', amount: '400' }),
-      income({ id: 'b', source: 'Аванс', period_month: '2026-06', amount: '450' }),
+      income({ id: 'a0', source: 'Аванс', period_month: '2026-04', amount: '400' }),
+      income({ id: 'a', source: 'Аванс', period_month: '2026-06', amount: '450' }),
+      income({ id: 'c0', source: 'Расчёт', period_month: '2026-05', amount: '800' }),
       income({ id: 'c', source: 'Расчёт', period_month: '2026-06', amount: '900' }),
     ])
 
     expect(template).toHaveLength(2)
-    expect(template.find((i) => i.source === 'Аванс')?.id).toBe('b')
+    expect(template.find((i) => i.source === 'Аванс')?.id).toBe('a')
     expect(template.find((i) => i.source === 'Расчёт')?.id).toBe('c')
+  })
+
+  it('исключает разовые потоки (встречались только в одном месяце)', () => {
+    const template = resolveRecurringIncomeTemplate([
+      income({ id: 'salary-may', source: 'Расчёт', period_month: '2026-05', amount: '70000' }),
+      income({ id: 'salary-jun', source: 'Расчёт', period_month: '2026-06', amount: '90000' }),
+      income({
+        id: 'bonus',
+        income_type: 'other',
+        source: 'Помощь',
+        period_month: '2026-06',
+        amount: '50000',
+      }),
+    ])
+
+    expect(template).toHaveLength(1)
+    expect(template[0].id).toBe('salary-jun')
   })
 
   it('сохраняет несколько выплат одного потока за последний месяц', () => {
@@ -99,7 +117,8 @@ describe('projectIncomesForMonth', () => {
 describe('buildProjectedIncomes', () => {
   it('EXPECTED имеет приоритет, будущие пустые месяцы заполняются фактом', () => {
     const history = [
-      income({ id: 'fact', amount: '1000', period_month: '2026-06' }),
+      income({ id: 'fact-may', amount: '1000', period_month: '2026-05' }),
+      income({ id: 'fact-jun', amount: '1000', period_month: '2026-06' }),
       income({
         id: 'expected-aug',
         status: 'EXPECTED',

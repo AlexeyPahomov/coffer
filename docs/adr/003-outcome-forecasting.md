@@ -23,7 +23,7 @@ This makes the two headline metrics fall out of the existing engine: the free-po
 
 ### Recurring income: explicit `EXPECTED` → else fact
 
-Per forecast month, income is resolved as: use entered `EXPECTED` incomes if any; otherwise, for months **strictly after** the current calendar month, replicate a "typical month" from history. The template is the **last `RECEIVED` income per stream `(income_type, source)`** — source is preserved because allocation-rule matching depends on it (аванс vs расчёт). The current and past months are never extrapolated (only real `EXPECTED`), so opening balance is not double-counted.
+Per forecast month, income is resolved as: use entered `EXPECTED` incomes if any; otherwise, for months **strictly after** the current calendar month, replicate a "typical month" from history. The template takes only **recurring streams** — a stream `(income_type, source)` seen in **≥2 distinct received months** — using each such stream's latest month. One-off incomes (bonus, refund, help, interest) are excluded, otherwise the template sums the last of every stream ever received and wildly overstates a monthly income. Source is preserved because allocation-rule matching depends on it (аванс vs расчёт). The current and past months are never extrapolated (only real `EXPECTED`), so opening balance is not double-counted.
 
 `resolveRecurringIncomeTemplate` / `buildProjectedIncomes` — `apps/client/src/entities/income/lib/projectRecurringIncome.ts`.
 
@@ -51,4 +51,4 @@ UI: `widgets/planning-outcome-forecast`. `planning-core` is **unchanged** — th
 - **Known limitations (v1):**
   - The per-category envelope forecast (`buildEnvelopeForecastChain`) still accumulates expense envelopes; only the headline treats expense allocation as consumed. Reconciling that view is deferred.
   - Envelope overspend is not charged back to the pool (`liquidityAdjustment` exists in the engine but is not derived) — the forecast is optimistic when rules under-fund real spending.
-  - The "last fact" fallback is skewed by an atypical most-recent income; a rolling median is a possible future refinement.
+  - The recurring-income template uses each stream's latest month amount as-is; if a recurring stream's amount varies, a rolling median would be a more robust future refinement.
