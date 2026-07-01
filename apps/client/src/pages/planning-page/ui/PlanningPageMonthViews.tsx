@@ -67,7 +67,21 @@ export function PlanningPageMonthBody({
         <TabsTrigger value="overview">Обзор</TabsTrigger>
       </TabsList>
 
-      <TabsContent value="plans" className="min-h-0">
+      <TabsContent
+        value="plans"
+        className="flex min-h-0 flex-col gap-4 md:gap-6"
+      >
+        {page.isBudgetLoading ? (
+          <PlanningSectionFallback label="Загрузка метрик" />
+        ) : (
+          <PlanningMonthMetrics
+            className="hidden md:grid"
+            projection={page.projection}
+            periodMonth={page.periodMonth}
+            expectedIncomeTotal={page.expectedIncomeTotal}
+          />
+        )}
+
         {page.isPlansLoading ? (
           <PageContentLoader className="min-h-40" />
         ) : (
@@ -84,21 +98,12 @@ export function PlanningPageMonthBody({
         className="flex min-h-0 flex-col gap-4 md:gap-6"
       >
         {page.isBudgetLoading ? (
-          <PlanningSectionFallback label="Загрузка метрик" />
+          <PlanningSectionFallback label="Загрузка ликвидности" />
         ) : (
-          <>
-            <PlanningMonthMetrics
-              className="hidden md:grid"
-              projection={page.projection}
-              periodMonth={page.periodMonth}
-              expectedIncomeTotal={page.expectedIncomeTotal}
-            />
-
-            <MonthLiquidityFlow
-              className="hidden md:flex"
-              {...liquidityFlowProps}
-            />
-          </>
+          <MonthLiquidityFlow
+            className="hidden md:flex"
+            {...liquidityFlowProps}
+          />
         )}
 
         {page.isForecastLoading ? (
