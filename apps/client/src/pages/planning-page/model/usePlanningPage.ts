@@ -9,6 +9,7 @@ import { resolveEnvelopeForecastInputs } from '@/entities/budget/lib/resolveEnve
 import { filterExpenseCategories } from '@/entities/category/lib/filterExpenseCategories'
 import { isSavingsCategory } from '@/entities/category/lib/categoryKind'
 import { buildProjectedIncomes } from '@/entities/income/lib/projectRecurringIncome'
+import { useCarouselTabs } from '@/shared/hooks/useCarouselTabs'
 import {
   DEFAULT_OUTCOME_HORIZON,
   type OutcomeHorizon,
@@ -35,6 +36,7 @@ import { buildPlanningForecast } from '../lib/buildPlanningForecast'
 import { buildEnvelopeForecastChain } from '../lib/buildEnvelopeForecast'
 import { buildForecastHorizonMonths } from '../lib/buildForecastHorizonMonths'
 import { buildSavingsTrajectory } from '../lib/buildSavingsTrajectory'
+import { PLANNING_TABS } from '../lib/planningTabs'
 import { usePlanningPeriodBudget } from './usePlanningPeriodBudget'
 
 const EMPTY_PLANNED_EXPENSES: readonly [] = []
@@ -58,6 +60,12 @@ export function usePlanningPage() {
   const [outcomeHorizon, setOutcomeHorizon] = useState<OutcomeHorizon>(
     DEFAULT_OUTCOME_HORIZON,
   )
+  const {
+    setCarouselApi: setTabsCarouselApi,
+    activeIndex: activeTabIndex,
+    selectSlide: selectTabSlide,
+  } = useCarouselTabs(PLANNING_TABS.length)
+  const activeTabId = PLANNING_TABS[activeTabIndex]?.id ?? PLANNING_TABS[0].id
   const currentCalendarMonth = currentMonthInputValue()
   const periodMonth = pickedPeriodMonth ?? currentCalendarMonth
   usePrefetchBudgetMonth(periodMonth)
@@ -263,6 +271,9 @@ export function usePlanningPage() {
       setPickedPeriodMonth(nextPeriodMonth),
     outcome,
     setOutcomeHorizon,
+    setTabsCarouselApi,
+    activeTabId,
+    selectTabSlide,
     periodLabel: operationalSummary.periodLabel,
     periodPlanned,
     projection,

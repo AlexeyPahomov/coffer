@@ -20,6 +20,7 @@ export function PlanningPageToolbarSlot({
       itemSwatches={page.itemSwatches}
       categories={page.expenseCategories}
       onSelectMonth={page.setPeriodMonth}
+      showAddFab={page.activeTabId === 'plans'}
     />
   )
 }

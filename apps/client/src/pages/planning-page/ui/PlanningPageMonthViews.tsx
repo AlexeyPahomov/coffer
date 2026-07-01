@@ -1,5 +1,4 @@
 import type { PlannedExpense } from '@/entities/planned-expense/model/types'
-import { useCarouselTabs } from '@/shared/hooks/useCarouselTabs'
 import {
   carouselTabsContentClassName,
   carouselTabsItemClassName,
@@ -21,6 +20,7 @@ import { PlanningMonthMetrics } from '@/widgets/planning-month-metrics'
 import { PlanningOutcomeForecast } from '@/widgets/planning-outcome-forecast'
 
 import { planningPageTabPanelScrollClassName } from '../lib/planningPageLayout'
+import { PLANNING_TABS } from '../lib/planningTabs'
 import type { usePlanningPage } from '../model/usePlanningPage'
 
 import { PlanningEnvelopeForecastSection } from './PlanningEnvelopeForecastSection'
@@ -31,12 +31,6 @@ type PlanningPageMonthViewsProps = {
   onEditPlanned: (item: PlannedExpense) => void
   onFinishPlanned: (item: PlannedExpense) => void
 }
-
-const PLANNING_TABS = [
-  { id: 'plans', label: 'Планы' },
-  { id: 'forecast', label: 'Прогноз' },
-  { id: 'overview', label: 'Обзор' },
-] as const
 
 function PlanningSectionFallback({
   label,
@@ -80,10 +74,6 @@ export function PlanningPageMonthBody({
   onEditPlanned,
   onFinishPlanned,
 }: PlanningPageMonthViewsProps) {
-  const { setCarouselApi, activeIndex, selectSlide } = useCarouselTabs(
-    PLANNING_TABS.length,
-  )
-  const activeSlideId = PLANNING_TABS[activeIndex]?.id ?? PLANNING_TABS[0].id
   const liquidityFlowProps = {
     projection: page.projection,
     expectedIncomeTotal: page.expectedIncomeTotal,
@@ -151,9 +141,9 @@ export function PlanningPageMonthBody({
       <div className="pb-2 md:pb-3">
         <SegmentedSwitcher
           items={PLANNING_TABS}
-          activeId={activeSlideId}
+          activeId={page.activeTabId}
           onSelect={(id) =>
-            selectSlide(PLANNING_TABS.findIndex((tab) => tab.id === id))
+            page.selectTabSlide(PLANNING_TABS.findIndex((tab) => tab.id === id))
           }
           ariaLabel="Разделы планирования"
         />
@@ -162,7 +152,7 @@ export function PlanningPageMonthBody({
       <Carousel
         className={carouselTabsViewportClassName}
         opts={carouselTabsOptions}
-        setApi={setCarouselApi}
+        setApi={page.setTabsCarouselApi}
       >
         <CarouselContent className={carouselTabsContentClassName}>
           {panels.map((panel, index) => (

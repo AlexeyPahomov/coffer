@@ -18,6 +18,8 @@ export type PlanningPageToolbarProps = {
   itemSwatches: Record<string, string[]>
   categories: readonly Category[]
   onSelectMonth: (periodMonth: string) => void
+  /** Мобильный FAB «Новый план» — только на вкладке «Планы». */
+  showAddFab?: boolean
 }
 
 export function PlanningPageToolbar({
@@ -27,6 +29,7 @@ export function PlanningPageToolbar({
   itemSwatches,
   categories,
   onSelectMonth,
+  showAddFab = true,
 }: PlanningPageToolbarProps) {
   const [createOpen, setCreateOpen] = useState(false)
 
@@ -51,7 +54,9 @@ export function PlanningPageToolbar({
         </div>
       </div>
 
-      <Fab label="Новый план" onClick={() => setCreateOpen(true)} />
+      {showAddFab ? (
+        <Fab label="Новый план" onClick={() => setCreateOpen(true)} />
+      ) : null}
 
       <CreatePlannedExpenseDialog
         open={createOpen}
