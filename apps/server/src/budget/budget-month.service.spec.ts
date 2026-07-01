@@ -10,24 +10,25 @@ import { BudgetMonthService } from './budget-month.service';
  * сервиса, а не БД.
  */
 describe('BudgetMonthService', () => {
+  type AsyncMock = jest.Mock<(...args: unknown[]) => Promise<unknown>>;
   let service: BudgetMonthService;
   let prisma: {
     budgetMonth: {
-      findUnique: jest.Mock;
-      findMany: jest.Mock;
+      findUnique: AsyncMock;
+      findMany: AsyncMock;
     };
     categoryMonthSnapshot: {
-      findMany: jest.Mock;
+      findMany: AsyncMock;
       createMany: jest.Mock;
       deleteMany: jest.Mock;
     };
-    category: { findMany: jest.Mock };
-    income: { findMany: jest.Mock };
-    plannedExpense: { aggregate: jest.Mock };
+    category: { findMany: AsyncMock };
+    income: { findMany: AsyncMock };
+    plannedExpense: { aggregate: AsyncMock };
     $transaction: jest.Mock;
   };
   let rebuildService: {
-    computeForPeriod: jest.Mock;
+    computeForPeriod: AsyncMock;
   };
   let tx: {
     monthCloseReport: { deleteMany: jest.Mock; create: jest.Mock };
@@ -41,24 +42,26 @@ describe('BudgetMonthService', () => {
     };
     prisma = {
       budgetMonth: {
-        findUnique: jest.fn(),
-        findMany: jest.fn(),
+        findUnique: jest.fn<(...args: unknown[]) => Promise<unknown>>(),
+        findMany: jest.fn<(...args: unknown[]) => Promise<unknown>>(),
       },
       categoryMonthSnapshot: {
-        findMany: jest.fn(),
+        findMany: jest.fn<(...args: unknown[]) => Promise<unknown>>(),
         createMany: jest.fn(),
         deleteMany: jest.fn(),
       },
-      category: { findMany: jest.fn() },
-      income: { findMany: jest.fn() },
-      plannedExpense: { aggregate: jest.fn() },
+      category: { findMany: jest.fn<(...args: unknown[]) => Promise<unknown>>() },
+      income: { findMany: jest.fn<(...args: unknown[]) => Promise<unknown>>() },
+      plannedExpense: {
+        aggregate: jest.fn<(...args: unknown[]) => Promise<unknown>>(),
+      },
       $transaction: jest.fn(),
     };
     prisma.$transaction.mockImplementation(
       (cb: (client: typeof tx) => Promise<unknown>) => cb(tx),
     );
     rebuildService = {
-      computeForPeriod: jest.fn(),
+      computeForPeriod: jest.fn<(...args: unknown[]) => Promise<unknown>>(),
     };
 
     service = new BudgetMonthService(prisma as never, rebuildService as never);

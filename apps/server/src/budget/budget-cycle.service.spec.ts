@@ -25,11 +25,21 @@ describe('BudgetCycleService', () => {
         {
           provide: PrismaService,
           useValue: {
-            budgetMonth: { findMany: jest.fn().mockResolvedValue([]) },
-            income: { findMany: jest.fn().mockResolvedValue([]) },
-            category: { findMany: jest.fn().mockResolvedValue([]) },
-            allocation: { findMany: jest.fn().mockResolvedValue([]) },
-            expense: { findMany: jest.fn().mockResolvedValue([]) },
+            budgetMonth: {
+              findMany: jest.fn<(...args: unknown[]) => Promise<unknown>>().mockResolvedValue([]),
+            },
+            income: {
+              findMany: jest.fn<(...args: unknown[]) => Promise<unknown>>().mockResolvedValue([]),
+            },
+            category: {
+              findMany: jest.fn<(...args: unknown[]) => Promise<unknown>>().mockResolvedValue([]),
+            },
+            allocation: {
+              findMany: jest.fn<(...args: unknown[]) => Promise<unknown>>().mockResolvedValue([]),
+            },
+            expense: {
+              findMany: jest.fn<(...args: unknown[]) => Promise<unknown>>().mockResolvedValue([]),
+            },
           },
         },
       ],
@@ -39,11 +49,11 @@ describe('BudgetCycleService', () => {
   });
 
   it('returns grocery balance across May advance cycle into early June', async () => {
-    const prisma = service['prisma'] as {
-      income: { findMany: jest.Mock };
-      category: { findMany: jest.Mock };
-      allocation: { findMany: jest.Mock };
-      expense: { findMany: jest.Mock };
+    const prisma = service['prisma'] as unknown as {
+      income: { findMany: jest.Mock<(...args: unknown[]) => Promise<unknown>> };
+      category: { findMany: jest.Mock<(...args: unknown[]) => Promise<unknown>> };
+      allocation: { findMany: jest.Mock<(...args: unknown[]) => Promise<unknown>> };
+      expense: { findMany: jest.Mock<(...args: unknown[]) => Promise<unknown>> };
     };
 
     prisma.income.findMany.mockResolvedValue([
@@ -131,8 +141,8 @@ describe('BudgetCycleService', () => {
   });
 
   it('throws when no received income exists before asOf', async () => {
-    const prisma = service['prisma'] as {
-      income: { findMany: jest.Mock };
+    const prisma = service['prisma'] as unknown as {
+      income: { findMany: jest.Mock<(...args: unknown[]) => Promise<unknown>> };
     };
     prisma.income.findMany.mockResolvedValue([]);
 

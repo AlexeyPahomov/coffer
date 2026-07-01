@@ -7,12 +7,13 @@ import { TransferService } from './transfer.service';
 
 describe('TransferService', () => {
   let service: TransferService;
+  type AsyncMock = jest.Mock<(...args: unknown[]) => Promise<unknown>>;
   let prisma: {
-    category: { findUnique: jest.Mock };
-    categoryMonthSnapshot: { findUnique: jest.Mock };
-    transfer: { create: jest.Mock; findFirst: jest.Mock; delete: jest.Mock };
+    category: { findUnique: AsyncMock };
+    categoryMonthSnapshot: { findUnique: AsyncMock };
+    transfer: { create: AsyncMock; findFirst: AsyncMock; delete: AsyncMock };
   };
-  let requireOpenMonth: jest.Mock;
+  let requireOpenMonth: AsyncMock;
   let onTransferCreated: jest.Mock;
 
   const dto = {
@@ -24,11 +25,15 @@ describe('TransferService', () => {
 
   beforeEach(async () => {
     prisma = {
-      category: { findUnique: jest.fn() },
-      categoryMonthSnapshot: { findUnique: jest.fn() },
-      transfer: { create: jest.fn(), findFirst: jest.fn(), delete: jest.fn() },
+      category: { findUnique: jest.fn<(...args: unknown[]) => Promise<unknown>>() },
+      categoryMonthSnapshot: { findUnique: jest.fn<(...args: unknown[]) => Promise<unknown>>() },
+      transfer: {
+        create: jest.fn<(...args: unknown[]) => Promise<unknown>>(),
+        findFirst: jest.fn<(...args: unknown[]) => Promise<unknown>>(),
+        delete: jest.fn<(...args: unknown[]) => Promise<unknown>>(),
+      },
     };
-    requireOpenMonth = jest.fn();
+    requireOpenMonth = jest.fn<(...args: unknown[]) => Promise<unknown>>();
     onTransferCreated = jest.fn();
 
     const module: TestingModule = await Test.createTestingModule({

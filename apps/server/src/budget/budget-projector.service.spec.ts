@@ -8,10 +8,11 @@ import { BudgetProjectorService } from './budget-projector.service';
  * `db` — параметр метода, поэтому мокается напрямую без NestJS DI.
  */
 describe('BudgetProjectorService', () => {
+  type AsyncMock = jest.Mock<(...args: unknown[]) => Promise<unknown>>;
   let projector: BudgetProjectorService;
-  let requireOpenMonth: jest.Mock;
-  let snapshot: { findUnique: jest.Mock; update: jest.Mock; create: jest.Mock };
-  let budgetMonth: { findUnique: jest.Mock };
+  let requireOpenMonth: AsyncMock;
+  let snapshot: { findUnique: AsyncMock; update: AsyncMock; create: AsyncMock };
+  let budgetMonth: { findUnique: AsyncMock };
   let db: {
     categoryMonthSnapshot: typeof snapshot;
     budgetMonth: typeof budgetMonth;
@@ -30,13 +31,13 @@ describe('BudgetProjectorService', () => {
   });
 
   beforeEach(() => {
-    requireOpenMonth = jest.fn();
+    requireOpenMonth = jest.fn<(...args: unknown[]) => Promise<unknown>>();
     snapshot = {
-      findUnique: jest.fn(),
-      update: jest.fn(),
-      create: jest.fn(),
+      findUnique: jest.fn<(...args: unknown[]) => Promise<unknown>>(),
+      update: jest.fn<(...args: unknown[]) => Promise<unknown>>(),
+      create: jest.fn<(...args: unknown[]) => Promise<unknown>>(),
     };
-    budgetMonth = { findUnique: jest.fn() };
+    budgetMonth = { findUnique: jest.fn<(...args: unknown[]) => Promise<unknown>>() };
     db = { categoryMonthSnapshot: snapshot, budgetMonth };
 
     projector = new BudgetProjectorService({

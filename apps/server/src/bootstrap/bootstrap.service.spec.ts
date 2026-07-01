@@ -6,19 +6,19 @@ import { BootstrapService } from './bootstrap.service';
 describe('BootstrapService', () => {
   let service: BootstrapService;
 
-  const plannedExpenseService = { findAll: jest.fn() };
-  const allocationRuleService = { findAll: jest.fn() };
+  const plannedExpenseService = { findAll: jest.fn<(...args: unknown[]) => Promise<unknown>>() };
+  const allocationRuleService = { findAll: jest.fn<(...args: unknown[]) => Promise<unknown>>() };
   const budgetCycleService = {
-    getClosedPeriodMonths: jest.fn(),
+    getClosedPeriodMonths: jest.fn<(...args: unknown[]) => Promise<unknown>>(),
     getCurrentViewFromInputs: jest.fn(),
   };
   const budgetMonthService = {
-    getBudgetMonthMeta: jest.fn(),
-    getViewOrOpenFromInputs: jest.fn(),
+    getBudgetMonthMeta: jest.fn<(...args: unknown[]) => Promise<unknown>>(),
+    getViewOrOpenFromInputs: jest.fn<(...args: unknown[]) => Promise<unknown>>(),
   };
   const budgetLedgerSummaryService = { computeFromInputs: jest.fn() };
   const rebuildService = {
-    loadBootstrapLedgerBundle: jest.fn(),
+    loadBootstrapLedgerBundle: jest.fn<(...args: unknown[]) => Promise<unknown>>(),
     toRebuildInputs: jest.fn(),
   };
 

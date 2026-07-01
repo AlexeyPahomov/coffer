@@ -7,27 +7,28 @@ import { AllocationService } from './allocation.service';
 
 describe('AllocationService', () => {
   let service: AllocationService;
+  type AsyncMock = jest.Mock<(...args: unknown[]) => Promise<unknown>>;
   let prisma: {
-    income: { findUnique: jest.Mock };
+    income: { findUnique: AsyncMock };
     allocation: {
-      findMany: jest.Mock;
-      findFirst: jest.Mock;
-      create: jest.Mock;
-      update: jest.Mock;
+      findMany: AsyncMock;
+      findFirst: AsyncMock;
+      create: AsyncMock;
+      update: AsyncMock;
     };
-    category: { findUnique: jest.Mock };
+    category: { findUnique: AsyncMock };
   };
 
   beforeEach(async () => {
     prisma = {
-      income: { findUnique: jest.fn() },
+      income: { findUnique: jest.fn<(...args: unknown[]) => Promise<unknown>>() },
       allocation: {
-        findMany: jest.fn(),
-        findFirst: jest.fn(),
-        create: jest.fn(),
-        update: jest.fn(),
+        findMany: jest.fn<(...args: unknown[]) => Promise<unknown>>(),
+        findFirst: jest.fn<(...args: unknown[]) => Promise<unknown>>(),
+        create: jest.fn<(...args: unknown[]) => Promise<unknown>>(),
+        update: jest.fn<(...args: unknown[]) => Promise<unknown>>(),
       },
-      category: { findUnique: jest.fn() },
+      category: { findUnique: jest.fn<(...args: unknown[]) => Promise<unknown>>() },
     };
 
     const module: TestingModule = await Test.createTestingModule({
