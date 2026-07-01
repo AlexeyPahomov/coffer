@@ -12,6 +12,7 @@ import { MonthLiquidityFlow, PlanningMobileLiquidityHeader } from '@/widgets/liq
 import { PlanningMonthMetrics } from '@/widgets/planning-month-metrics'
 import { PlanningOutcomeForecast } from '@/widgets/planning-outcome-forecast'
 
+import { planningPageTabPanelScrollClassName } from '../lib/planningPageLayout'
 import type { usePlanningPage } from '../model/usePlanningPage'
 
 import { PlanningEnvelopeForecastSection } from './PlanningEnvelopeForecastSection'
@@ -148,12 +149,12 @@ export function PlanningPageMonthBody({
         activeId={activeTab}
         onSelect={setActiveTab}
         ariaLabel="Разделы планирования"
-        className="self-start"
+        className="shrink-0 self-start"
       />
 
       <ContentTransition
         contentKey={activeTab}
-        className="flex min-h-0 flex-1 flex-col"
+        className={planningPageTabPanelScrollClassName}
       >
         {activePanel}
       </ContentTransition>

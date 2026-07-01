@@ -2,17 +2,15 @@ import { cn } from '@/shared/lib/utils'
 import {
   pageScrollRingInsetClassName,
   safariIosFlexFillClassName,
+  scrollAreaClassName,
 } from '@/shared/lib/scrollLayout'
 import { contentTransitionOutletShellClassName } from '@/shared/ui/content-transition/contentTransitionLayout'
 import { mobileFabScrollReserveClassName } from '@/shared/ui/fab'
 
-/** Оболочка страницы: на мобилке скролл у тела месяца; на md — вся страница. */
+/** Оболочка страницы: фиксированной высоты, скролл — в теле активной вкладки. */
 export const planningPageShellClassName = cn(
-  'flex min-h-0 min-w-0 flex-1 flex-col overflow-x-hidden',
-  'max-md:overflow-hidden max-md:overscroll-none',
-  'md:gap-6 md:overflow-y-auto md:overscroll-y-auto',
-  'coffer-scroll-list md:[overflow-anchor:none]',
-  pageScrollRingInsetClassName,
+  'flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden overscroll-none',
+  'md:gap-6',
   safariIosFlexFillClassName,
 )
 
@@ -23,22 +21,25 @@ export const planningPageToolbarStickyClassName = cn(
   "md:before:pointer-events-none md:before:absolute md:before:inset-x-0 md:before:-top-6 md:before:h-6 md:before:bg-background md:before:content-['']",
 )
 
-/** Смена месяца: на мобилке flex-область под шапкой; на md — блок в общем скролле. */
+/** Смена месяца: flex-область под шапкой, заполняет доступную высоту. */
 export const planningPageMonthTransitionClassName = cn(
   contentTransitionOutletShellClassName,
   'min-h-0 flex-1',
-  'md:flex-none md:overflow-visible',
   safariIosFlexFillClassName,
 )
 
-/** Тело месяца: на мобилке общий scrollport для прогноза и списка планов. */
+/** Тело месяца: фиксированный столбец (шапка вкладок + прокручиваемая панель). */
 export const planningPageMonthBodyClassName = cn(
-  'flex min-h-0 flex-1 flex-col gap-4 max-md:min-h-0 max-md:gap-2',
-  'max-md:overflow-y-auto max-md:overscroll-y-auto',
-  'coffer-scroll-list max-md:[overflow-anchor:none]',
+  'flex min-h-0 min-w-0 flex-1 flex-col gap-4 md:gap-6 max-md:gap-2',
+)
+
+/** Скролл только тела активной вкладки (под шапкой вкладок). */
+export const planningPageTabPanelScrollClassName = cn(
+  'flex min-h-0 min-w-0 flex-1 flex-col overflow-x-hidden',
+  scrollAreaClassName,
   mobileFabScrollReserveClassName,
-  'md:flex-none md:gap-6',
-  'max-md:pe-2',
+  pageScrollRingInsetClassName,
+  'max-md:pe-2 max-md:pb-8',
 )
 
 /** Секция планов теперь всегда живёт в потоке тела месяца. */
