@@ -7,6 +7,13 @@ import { usePrefetchBudgetMonth } from '@/entities/budget-month/api/usePrefetchB
 import { usePrefetchPeriodLedgerSummary } from '@/entities/period-ledger-summary'
 import { resolveEnvelopeForecastInputs } from '@/entities/budget/lib/resolveEnvelopeForecastInputs'
 import { filterExpenseCategories } from '@/entities/category/lib/filterExpenseCategories'
+import { isSavingsCategory } from '@/entities/category/lib/categoryKind'
+import { buildProjectedIncomes } from '@/entities/income/lib/projectRecurringIncome'
+import {
+  DEFAULT_OUTCOME_HORIZON,
+  type OutcomeHorizon,
+  type PlanningOutcome,
+} from '@/widgets/planning-outcome-forecast'
 import {
   fullReserveMutationArgs,
   unreservePlannedExpenseMutationArgs,
@@ -26,6 +33,8 @@ import { currentMonthInputValue } from '@/shared/lib/date'
 
 import { buildPlanningForecast } from '../lib/buildPlanningForecast'
 import { buildEnvelopeForecastChain } from '../lib/buildEnvelopeForecast'
+import { buildForecastHorizonMonths } from '../lib/buildForecastHorizonMonths'
+import { buildSavingsTrajectory } from '../lib/buildSavingsTrajectory'
 import { usePlanningPeriodBudget } from './usePlanningPeriodBudget'
 
 const EMPTY_PLANNED_EXPENSES: readonly [] = []
@@ -46,7 +55,11 @@ function forecastMonthToProjection(
 
 export function usePlanningPage() {
   const [pickedPeriodMonth, setPickedPeriodMonth] = useState<string | null>(null)
-  const periodMonth = pickedPeriodMonth ?? currentMonthInputValue()
+  const [outcomeHorizon, setOutcomeHorizon] = useState<OutcomeHorizon>(
+    DEFAULT_OUTCOME_HORIZON,
+  )
+  const currentCalendarMonth = currentMonthInputValue()
+  const periodMonth = pickedPeriodMonth ?? currentCalendarMonth
   usePrefetchBudgetMonth(periodMonth)
   usePrefetchPeriodLedgerSummary(periodMonth)
   const ledgerEvents = useBudgetLedgerEventsQuery(true)
@@ -184,10 +197,79 @@ export function usePlanningPage() {
     ],
   )
 
+  const savingsCategoryIds = useMemo(
+    () =>
+      new Set(
+        core.categories
+          .filter((category) => isSavingsCategory(category.type))
+          .map((category) => category.id),
+      ),
+    [core.categories],
+  )
+
+  const outcome = useMemo<PlanningOutcome>(() => {
+    const horizonMonths = buildForecastHorizonMonths(periodMonth, outcomeHorizon)
+    const projectedIncomes = buildProjectedIncomes(
+      horizonMonths,
+      core.incomes,
+      currentCalendarMonth,
+    )
+    const rules = allocationRulesQuery.data ?? []
+
+    const outcomeForecast = buildPlanningForecast({
+      months: horizonMonths,
+      incomes: projectedIncomes,
+      plannedExpenses: allPlanned,
+      rules,
+      initialAvailable: operationalSummary.available,
+    })
+    const savingsTrajectory = buildSavingsTrajectory({
+      months: horizonMonths,
+      incomes: projectedIncomes,
+      rules,
+      plannedExpenses: allPlanned,
+      savingsCategoryIds,
+      initialBalance: operationalSummary.inReserve,
+    })
+
+    const months = outcomeForecast.months.map((forecastMonthPoint, index) => ({
+      month: forecastMonthPoint.month,
+      label: formatPlanningPeriodLabel(forecastMonthPoint.month),
+      projectedFree: forecastMonthPoint.projectedFree,
+      savingsBalance: savingsTrajectory[index]?.balance ?? 0,
+      deficit: forecastMonthPoint.deficit,
+    }))
+    const lastPoint = months[months.length - 1]
+
+    return {
+      horizon: outcomeHorizon,
+      horizonLabel: lastPoint?.label ?? '',
+      poolNow: operationalSummary.available,
+      poolAtHorizon: lastPoint?.projectedFree ?? operationalSummary.available,
+      savingsNow: operationalSummary.inReserve,
+      savingsAtHorizon: lastPoint?.savingsBalance ?? operationalSummary.inReserve,
+      hasDeficit: outcomeForecast.metadata.hasDeficit,
+      firstDeficitMonth: outcomeForecast.metadata.firstDeficitMonth,
+      months,
+    }
+  }, [
+    allPlanned,
+    allocationRulesQuery.data,
+    core.incomes,
+    currentCalendarMonth,
+    operationalSummary.available,
+    operationalSummary.inReserve,
+    outcomeHorizon,
+    periodMonth,
+    savingsCategoryIds,
+  ])
+
   return {
     periodMonth,
     setPeriodMonth: (nextPeriodMonth: string) =>
       setPickedPeriodMonth(nextPeriodMonth),
+    outcome,
+    setOutcomeHorizon,
     periodLabel: operationalSummary.periodLabel,
     periodPlanned,
     projection,

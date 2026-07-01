@@ -239,6 +239,23 @@ export function sumExpectedEnvelopeAllocationForMonth(
   )
 }
 
+/** Сумма прогнозного распределения ожидаемых доходов в savings-конверты за месяц. */
+export function sumSavingsAllocationForMonth(
+  periodMonth: string,
+  incomes: readonly Income[],
+  rules: readonly AllocationRule[],
+): number {
+  const { forecastByCategoryId } = buildForecastAmountsForMonth({
+    periodMonth,
+    incomes,
+    rules,
+  })
+
+  return [...forecastByCategoryId.values()]
+    .filter((item) => isSavingsCategory(item.category.type))
+    .reduce((sum, item) => sum + item.amount, 0)
+}
+
 function resolveEnvelopeRemaining(
   item: CategoryBudgetItem,
   savingsReserveBalance: number | undefined,
@@ -369,7 +386,7 @@ function buildMonthEnvelopeForecast(
   }
 }
 
-function plannedCommitmentsForMonth(
+export function plannedCommitmentsForMonth(
   plannedExpenses: readonly PlannedExpense[],
   periodMonth: string,
 ): Map<string, number> {

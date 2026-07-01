@@ -9,7 +9,7 @@
 - **Доходы** — учёт поступлений за период
 - **Allocation** — распределение дохода по категориям (конверты)
 - **Расходы** — траты по категориям с оперативным балансом
-- **Planning** — планируемые траты, резервирование ликвидности, прогноз по месяцам
+- **Planning** — планируемые траты, резервирование ликвидности, прогноз по месяцам и прогноз результата «если продолжу как сейчас» на 3/6/12 месяцев (свободный пул + накопления)
 - **Категории** — настройка типов, иконок, политики переноса остатка (`RESET` / `CARRY` / `TRANSFER_TO_FREE`)
 - **Бюджетный месяц** — снимки (`CategoryMonthSnapshot`), проекции и отчёт при закрытии месяца
 
@@ -65,7 +65,7 @@ Prisma-схема: `apps/server/prisma/schema.prisma`. Клиент генери
 - **`@coffer/shared`** — периоды, конверты, деньги, иконки; используется клиентом и сервером
 - **`@coffer/planning-core`** — `projectMonthBudget`, прогноз по цепочке месяцев; сервер делегирует через `ProjectionService`, клиент — через `processes/forecasting`
 
-Подробнее: [docs/adr/001-budget-projections.md](docs/adr/001-budget-projections.md), [docs/adr/002-planning-bounded-context.md](docs/adr/002-planning-bounded-context.md).
+Подробнее: [docs/adr/001-budget-projections.md](docs/adr/001-budget-projections.md), [docs/adr/002-planning-bounded-context.md](docs/adr/002-planning-bounded-context.md), [docs/adr/003-outcome-forecasting.md](docs/adr/003-outcome-forecasting.md).
 
 ## Инфраструктура
 

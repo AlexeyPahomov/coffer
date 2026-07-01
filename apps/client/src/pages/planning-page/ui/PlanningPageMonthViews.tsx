@@ -2,6 +2,7 @@ import type { PlannedExpense } from '@/entities/planned-expense/model/types'
 import { PageContentLoader, Spinner } from '@/shared/ui'
 import { MonthLiquidityFlow, PlanningMobileLiquidityHeader } from '@/widgets/liquidity-flow-preview'
 import { PlanningMonthMetrics } from '@/widgets/planning-month-metrics'
+import { PlanningOutcomeForecast } from '@/widgets/planning-outcome-forecast'
 
 import type { usePlanningPage } from '../model/usePlanningPage'
 
@@ -70,6 +71,15 @@ export function PlanningPageMonthBody({
             {...liquidityFlowProps}
           />
         </>
+      )}
+
+      {page.isForecastLoading ? (
+        <PlanningSectionFallback label="Загрузка прогноза результата" />
+      ) : (
+        <PlanningOutcomeForecast
+          outcome={page.outcome}
+          onHorizonChange={page.setOutcomeHorizon}
+        />
       )}
 
       {page.isForecastLoading ? (
