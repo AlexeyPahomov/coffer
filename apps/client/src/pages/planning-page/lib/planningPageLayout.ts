@@ -1,8 +1,5 @@
 import { cn } from '@/shared/lib/utils'
-import {
-  safariIosFlexFillClassName,
-  scrollAreaClassName,
-} from '@/shared/lib/scrollLayout'
+import { safariIosFlexFillClassName } from '@/shared/lib/scrollLayout'
 import { contentTransitionOutletShellClassName } from '@/shared/ui/content-transition/contentTransitionLayout'
 import { mobileFabScrollReserveClassName } from '@/shared/ui/fab'
 
@@ -32,10 +29,14 @@ export const planningPageMonthBodyClassName = cn(
   'flex min-h-0 min-w-0 flex-1 flex-col gap-4 md:gap-6 max-md:gap-2',
 )
 
-/** Скролл только тела активной вкладки (слайд карусели). Классы как у Расходов. */
+/**
+ * Скролл только тела активной вкладки (слайд карусели). Скроллбар скрыт
+ * (no-scrollbar, без scrollbar-gutter): иначе зарезервированная полоса
+ * соседнего слайда «подглядывает» из-за суб-пиксельного сдвига embla.
+ */
 export const planningPageTabPanelScrollClassName = cn(
   'flex h-full min-h-0 w-full min-w-0 flex-col',
-  scrollAreaClassName,
+  'no-scrollbar overflow-y-auto overscroll-y-auto [overflow-anchor:none]',
   mobileFabScrollReserveClassName,
   'max-md:ps-px max-md:pt-1.5 max-md:pe-2 max-md:pb-8',
   'md:pt-0.5 md:ps-px md:pe-0',
