@@ -64,6 +64,7 @@ export function PlanningPageMonthBody({
     <Tabs defaultValue="plans" className="min-h-0 flex-1">
       <TabsList className="max-md:w-full">
         <TabsTrigger value="plans">Планы</TabsTrigger>
+        <TabsTrigger value="forecast">Прогноз</TabsTrigger>
         <TabsTrigger value="overview">Обзор</TabsTrigger>
       </TabsList>
 
@@ -93,6 +94,17 @@ export function PlanningPageMonthBody({
         )}
       </TabsContent>
 
+      <TabsContent value="forecast" className="min-h-0">
+        {page.isForecastLoading ? (
+          <PlanningSectionFallback label="Загрузка прогноза по месяцам" />
+        ) : (
+          <PlanningOutcomeForecast
+            outcome={page.outcome}
+            onHorizonChange={page.setOutcomeHorizon}
+          />
+        )}
+      </TabsContent>
+
       <TabsContent
         value="overview"
         className="flex min-h-0 flex-col gap-4 md:gap-6"
@@ -103,15 +115,6 @@ export function PlanningPageMonthBody({
           <MonthLiquidityFlow
             className="hidden md:flex"
             {...liquidityFlowProps}
-          />
-        )}
-
-        {page.isForecastLoading ? (
-          <PlanningSectionFallback label="Загрузка прогноза по месяцам" />
-        ) : (
-          <PlanningOutcomeForecast
-            outcome={page.outcome}
-            onHorizonChange={page.setOutcomeHorizon}
           />
         )}
 
