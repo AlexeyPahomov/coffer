@@ -2,7 +2,12 @@ import { useState } from 'react'
 
 import type { PlannedExpense } from '@/entities/planned-expense/model/types'
 import { cn } from '@/shared/lib/utils'
-import { PageContentLoader, SegmentedSwitcher, Spinner } from '@/shared/ui'
+import {
+  ContentTransition,
+  PageContentLoader,
+  SegmentedSwitcher,
+  Spinner,
+} from '@/shared/ui'
 import { MonthLiquidityFlow, PlanningMobileLiquidityHeader } from '@/widgets/liquidity-flow-preview'
 import { PlanningMonthMetrics } from '@/widgets/planning-month-metrics'
 import { PlanningOutcomeForecast } from '@/widgets/planning-outcome-forecast'
@@ -74,6 +79,68 @@ export function PlanningPageMonthBody({
     expectedIncomeTotal: page.expectedIncomeTotal,
   }
 
+  const plansPanel = (
+    <div className="flex min-h-0 flex-col gap-4 md:gap-6">
+      {page.isBudgetLoading ? (
+        <PlanningSectionFallback
+          label="Загрузка метрик"
+          className="hidden md:flex"
+        />
+      ) : (
+        <PlanningMonthMetrics
+          className="hidden md:grid"
+          projection={page.projection}
+          savingsTotal={page.savingsTotal}
+        />
+      )}
+
+      {page.isPlansLoading ? (
+        <PageContentLoader className="min-h-40" />
+      ) : (
+        <PlanningPagePlansSection
+          page={page}
+          onEditPlanned={onEditPlanned}
+          onFinishPlanned={onFinishPlanned}
+        />
+      )}
+    </div>
+  )
+
+  const forecastPanel = page.isForecastLoading ? (
+    <PlanningSectionFallback label="Загрузка прогноза по месяцам" />
+  ) : (
+    <PlanningOutcomeForecast
+      outcome={page.outcome}
+      onHorizonChange={page.setOutcomeHorizon}
+    />
+  )
+
+  const overviewPanel = (
+    <div className="flex min-h-0 flex-col gap-4 md:gap-6">
+      {page.isBudgetLoading ? (
+        <PlanningSectionFallback
+          label="Загрузка ликвидности"
+          className="hidden md:flex"
+        />
+      ) : (
+        <MonthLiquidityFlow className="hidden md:flex" {...liquidityFlowProps} />
+      )}
+
+      {page.isForecastLoading ? (
+        <PlanningSectionFallback label="Загрузка прогноза конвертов" />
+      ) : (
+        <PlanningEnvelopeForecastSection forecast={page.envelopeForecast} />
+      )}
+    </div>
+  )
+
+  const activePanel =
+    activeTab === 'plans'
+      ? plansPanel
+      : activeTab === 'forecast'
+        ? forecastPanel
+        : overviewPanel
+
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4 md:gap-6">
       <SegmentedSwitcher
@@ -84,65 +151,12 @@ export function PlanningPageMonthBody({
         className="self-start"
       />
 
-      {activeTab === 'plans' ? (
-        <div className="flex min-h-0 flex-col gap-4 md:gap-6">
-          {page.isBudgetLoading ? (
-            <PlanningSectionFallback
-              label="Загрузка метрик"
-              className="hidden md:flex"
-            />
-          ) : (
-            <PlanningMonthMetrics
-              className="hidden md:grid"
-              projection={page.projection}
-              savingsTotal={page.savingsTotal}
-            />
-          )}
-
-          {page.isPlansLoading ? (
-            <PageContentLoader className="min-h-40" />
-          ) : (
-            <PlanningPagePlansSection
-              page={page}
-              onEditPlanned={onEditPlanned}
-              onFinishPlanned={onFinishPlanned}
-            />
-          )}
-        </div>
-      ) : null}
-
-      {activeTab === 'forecast' ? (
-        page.isForecastLoading ? (
-          <PlanningSectionFallback label="Загрузка прогноза по месяцам" />
-        ) : (
-          <PlanningOutcomeForecast
-            outcome={page.outcome}
-            onHorizonChange={page.setOutcomeHorizon}
-          />
-        )
-      ) : null}
-
-      {activeTab === 'overview' ? (
-        <div className="flex min-h-0 flex-col gap-4 md:gap-6">
-          {page.isBudgetLoading ? (
-            <PlanningSectionFallback
-              label="Загрузка ликвидности"
-              className="hidden md:flex"
-            />
-          ) : (
-            <MonthLiquidityFlow
-              className="hidden md:flex"
-              {...liquidityFlowProps}
-            />
-          )}
-
-          {page.isForecastLoading ? (
-            <PlanningSectionFallback label="Загрузка прогноза конвертов" />
-          ) : (
-            <PlanningEnvelopeForecastSection forecast={page.envelopeForecast} />
-          )}
-        </div>
-      ) : null}
+      <ContentTransition
+        contentKey={activeTab}
+        className="flex min-h-0 flex-1 flex-col"
+      >
+        {activePanel}
+      </ContentTransition>
     </div>
   )
 }
