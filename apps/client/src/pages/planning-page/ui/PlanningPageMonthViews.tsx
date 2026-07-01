@@ -81,6 +81,7 @@ export function PlanningPageMonthBody({
         activeId={activeTab}
         onSelect={setActiveTab}
         ariaLabel="Разделы планирования"
+        className="self-start"
       />
 
       {activeTab === 'plans' ? (
