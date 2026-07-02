@@ -1,5 +1,4 @@
 import type { Income } from '@/entities/income/model/types'
-import { toMoneyNumber } from '@/shared/lib/money'
 
 import { getIncomePeriodMonth } from './incomePeriodMonth'
 import { isReceivedIncome } from './incomeStatus'
@@ -13,46 +12,19 @@ function recurringStreamKey(income: Income): string {
 /** Поток считается повторяющимся, если встречался минимум в стольких месяцах. */
 const RECURRING_STREAM_MIN_MONTHS = 2
 
-/** Скользящее окно (в месяцах появления потока) для медианы прогнозной суммы. */
-const RECURRING_MEDIAN_WINDOW_MONTHS = 6
-
-/** Медиана; при чётном числе значений — среднее двух центральных. */
-function median(values: readonly number[]): number {
-  if (values.length === 0) {
-    return 0
-  }
-
-  const sorted = [...values].sort((a, b) => a - b)
-  const mid = Math.floor(sorted.length / 2)
-
-  return sorted.length % 2 === 0
-    ? (sorted[mid - 1] + sorted[mid]) / 2
-    : sorted[mid]
-}
-
-type StreamAggregate = {
-  monthlyTotals: Map<string, number>
-  latestMonth: string
-  representative: Income
-}
-
 /**
  * «Типичный месяц» для экстраполяции дохода на будущее.
  *
  * Берём только ПОВТОРЯЮЩИЕСЯ потоки (income_type + source), встречавшиеся
- * минимум в {@link RECURRING_STREAM_MIN_MONTHS} разных месяцах. Разовые доходы
- * (бонус, возврат, помощь и т.п.) не проецируются как ежемесячные.
- *
- * Прогнозная сумма потока — МЕДИАНА его помесячных сумм по скользящему окну из
- * последних {@link RECURRING_MEDIAN_WINDOW_MONTHS} месяцев (устойчивее к
- * аномальному последнему месяцу, чем «последняя сумма как есть»). Эмитим одну
- * синтетическую запись на поток на базе последнего месяца (сохраняем source /
- * income_type для матчинга allocation-rules), подменив сумму на медиану.
+ * минимум в {@link RECURRING_STREAM_MIN_MONTHS} разных месяцах — от каждого
+ * все поступления за его последний месяц. Разовые доходы (бонус, возврат,
+ * помощь и т.п.) не проецируются как ежемесячные, иначе шаблон раздувается.
+ * Источник сохраняется — от него зависит матчинг allocation-rules.
  */
 export function resolveRecurringIncomeTemplate(
   incomes: readonly Income[],
 ): Income[] {
-  const byStream = new Map<string, StreamAggregate>()
+  const monthsByStream = new Map<string, Set<string>>()
 
   for (const income of incomes) {
     if (!isReceivedIncome(income)) {
@@ -60,47 +32,30 @@ export function resolveRecurringIncomeTemplate(
     }
 
     const key = recurringStreamKey(income)
-    const month = getIncomePeriodMonth(income)
-    const aggregate = byStream.get(key)
+    const months = monthsByStream.get(key) ?? new Set<string>()
+    months.add(getIncomePeriodMonth(income))
+    monthsByStream.set(key, months)
+  }
 
-    if (!aggregate) {
-      byStream.set(key, {
-        monthlyTotals: new Map([[month, toMoneyNumber(income.amount)]]),
-        latestMonth: month,
-        representative: income,
-      })
+  const latestMonthByRecurringStream = new Map<string, string>()
+
+  for (const [key, months] of monthsByStream) {
+    if (months.size < RECURRING_STREAM_MIN_MONTHS) {
       continue
     }
 
-    aggregate.monthlyTotals.set(
-      month,
-      (aggregate.monthlyTotals.get(month) ?? 0) + toMoneyNumber(income.amount),
+    latestMonthByRecurringStream.set(
+      key,
+      [...months].reduce((latest, month) => (month > latest ? month : latest)),
     )
-    if (month >= aggregate.latestMonth) {
-      aggregate.latestMonth = month
-      aggregate.representative = income
-    }
   }
 
-  const template: Income[] = []
-
-  for (const { monthlyTotals, representative } of byStream.values()) {
-    if (monthlyTotals.size < RECURRING_STREAM_MIN_MONTHS) {
-      continue
-    }
-
-    const recentTotals = [...monthlyTotals.entries()]
-      .sort(([a], [b]) => (a < b ? 1 : a > b ? -1 : 0))
-      .slice(0, RECURRING_MEDIAN_WINDOW_MONTHS)
-      .map(([, total]) => total)
-
-    template.push({
-      ...representative,
-      amount: String(Math.round(median(recentTotals) * 100) / 100),
-    })
-  }
-
-  return template
+  return incomes.filter(
+    (income) =>
+      isReceivedIncome(income) &&
+      getIncomePeriodMonth(income) ===
+        latestMonthByRecurringStream.get(recurringStreamKey(income)),
+  )
 }
 
 function projectTemplateIncomeToMonth(income: Income, month: string): Income {
