@@ -57,7 +57,7 @@ export function PlanningEnvelopeForecastSection({
               infoHintTitleTextClassName,
             )}
           >
-            Прогноз конвертов
+            Конверты
           </h2>
         </div>
         <InfoHint label="Прогноз конвертов" align="end" className="shrink-0">
