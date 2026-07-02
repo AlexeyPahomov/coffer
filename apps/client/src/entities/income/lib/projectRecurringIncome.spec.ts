@@ -54,14 +54,43 @@ describe('resolveRecurringIncomeTemplate', () => {
     expect(template[0].id).toBe('salary-jun')
   })
 
-  it('сохраняет несколько выплат одного потока за последний месяц', () => {
+  it('схлопывает несколько выплат потока за месяц в медиану помесячных сумм', () => {
     const template = resolveRecurringIncomeTemplate([
       income({ id: 'old', source: 'Acme', period_month: '2026-05', amount: '100' }),
       income({ id: 'a', source: 'Acme', period_month: '2026-06', amount: '20000' }),
       income({ id: 'b', source: 'Acme', period_month: '2026-06', amount: '20000' }),
     ])
 
-    expect(template.map((i) => i.id).sort()).toEqual(['a', 'b'])
+    // Месячные суммы: 2026-05 → 100, 2026-06 → 40000. Медиана = 20050.
+    expect(template).toHaveLength(1)
+    expect(template[0].amount).toBe('20050')
+  })
+
+  it('берёт медиану помесячных сумм, а не последний месяц', () => {
+    const template = resolveRecurringIncomeTemplate([
+      income({ source: 'Расчёт', period_month: '2026-04', amount: '100' }),
+      income({ source: 'Расчёт', period_month: '2026-05', amount: '200' }),
+      income({ source: 'Расчёт', period_month: '2026-06', amount: '900' }),
+    ])
+
+    // Последний месяц (900) аномален — медиана [100, 200, 900] = 200.
+    expect(template).toHaveLength(1)
+    expect(template[0].amount).toBe('200')
+  })
+
+  it('ограничивает медиану скользящим окном из последних 6 месяцев', () => {
+    const template = resolveRecurringIncomeTemplate([
+      income({ source: 'Расчёт', period_month: '2026-01', amount: '1' }),
+      income({ source: 'Расчёт', period_month: '2026-02', amount: '100' }),
+      income({ source: 'Расчёт', period_month: '2026-03', amount: '100' }),
+      income({ source: 'Расчёт', period_month: '2026-04', amount: '100' }),
+      income({ source: 'Расчёт', period_month: '2026-05', amount: '100' }),
+      income({ source: 'Расчёт', period_month: '2026-06', amount: '100' }),
+      income({ source: 'Расчёт', period_month: '2026-07', amount: '100' }),
+    ])
+
+    // Старейший месяц (2026-01 → 1) выпадает из окна 6 → медиана шести сотен = 100.
+    expect(template[0].amount).toBe('100')
   })
 
   it('игнорирует EXPECTED-доходы', () => {
