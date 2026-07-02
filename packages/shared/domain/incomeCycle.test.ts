@@ -3,11 +3,13 @@ import { describe, it } from 'node:test'
 
 import type {
   BudgetCycleAllocation,
+  BudgetCycleTransfer,
   ReceivedIncomeRow,
   RebuiltCycleCategoryBudget,
 } from './incomeCycle.js'
 import {
   computeCategoryBudgetsForCycle,
+  expandTransfersToCycleAllocations,
   resolveActiveIncomeCycle,
 } from './incomeCycle.js'
 
@@ -829,5 +831,174 @@ describe('computeCategoryBudgetsForCycle', () => {
     assert.equal(apartment?.openingBalance, 0)
     assert.equal(apartment?.allocated, 7_000)
     assert.equal(apartment?.closingBalance, 7_000)
+  })
+})
+
+describe('expandTransfersToCycleAllocations', () => {
+  it('splits a transfer into two signed rows anchored by created_at', () => {
+    const rows = expandTransfersToCycleAllocations([
+      {
+        from_category_id: 'groceries',
+        to_category_id: 'fun',
+        amount: 2_000,
+        period_month: '2026-06',
+        created_at: '2026-06-25T14:30:00.000Z',
+      },
+    ])
+
+    assert.equal(rows.length, 2)
+    assert.equal(
+      rows.reduce((sum, row) => sum + Number(row.amount), 0),
+      0,
+    )
+
+    const from = rows.find((row) => row.category_id === 'groceries')
+    const to = rows.find((row) => row.category_id === 'fun')
+    assert.equal(from?.amount, -2_000)
+    assert.equal(to?.amount, 2_000)
+    // Якорь цикла — реальная дата записи, отсев закрытых — по учётному месяцу.
+    assert.equal(from?.income_received_at, '2026-06-25')
+    assert.equal(from?.income_period_month, '2026-06')
+  })
+
+  it('withdrawal to free pool (to=null) yields a single signed row', () => {
+    const rows = expandTransfersToCycleAllocations([
+      {
+        from_category_id: 'savings',
+        to_category_id: null,
+        amount: 5_000,
+        period_month: '2026-06',
+        created_at: '2026-06-25T14:30:00.000Z',
+      },
+    ])
+
+    assert.equal(rows.length, 1)
+    assert.equal(rows[0]?.category_id, 'savings')
+    assert.equal(rows[0]?.amount, -5_000)
+  })
+})
+
+describe('computeCategoryBudgetsForCycle with transfers', () => {
+  const cycle = {
+    incomeId: 'june-advance',
+    cycleStart: '2026-06-22',
+    cycleEnd: null,
+  }
+  const categories = [
+    { id: 'groceries', type: 'expense', carry_over_policy: 'CARRY' },
+    { id: 'fun', type: 'expense', carry_over_policy: 'CARRY' },
+  ] as const
+  const allocations = [
+    alloc({
+      category_id: 'groceries',
+      income_id: 'june-advance',
+      income_received_at: '2026-06-22',
+      income_period_month: '2026-06',
+      amount: 5_000,
+    }),
+    alloc({
+      category_id: 'fun',
+      income_id: 'june-advance',
+      income_received_at: '2026-06-22',
+      income_period_month: '2026-06',
+      amount: 1_000,
+    }),
+  ]
+
+  function transfer(
+    overrides: Partial<BudgetCycleTransfer> = {},
+  ): BudgetCycleTransfer {
+    return {
+      from_category_id: 'groceries',
+      to_category_id: 'fun',
+      amount: 2_000,
+      period_month: '2026-06',
+      created_at: '2026-06-25T10:00:00.000Z',
+      ...overrides,
+    }
+  }
+
+  it('rebalances envelopes within the cycle without changing net position', () => {
+    const budgets = computeCategoryBudgetsForCycle(
+      categories,
+      allocations,
+      [],
+      cycle,
+      '2026-06-30',
+      new Set(),
+      [],
+      [transfer()],
+    )
+
+    const groceries = budgets.find((row) => row.categoryId === 'groceries')
+    const fun = budgets.find((row) => row.categoryId === 'fun')
+
+    assert.equal(groceries?.allocated, 3_000) // 5000 − 2000
+    assert.equal(groceries?.closingBalance, 3_000)
+    assert.equal(fun?.allocated, 3_000) // 1000 + 2000
+    assert.equal(fun?.closingBalance, 3_000)
+    // Деньги переложены, а не созданы.
+    assert.equal(
+      budgets.reduce((sum, row) => sum + row.closingBalance, 0),
+      6_000,
+    )
+  })
+
+  it('ignores a transfer whose created_at falls before the cycle window', () => {
+    const budgets = computeCategoryBudgetsForCycle(
+      categories,
+      allocations,
+      [],
+      cycle,
+      '2026-06-30',
+      new Set(),
+      [],
+      [transfer({ created_at: '2026-06-20T10:00:00.000Z' })], // до cycleStart 22-го
+    )
+
+    const groceries = budgets.find((row) => row.categoryId === 'groceries')
+    const fun = budgets.find((row) => row.categoryId === 'fun')
+
+    assert.equal(groceries?.allocated, 5_000)
+    assert.equal(fun?.allocated, 1_000)
+  })
+
+  it('ignores a transfer recorded after asOf', () => {
+    const budgets = computeCategoryBudgetsForCycle(
+      categories,
+      allocations,
+      [],
+      cycle,
+      '2026-06-24', // asOf раньше даты перевода
+      new Set(),
+      [],
+      [transfer({ created_at: '2026-06-25T10:00:00.000Z' })],
+    )
+
+    const groceries = budgets.find((row) => row.categoryId === 'groceries')
+    const fun = budgets.find((row) => row.categoryId === 'fun')
+
+    // Перевод ещё не случился на дату просмотра → конверты нетронуты.
+    assert.equal(groceries?.allocated, 5_000)
+    assert.equal(fun?.allocated, 1_000)
+  })
+
+  it('excludes a transfer tagged to a closed accounting period', () => {
+    const budgets = computeCategoryBudgetsForCycle(
+      categories,
+      allocations,
+      [],
+      cycle,
+      '2026-06-30',
+      new Set(['2026-05']),
+      [],
+      [transfer({ period_month: '2026-05' })], // закрытый учётный месяц
+    )
+
+    const groceries = budgets.find((row) => row.categoryId === 'groceries')
+    const fun = budgets.find((row) => row.categoryId === 'fun')
+
+    assert.equal(groceries?.allocated, 5_000)
+    assert.equal(fun?.allocated, 1_000)
   })
 })

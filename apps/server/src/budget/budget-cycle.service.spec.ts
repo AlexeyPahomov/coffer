@@ -40,6 +40,9 @@ describe('BudgetCycleService', () => {
             expense: {
               findMany: jest.fn<(...args: unknown[]) => Promise<unknown>>().mockResolvedValue([]),
             },
+            transfer: {
+              findMany: jest.fn<(...args: unknown[]) => Promise<unknown>>().mockResolvedValue([]),
+            },
           },
         },
       ],
@@ -138,6 +141,78 @@ describe('BudgetCycleService', () => {
     expect(groceries?.allocated).toBe(72_000);
     expect(groceries?.spent).toBe(42_000);
     expect(groceries?.closingBalance).toBe(30_000);
+  });
+
+  it('reflects a transfer in the active cycle envelopes', async () => {
+    const prisma = service['prisma'] as unknown as {
+      income: { findMany: jest.Mock<(...args: unknown[]) => Promise<unknown>> };
+      category: { findMany: jest.Mock<(...args: unknown[]) => Promise<unknown>> };
+      allocation: { findMany: jest.Mock<(...args: unknown[]) => Promise<unknown>> };
+      expense: { findMany: jest.Mock<(...args: unknown[]) => Promise<unknown>> };
+      transfer: { findMany: jest.Mock<(...args: unknown[]) => Promise<unknown>> };
+    };
+
+    const funCategory = {
+      ...groceriesCategory,
+      id: 'fun',
+      name: 'Развлечения',
+    };
+
+    prisma.income.findMany.mockResolvedValue([
+      {
+        id: 'may-advance',
+        user_id: 'user-1',
+        amount: { toString: () => '200000' },
+        source: 'Зарплата',
+        income_type: 'salary',
+        status: 'RECEIVED',
+        period_month: new Date('2026-05-01'),
+        received_at: new Date('2026-05-22'),
+        created_at: new Date('2026-05-22'),
+      },
+    ]);
+    prisma.category.findMany.mockResolvedValue([groceriesCategory, funCategory]);
+    prisma.allocation.findMany.mockResolvedValue([
+      {
+        category_id: 'groceries',
+        income_id: 'may-advance',
+        amount: { toString: () => '5000' },
+        period_month: new Date('2026-05-01'),
+        income: {
+          status: 'RECEIVED',
+          received_at: new Date('2026-05-22'),
+          period_month: new Date('2026-05-01'),
+        },
+      },
+      {
+        category_id: 'fun',
+        income_id: 'may-advance',
+        amount: { toString: () => '1000' },
+        period_month: new Date('2026-05-01'),
+        income: {
+          status: 'RECEIVED',
+          received_at: new Date('2026-05-22'),
+          period_month: new Date('2026-05-01'),
+        },
+      },
+    ]);
+    prisma.expense.findMany.mockResolvedValue([]);
+    prisma.transfer.findMany.mockResolvedValue([
+      {
+        from_category_id: 'groceries',
+        to_category_id: 'fun',
+        amount: { toString: () => '2000' },
+        period_month: new Date('2026-05-01'),
+        created_at: new Date('2026-05-25'),
+      },
+    ]);
+
+    const view = await service.getCurrentView('user-1', '2026-05-30');
+    const groceries = view.snapshots.find((s) => s.categoryId === 'groceries');
+    const fun = view.snapshots.find((s) => s.categoryId === 'fun');
+
+    expect(groceries?.closingBalance).toBe(3_000); // 5000 − 2000
+    expect(fun?.closingBalance).toBe(3_000); // 1000 + 2000
   });
 
   it('throws when no received income exists before asOf', async () => {

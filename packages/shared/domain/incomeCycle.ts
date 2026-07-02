@@ -54,6 +54,72 @@ export type BudgetCycleAllocation = {
   amount: MoneyInput
 }
 
+export type BudgetCycleTransfer = {
+  from_category_id: string
+  /** null = списание из накоплений в свободный пул (без конверта-получателя). */
+  to_category_id: string | null
+  amount: MoneyInput
+  /** Учётный месяц перевода — для отсева закрытых периодов. */
+  period_month: string
+  /** Реальный момент записи — якорь привязки к циклу (как дата расхода). */
+  created_at: string
+}
+
+/**
+ * Перевод раскладывается в знаковые цикловые allocation-строки — как
+ * `expandTransfersToAllocations` для месячной системы, но с якорем цикла.
+ *
+ * - `income_received_at = created_at`: перевод слотуется в окно цикла по реальной
+ *   дате записи (как расход), а не по учётному месяцу.
+ * - `income_period_month`/`allocation_period_month = period_month`: отсев закрытых
+ *   периодов остаётся учётным.
+ * - Синтетический `income_id` не совпадает ни с одним доходом → не влияет на выбор
+ *   аванса цикла (`pickPrimaryAdvanceIncome`).
+ */
+export function expandTransfersToCycleAllocations(
+  transfers: readonly BudgetCycleTransfer[],
+): BudgetCycleAllocation[] {
+  const rows: BudgetCycleAllocation[] = []
+  for (const transfer of transfers) {
+    const receivedAt = getCalendarDateKey(transfer.created_at)
+    const periodMonth = getMonthKeyFromIso(transfer.period_month)
+    if (!receivedAt || !periodMonth) {
+      continue
+    }
+
+    const amount = toMoneyNumber(transfer.amount)
+    const base = {
+      income_id: `transfer:${transfer.from_category_id}:${receivedAt}`,
+      income_received_at: receivedAt,
+      income_period_month: periodMonth,
+      allocation_period_month: periodMonth,
+    }
+
+    rows.push({ ...base, category_id: transfer.from_category_id, amount: -amount })
+    if (transfer.to_category_id != null) {
+      rows.push({ ...base, category_id: transfer.to_category_id, amount })
+    }
+  }
+  return rows
+}
+
+function mergeTransfersIntoCycleAllocations(
+  allocations: readonly BudgetCycleAllocation[],
+  transfers: readonly BudgetCycleTransfer[],
+  asOfKey: string,
+): BudgetCycleAllocation[] {
+  if (transfers.length === 0) {
+    return [...allocations]
+  }
+  // Перевод учитывается только записанный не позже asOf — как расход
+  // (filterExpensesInCycle ограничивает дату сверху; путь аллокаций — нет).
+  const transfersAsOf = transfers.filter((transfer) => {
+    const receivedAt = getCalendarDateKey(transfer.created_at)
+    return receivedAt != null && receivedAt <= asOfKey
+  })
+  return [...allocations, ...expandTransfersToCycleAllocations(transfersAsOf)]
+}
+
 /** Закрытый учётный месяц (`BudgetMonth` CLOSED), ключ `YYYY-MM`. */
 export function isClosedAccountingPeriod(
   periodMonthKey: string | undefined,
@@ -552,6 +618,7 @@ export function computeCategoryBudgetsForCycle(
   asOf: string,
   closedPeriodMonths: ReadonlySet<string> = new Set(),
   incomes: readonly ReceivedIncomeRow[] = [],
+  transfers: readonly BudgetCycleTransfer[] = [],
 ): RebuiltCycleCategoryBudget[] {
   const asOfKey = getCalendarDateKey(asOf)
   if (!asOfKey) {
@@ -559,7 +626,7 @@ export function computeCategoryBudgetsForCycle(
   }
 
   const activeAllocations = filterAllocationsExcludingClosedPeriods(
-    allocations,
+    mergeTransfersIntoCycleAllocations(allocations, transfers, asOfKey),
     closedPeriodMonths,
   )
   const activeExpenses = filterExpensesExcludingClosedPeriods(

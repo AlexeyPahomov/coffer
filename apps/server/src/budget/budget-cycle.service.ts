@@ -16,6 +16,7 @@ import type {
   Category,
   Expense,
   Income,
+  Transfer,
 } from '../generated/prisma/client';
 import { toMoneyNumber } from '../lib/money';
 import { PrismaService } from '../prisma/prisma.service';
@@ -120,6 +121,17 @@ export class BudgetCycleService {
     );
   }
 
+  private mapTransferRows(transfers: Transfer[]) {
+    // Отсев закрытых периодов делает computeCategoryBudgetsForCycle по period_month.
+    return transfers.map((transfer) => ({
+      from_category_id: transfer.from_category_id,
+      to_category_id: transfer.to_category_id,
+      amount: transfer.amount.toString(),
+      period_month: formatPeriodMonthKeyFromDate(transfer.period_month),
+      created_at: formatReceivedAtFromDate(transfer.created_at),
+    }));
+  }
+
   private buildSnapshots(
     rebuilt: readonly RebuiltCycleCategoryBudget[],
     categories: Category[],
@@ -145,6 +157,7 @@ export class BudgetCycleService {
     categories: Category[],
     allocations: (Allocation & { income: Income })[],
     expenses: Expense[],
+    transfers: Transfer[],
   ): BudgetCycleViewDto {
     const receivedAllocations = this.mapReceivedAllocations(
       allocations,
@@ -169,6 +182,7 @@ export class BudgetCycleService {
     }
 
     const expenseRows = this.mapExpenseRows(expenses, closedPeriodMonths);
+    const transferRows = this.mapTransferRows(transfers);
 
     const rebuilt = computeCategoryBudgetsForCycle(
       categories.map(toBudgetRebuildCategory),
@@ -178,6 +192,7 @@ export class BudgetCycleService {
       asOf,
       closedPeriodMonths,
       activeIncomes,
+      transferRows,
     );
 
     const snapshots = this.buildSnapshots(rebuilt, categories);
@@ -213,6 +228,7 @@ export class BudgetCycleService {
       ledger.categories,
       ledger.allocations,
       ledger.expenses,
+      ledger.transfers,
     );
   }
 
@@ -224,22 +240,26 @@ export class BudgetCycleService {
 
     const closedPeriodMonths = await this.getClosedPeriodMonths(userId);
 
-    const [incomes, categories, allocations, expenses] = await Promise.all([
-      this.prisma.income.findMany({
-        where: { user_id: userId },
-        orderBy: { received_at: 'asc' },
-      }),
-      this.prisma.category.findMany({
-        where: { user_id: userId },
-      }),
-      this.prisma.allocation.findMany({
-        where: { user_id: userId },
-        include: { income: true },
-      }),
-      this.prisma.expense.findMany({
-        where: { user_id: userId },
-      }),
-    ]);
+    const [incomes, categories, allocations, expenses, transfers] =
+      await Promise.all([
+        this.prisma.income.findMany({
+          where: { user_id: userId },
+          orderBy: { received_at: 'asc' },
+        }),
+        this.prisma.category.findMany({
+          where: { user_id: userId },
+        }),
+        this.prisma.allocation.findMany({
+          where: { user_id: userId },
+          include: { income: true },
+        }),
+        this.prisma.expense.findMany({
+          where: { user_id: userId },
+        }),
+        this.prisma.transfer.findMany({
+          where: { user_id: userId },
+        }),
+      ]);
 
     return this.buildCurrentView(
       asOf,
@@ -248,6 +268,7 @@ export class BudgetCycleService {
       categories,
       allocations,
       expenses,
+      transfers,
     );
   }
 }
