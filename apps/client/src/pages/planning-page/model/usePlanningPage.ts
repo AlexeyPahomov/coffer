@@ -97,33 +97,6 @@ export function usePlanningPage() {
     () => timelineMonths.filter((month) => month >= periodMonth),
     [periodMonth, timelineMonths],
   )
-  const expenseCategories = useMemo(
-    () => filterExpenseCategories(core.categories),
-    [core.categories],
-  )
-  const envelopeForecastInputs = useMemo(
-    () =>
-      resolveEnvelopeForecastInputs({
-        periodMonth,
-        forecastMonths,
-        categories: core.categories,
-        allocations: ledgerEvents.allocations,
-        expenses: ledgerEvents.expenses,
-        incomes: core.incomes,
-        periodBudgetItems: periodBudget.allBudgetItems,
-        budgetCycle,
-      }),
-    [
-      budgetCycle,
-      ledgerEvents.allocations,
-      core.categories,
-      ledgerEvents.expenses,
-      core.incomes,
-      forecastMonths,
-      periodBudget.allBudgetItems,
-      periodMonth,
-    ],
-  )
   const forecast = useMemo(
     () =>
       buildPlanningForecast({
@@ -132,15 +105,11 @@ export function usePlanningPage() {
         plannedExpenses: allPlanned,
         rules: allocationRulesQuery.data ?? [],
         initialAvailable: operationalSummary.available,
-        initialBudgetItems: envelopeForecastInputs.initialBudgetItems,
-        expenseCategories,
       }),
     [
       allPlanned,
       allocationRulesQuery.data,
       core.incomes,
-      envelopeForecastInputs.initialBudgetItems,
-      expenseCategories,
       forecastMonths,
       operationalSummary.available,
     ],
@@ -186,6 +155,33 @@ export function usePlanningPage() {
     [allPlanned],
   )
 
+  const expenseCategories = useMemo(
+    () => filterExpenseCategories(core.categories),
+    [core.categories],
+  )
+  const envelopeForecastInputs = useMemo(
+    () =>
+      resolveEnvelopeForecastInputs({
+        periodMonth,
+        forecastMonths,
+        categories: core.categories,
+        allocations: ledgerEvents.allocations,
+        expenses: ledgerEvents.expenses,
+        incomes: core.incomes,
+        periodBudgetItems: periodBudget.allBudgetItems,
+        budgetCycle,
+      }),
+    [
+      budgetCycle,
+      ledgerEvents.allocations,
+      core.categories,
+      ledgerEvents.expenses,
+      core.incomes,
+      forecastMonths,
+      periodBudget.allBudgetItems,
+      periodMonth,
+    ],
+  )
   const envelopeForecast = useMemo(
     () =>
       buildEnvelopeForecastChain({
@@ -234,8 +230,6 @@ export function usePlanningPage() {
       plannedExpenses: allPlanned,
       rules,
       initialAvailable: operationalSummary.available,
-      initialBudgetItems: envelopeForecastInputs.initialBudgetItems,
-      expenseCategories,
     })
     const savingsTrajectory = buildSavingsTrajectory({
       months: horizonMonths,
@@ -264,8 +258,6 @@ export function usePlanningPage() {
     allocationRulesQuery.data,
     core.incomes,
     currentCalendarMonth,
-    envelopeForecastInputs.initialBudgetItems,
-    expenseCategories,
     operationalSummary.available,
     operationalSummary.inReserve,
     outcomeHorizon,

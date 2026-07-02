@@ -6,10 +6,7 @@ import type { Category } from '@/entities/category/model/types'
 import type { Income } from '@/entities/income/model/types'
 import type { PlannedExpense } from '@/entities/planned-expense/model/types'
 
-import {
-  buildEnvelopeForecastChain,
-  buildExpenseOverspendByMonth,
-} from './buildEnvelopeForecast'
+import { buildEnvelopeForecastChain } from './buildEnvelopeForecast'
 
 const EXPENSE_CATEGORY: Category = {
   id: 'cat-food',
@@ -136,49 +133,5 @@ describe('buildEnvelopeForecastChain — перенос остатка расх�
 
     // Август: 500 − 700 = −200.
     expect(item?.currentRemaining).toBe(-200)
-  })
-})
-
-describe('buildExpenseOverspendByMonth', () => {
-  it('без планов перерасхода нет', () => {
-    const { baseline, byMonth } = buildExpenseOverspendByMonth({
-      months: ['2026-08', '2026-09'],
-      initialBudgetItems: [budgetItem(500)],
-    })
-
-    expect(baseline).toBe(0)
-    expect([...byMonth.values()]).toEqual([0, 0])
-  })
-
-  it('план сверх остатка конверта даёт перерасход в своём месяце', () => {
-    const { baseline, byMonth } = buildExpenseOverspendByMonth({
-      months: ['2026-08', '2026-09'],
-      initialBudgetItems: [budgetItem(500)],
-      plannedExpenses: [plan('2026-09', 800)],
-    })
-
-    expect(baseline).toBe(0)
-    expect(byMonth.get('2026-08')).toBe(0)
-    expect(byMonth.get('2026-09')).toBe(-300)
-  })
-
-  it('дефицит переносится и не исчезает в следующем месяце', () => {
-    const { byMonth } = buildExpenseOverspendByMonth({
-      months: ['2026-08', '2026-09'],
-      initialBudgetItems: [budgetItem(100)],
-      plannedExpenses: [plan('2026-08', 300)],
-    })
-
-    expect(byMonth.get('2026-08')).toBe(-200)
-    expect(byMonth.get('2026-09')).toBe(-200)
-  })
-
-  it('текущий отрицательный остаток попадает в baseline', () => {
-    const { baseline } = buildExpenseOverspendByMonth({
-      months: ['2026-08'],
-      initialBudgetItems: [budgetItem(-150)],
-    })
-
-    expect(baseline).toBe(-150)
   })
 })

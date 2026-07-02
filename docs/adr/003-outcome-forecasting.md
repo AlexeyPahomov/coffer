@@ -49,6 +49,6 @@ UI: `widgets/planning-outcome-forecast`. `planning-core` is **unchanged** — th
 
 - Forecast reflects steady-state behaviour without any new domain entity or schema migration.
 - The per-category envelope forecast (`buildEnvelopeForecastChain`) is reconciled with the headline: for **expense** envelopes the month's allocation is treated as consumed (baseline spend), so only the real remaining minus planned commitments carries to the next month — surplus/deficit propagate, the allocation does not accumulate. **Savings** envelopes still accumulate.
-- Envelope overspend is charged back to the pool: `buildPlanningForecast` derives `liquidityAdjustment` from the forecasted expense-envelope deficit (`buildExpenseOverspendByMonth`) — a category plan exceeding its envelope balance draws the shortfall from the free pool. Only the **incremental** overspend per month is charged (a carried deficit is not re-charged); the current-month deficit is already in `initialAvailable`. No expense-history analysis — the shortfall comes only from planned expenses against the envelope's funded balance.
 - **Known limitations (v1):**
+  - Envelope overspend is not charged back to the pool (`liquidityAdjustment` exists in the engine but is not derived) — the forecast is optimistic when rules under-fund real spending.
   - The recurring-income template uses each stream's latest month amount as-is; if a recurring stream's amount varies, a rolling median would be a more robust future refinement.
