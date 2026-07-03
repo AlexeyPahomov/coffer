@@ -475,6 +475,51 @@ export class BudgetMonthService {
     return this.getView(userId, periodMonth);
   }
 
+  /** Переоткрыть закрытый месяц: снять фиксацию, удалить отчёт закрытия, пересчитать вперёд. */
+  async reopen(
+    userId: string,
+    periodMonth: string,
+  ): Promise<BudgetMonthViewDto> {
+    const parsed = this.parsePeriodOrThrow(periodMonth);
+
+    const meta = await this.findBudgetMonthMeta(userId, periodMonth);
+    if (!meta) {
+      throw new NotFoundException('Budget month not found');
+    }
+
+    if (meta.status === 'OPEN') {
+      return this.getView(userId, periodMonth);
+    }
+
+    const laterClosed = await this.prisma.budgetMonth.findFirst({
+      where: {
+        user_id: userId,
+        status: 'CLOSED',
+        OR: [
+          { year: { gt: parsed.year } },
+          { year: parsed.year, month: { gt: parsed.month } },
+        ],
+      },
+    });
+    if (laterClosed) {
+      throw new ConflictException('Reopen later months first');
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.monthCloseReport.deleteMany({
+        where: { budget_month_id: meta.id },
+      });
+      await tx.budgetMonth.update({
+        where: { id: meta.id },
+        data: { status: 'OPEN', closed_at: null },
+      });
+    });
+
+    await this.rebuildFrom(userId, periodMonth);
+
+    return this.getView(userId, periodMonth);
+  }
+
   /** Свести итоги месяца из снапшотов и полученных доходов в данные `MonthCloseReport`. */
   private async aggregateCloseReport(
     userId: string,

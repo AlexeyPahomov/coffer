@@ -38,4 +38,10 @@ export class BudgetMonthController {
   close(@Param('period') period: string, @CurrentUser() userId: string) {
     return this.budgetMonthService.close(userId, period);
   }
+
+  @Post(':period/reopen')
+  @HttpCode(HttpStatus.OK)
+  reopen(@Param('period') period: string, @CurrentUser() userId: string) {
+    return this.budgetMonthService.reopen(userId, period);
+  }
 }

@@ -10,6 +10,12 @@ _Обновлено: 2026-07-03._
 
 ## Недавно сделано
 
+- **Reopen месяца (CLOSED → OPEN).** Добавлены `BudgetMonthService.reopen` +
+  эндпоинт `POST /budget-months/:period/reopen`: снимает фиксацию, удаляет
+  `MonthCloseReport`, гонит `rebuildFrom` вперёд. Guard: reopen отклоняется, если
+  есть более поздний CLOSED-месяц («сначала переоткройте поздние»). Идемпотентен на
+  OPEN. Backend-only (клиентского UI закрытия/переоткрытия пока нет). Закрыт Stage 3
+  ADR-001.
 - **Факты ADR-001/002 синхронизированы с кодом.** Тела решений оставлены immutable;
   в конец каждого ADR добавлен блок «Actual state» с фактическими именами/путями
   (`rebuildFrom`, сущность `Transfer`, реальная модель concurrency, расположение
@@ -30,10 +36,7 @@ _Обновлено: 2026-07-03._
   `prisma migrate deploy`. Раньше падали соединения; схема правится вручную через
   SQL Editor — рабочий, но хрупкий режим. Вероятная причина: pooler (порт 6543,
   Transaction mode) не годится для DDL — нужен direct connection (5432).
-- **Reopen месяца (CLOSED → OPEN).** ADR-001 описывает reopen как решённое
-  (переводит месяц в OPEN и запускает rebuild вперёд), но операции flip CLOSED→OPEN
-  в коде нет. Есть только `rebuildFrom` (пересчёт вперёд по OPEN-месяцам). Stage 3
-  из ADR-001 не завершён.
+
 ## Отклонено
 
 Зафиксировано в [ADR-003](adr/003-outcome-forecasting.md):

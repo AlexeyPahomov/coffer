@@ -54,8 +54,8 @@ Close / reopen / validate belong in `planning/month-lifecycle/` (next milestone)
 
 Решение в силе; ниже — только фактические имена/пути (тело решения выше не менялось):
 
-- Close / lifecycle реализованы в `apps/server/src/budget/` (`budget-month.service.ts`,
-  контроллер с `open` / `close` / `rebuild-from`), а не в `planning/month-lifecycle/`.
-  Reopen (CLOSED → OPEN) пока не реализован — см. ROADMAP.
+- Close / reopen / lifecycle реализованы в `apps/server/src/budget/`
+  (`budget-month.service.ts`, контроллер с `open` / `close` / `reopen` /
+  `rebuild-from`), а не в `planning/month-lifecycle/`.
 - `processes/forecasting` — фасад для виджетов, но слои `pages` / `entities` местами
   импортируют `@coffer/planning-core` напрямую (мелкий долг).

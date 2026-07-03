@@ -16,6 +16,7 @@ describe('BudgetMonthService', () => {
     budgetMonth: {
       findUnique: AsyncMock;
       findMany: AsyncMock;
+      findFirst: AsyncMock;
     };
     categoryMonthSnapshot: {
       findMany: AsyncMock;
@@ -44,6 +45,7 @@ describe('BudgetMonthService', () => {
       budgetMonth: {
         findUnique: jest.fn<(...args: unknown[]) => Promise<unknown>>(),
         findMany: jest.fn<(...args: unknown[]) => Promise<unknown>>(),
+        findFirst: jest.fn<(...args: unknown[]) => Promise<unknown>>(),
       },
       categoryMonthSnapshot: {
         findMany: jest.fn<(...args: unknown[]) => Promise<unknown>>(),
@@ -197,6 +199,72 @@ describe('BudgetMonthService', () => {
           },
         ],
       });
+    });
+  });
+
+  describe('reopen', () => {
+    const closedJune = {
+      id: 'bm-6',
+      user_id: 'user-1',
+      year: 2026,
+      month: 6,
+      status: 'CLOSED',
+    };
+
+    it('flips CLOSED → OPEN, drops the close report and rebuilds forward', async () => {
+      prisma.budgetMonth.findUnique.mockResolvedValue(closedJune);
+      prisma.budgetMonth.findFirst.mockResolvedValue(null); // нет более позднего CLOSED
+      prisma.budgetMonth.findMany.mockResolvedValue([]); // rebuildFrom покрыт отдельно
+      prisma.categoryMonthSnapshot.findMany.mockResolvedValue([]); // для финального getView
+
+      await service.reopen('user-1', '2026-06');
+
+      expect(tx.monthCloseReport.deleteMany).toHaveBeenCalledWith({
+        where: { budget_month_id: 'bm-6' },
+      });
+      expect(tx.budgetMonth.update).toHaveBeenCalledWith({
+        where: { id: 'bm-6' },
+        data: { status: 'OPEN', closed_at: null },
+      });
+      // rebuildFrom запущен (ищет OPEN-месяцы от периода вперёд)
+      expect(prisma.budgetMonth.findMany).toHaveBeenCalled();
+    });
+
+    it('rejects when a later month is still CLOSED', async () => {
+      prisma.budgetMonth.findUnique.mockResolvedValue(closedJune);
+      prisma.budgetMonth.findFirst.mockResolvedValue({
+        id: 'bm-7',
+        year: 2026,
+        month: 7,
+        status: 'CLOSED',
+      });
+
+      await expect(service.reopen('user-1', '2026-06')).rejects.toThrow(
+        'Reopen later months first',
+      );
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('is a no-op when the month is already OPEN', async () => {
+      prisma.budgetMonth.findUnique.mockResolvedValue({
+        ...closedJune,
+        status: 'OPEN',
+      });
+      prisma.categoryMonthSnapshot.findMany.mockResolvedValue([]);
+
+      await service.reopen('user-1', '2026-06');
+
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+      expect(prisma.budgetMonth.findFirst).not.toHaveBeenCalled();
+    });
+
+    it('throws when the month does not exist', async () => {
+      prisma.budgetMonth.findUnique.mockResolvedValue(null);
+
+      await expect(service.reopen('user-1', '2026-06')).rejects.toThrow(
+        'Budget month not found',
+      );
+      expect(prisma.$transaction).not.toHaveBeenCalled();
     });
   });
 });
