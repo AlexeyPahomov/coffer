@@ -114,6 +114,8 @@ VITE_APP_NAME=Coffer
 
 ```env
 DATABASE_URL=postgresql://postgres.[PROJECT_REF]:[PASSWORD]@aws-1-eu-central-1.pooler.supabase.com:6543/postgres
+# Только для prisma migrate (DDL): тот же хост, порт 5432 (session mode).
+DATABASE_URL_MIGRATE=postgresql://postgres.[PROJECT_REF]:[PASSWORD]@aws-1-eu-central-1.pooler.supabase.com:5432/postgres
 DATABASE_PASS=<PASSWORD>
 PORT=3000
 # DATABASE_SSL_REJECT_UNAUTHORIZED=false   # при ошибках SSL в dev
@@ -132,6 +134,13 @@ pnpm --filter server db:migrate
 ```bash
 cd apps/server && pnpm db:migrate
 ```
+
+Рантайм ходит в БД через транзакционный pooler (`:6543`), но `prisma migrate`
+требует session-соединение — движок миграций держит DDL и advisory-локи, которых
+pgbouncer на `:6543` не даёт. Поэтому `prisma.config.ts` берёт datasource из
+`DATABASE_URL_MIGRATE` (Session pooler, `:5432`) с фолбэком на `DATABASE_URL_DIRECT`
+и `DATABASE_URL`. Прод-база была забэйзлайнена (`prisma migrate resolve --applied`
+по всем существующим миграциям), поэтому `db:migrate` теперь применяет только новые.
 
 ### 4. Запуск
 

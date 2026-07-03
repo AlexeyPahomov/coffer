@@ -10,6 +10,19 @@ _Обновлено: 2026-07-03._
 
 ## Недавно сделано
 
+- **Автоматические Prisma-миграции против Supabase восстановлены.** Причина сбоев
+  была двойной: (1) `prisma.config.ts` брал datasource из транзакционного pooler
+  (`:6543`, pgbouncer), непригодного для DDL/advisory-локов, и грузил `.env` по
+  несуществующему пути `../../.env`; (2) история миграций не велась — DDL применялся
+  вручную, `_prisma_migrations` отсутствовала. Исправлено: добавлен
+  `DATABASE_URL_MIGRATE` (Session pooler `:5432`, IPv4, add-on не нужен),
+  `prisma.config.ts` читает `apps/server/.env` и предпочитает migrate-URL; прод-база
+  забэйзлайнена (`migrate resolve --applied` по 14 миграциям). `migrate status` →
+  «up to date», `migrate deploy` → no-op. **Нюанс:** живая схема исторически
+  расходится с migration-файлами (колонки `id`/FK — `UUID`+`gen_random_uuid()`
+  против `TEXT`; precision `Decimal`/timestamp; FK `ON UPDATE`). Дрейф доброкачественный
+  и `migrate deploy` его не трогает (прогоняет только новые миграции). Приводить
+  prod-DDL к файлам (UUID→TEXT и т.п.) намеренно не стали — рефактор рабочего.
 - **Reopen месяца (CLOSED → OPEN).** Добавлены `BudgetMonthService.reopen` +
   эндпоинт `POST /budget-months/:period/reopen`: снимает фиксацию, удаляет
   `MonthCloseReport`, гонит `rebuildFrom` вперёд. Guard: reopen отклоняется, если
@@ -32,10 +45,7 @@ _Обновлено: 2026-07-03._
 
 ## Открытые задачи
 
-- **Prisma-миграции против Supabase.** Вернуться к автоматическим
-  `prisma migrate deploy`. Раньше падали соединения; схема правится вручную через
-  SQL Editor — рабочий, но хрупкий режим. Вероятная причина: pooler (порт 6543,
-  Transaction mode) не годится для DDL — нужен direct connection (5432).
+Нет.
 
 ## Отклонено
 
