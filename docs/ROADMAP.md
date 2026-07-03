@@ -19,6 +19,10 @@ _Обновлено: 2026-07-03._
   теперь учитывает `Transfer` (страница «Расходы» за текущий месяц). Якорь цикла —
   `created_at` (как расход), отсев закрытых периодов — по `period_month`. Достигнут
   паритет с месячной системой.
+- **Удалён dead-code `computeFreePoolExpensesForCycle`.** Цикловая free-pool
+  функция ни разу не вызывалась и не учитывала переводы. Убрана; понадобится —
+  восстановится по образцу `computeCategoryBudgetsForCycle`. Живой месячный аналог
+  `computeFreePoolExpensesForPeriod` не затронут.
 
 ## Открытые задачи
 
@@ -30,10 +34,6 @@ _Обновлено: 2026-07-03._
   (переводит месяц в OPEN и запускает rebuild вперёд), но операции flip CLOSED→OPEN
   в коде нет. Есть только `rebuildFrom` (пересчёт вперёд по OPEN-месяцам). Stage 3
   из ADR-001 не завершён.
-- **Переводы в цикловой `computeFreePoolExpensesForCycle`.** Функция сейчас нигде
-  не вызывается (dead code) и переводы не учитывает. Если она понадобится — не
-  забыть протянуть в неё transfers, как в `computeCategoryBudgetsForCycle`.
-
 ## Отклонено
 
 Зафиксировано в [ADR-003](adr/003-outcome-forecasting.md):
