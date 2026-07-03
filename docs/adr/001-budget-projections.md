@@ -59,3 +59,17 @@ All closing math lives in `@coffer/shared` (`computeClosing`, `addToSpent`, etc.
 
 - Stage 2: projector on expense/allocation + `GET /budget-months/:period`
 - Stage 3: close flow + review UI + reopen + rebuild chain
+
+## Actual state (updated 2026-07-03)
+
+Решение в силе; ниже — только фактические имена/детали реализации (тело решения выше не менялось):
+
+- Детерминированный пересчёт — `BudgetMonthService.rebuildFrom(userId, fromPeriod)`
+  (+ `BudgetRebuildService`), эндпоинт `POST /budget-months/:period/rebuild-from`.
+  Символа `rebuildMonthSnapshots` в коде нет.
+- Переводы реализованы отдельной сущностью `Transfer` (`onTransferCreated` /
+  `onTransferRemoved` в проекторе), а не через `Allocation.type = CATEGORY_TRANSFER`.
+- Concurrency: проектор делает отдельные запросы без интерактивной `$transaction` и
+  без `SELECT … FOR UPDATE` (Supabase pooler их не поддерживает). `version` на снапшоте
+  ведётся, но как optimistic-lock не enforced. (Единственная `$transaction` — в
+  `persistCloseReport`: атомарная запись отчёта закрытия, не concurrency проектора.)

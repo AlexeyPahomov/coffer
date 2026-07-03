@@ -6,10 +6,15 @@
 Архитектурные **решения** (почему код такой) — в [`docs/adr/`](adr/README.md);
 здесь только **план и состояние**.
 
-_Обновлено: 2026-07-02._
+_Обновлено: 2026-07-03._
 
 ## Недавно сделано
 
+- **Факты ADR-001/002 синхронизированы с кодом.** Тела решений оставлены immutable;
+  в конец каждого ADR добавлен блок «Actual state» с фактическими именами/путями
+  (`rebuildFrom`, сущность `Transfer`, реальная модель concurrency, расположение
+  lifecycle в `apps/server/src/budget/`, прямые импорты `planning-core`). Раздел
+  «Расхождения ADR ↔ код» из ROADMAP убран — дрейф теперь фиксируется в самих ADR.
 - **Переводы в цикловом расчёте конвертов.** `computeCategoryBudgetsForCycle`
   теперь учитывает `Transfer` (страница «Расходы» за текущий месяц). Якорь цикла —
   `created_at` (как расход), отсев закрытых периодов — по `period_month`. Достигнут
@@ -28,31 +33,6 @@ _Обновлено: 2026-07-02._
 - **Переводы в цикловой `computeFreePoolExpensesForCycle`.** Функция сейчас нигде
   не вызывается (dead code) и переводы не учитывает. Если она понадобится — не
   забыть протянуть в неё transfers, как в `computeCategoryBudgetsForCycle`.
-- **Править фактический дрейф в ADR-001/002 in-place.** Тексты содержат отставшие
-  факты (перечислены в разделе «Расхождения ADR ↔ код»): имена функций, расположение
-  модулей, описание concurrency. Решения в силе — правка хирургическая, только факты,
-  без изменения самих решений. Цель — держать журнал точным; после правки убрать
-  соответствующие пункты из «Расхождения».
-
-## Расхождения ADR ↔ код (тела ADR не правим)
-
-Решения в силе, но отдельные факты в тексте отстали. Читая ADR, держать в уме:
-
-**ADR-001:**
-- Пересчёт называется `BudgetMonthService.rebuildFrom(userId, fromPeriod)` +
-  `BudgetRebuildService` (эндпоинт `POST /budget-months/:period/rebuild-from`), а не
-  `rebuildMonthSnapshots`.
-- Переводы — отдельная сущность `Transfer` с `onTransferCreated/Removed` в
-  проекторе, а не `Allocation.type = CATEGORY_TRANSFER`.
-- Concurrency: интерактивных транзакций и `SELECT … FOR UPDATE` нет (Supabase
-  pooler их не поддерживает); `version` ведётся, но как optimistic-lock не
-  enforced.
-
-**ADR-002:**
-- Close / reopen / validate живут в `apps/server/src/budget/`
-  (`budget-month.service.ts` и др.), а не в `planning/month-lifecycle/`.
-- `processes/forecasting` — фасад для виджетов, но слои `pages`/`entities` местами
-  импортируют `@coffer/planning-core` напрямую (мелкий долг).
 
 ## Отклонено
 
