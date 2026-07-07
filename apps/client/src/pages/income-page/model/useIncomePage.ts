@@ -6,6 +6,7 @@ import {
   filterIncomesByPeriodMonth,
   resolveSelectedIncomePeriodMonth,
 } from '@/entities/income/lib/buildIncomeMonthCards'
+import { useAllocationRulesQuery } from '@/entities/allocation-rule/api/useAllocationRulesQuery'
 import { useIncomesQuery } from '@/entities/income/api/useIncomesQuery'
 import type { Income } from '@/entities/income/model/types'
 import { useIncomeFormDialog } from '@/features/create-income/model/useIncomeFormDialog'
@@ -15,10 +16,14 @@ import { buildCarouselPeriodLabels } from '@/widgets/planning-month-timeline/lib
 
 export function useIncomePage() {
   const [editingIncome, setEditingIncome] = useState<Income | null>(null)
+  const [receivingIncome, setReceivingIncome] = useState<Income | null>(null)
   const [pickedPeriodMonth, setPickedPeriodMonth] = useState<string | null>(null)
 
   const incomesQuery = useIncomesQuery()
+  const rulesQuery = useAllocationRulesQuery()
   const dialog = useIncomeFormDialog(editingIncome, () => setEditingIncome(null))
+
+  const hasActiveRules = (rulesQuery.data ?? []).some((rule) => rule.is_active)
 
   const incomes = incomesQuery.data ?? []
 
@@ -59,12 +64,29 @@ export function useIncomePage() {
     monthIncomes,
     metrics,
     onEditIncome: setEditingIncome,
+    onReceiveIncome: setReceivingIncome,
     formDialog: {
       open: dialog.isOpen,
       onOpenChange: dialog.onOpenChange,
       isEditing: dialog.isEditing,
       onClose: dialog.close,
       editingIncome,
+      // Доход, полученный прямо через форму, минует кнопку «Получить» —
+      // предлагаем правила здесь, но только если они вообще есть.
+      onReceived: (income: Income) => {
+        if (hasActiveRules) {
+          setReceivingIncome(income)
+        }
+      },
+    },
+    receiveDialog: {
+      income: receivingIncome,
+      open: receivingIncome != null,
+      onOpenChange: (open: boolean) => {
+        if (!open) {
+          setReceivingIncome(null)
+        }
+      },
     },
   }
 }

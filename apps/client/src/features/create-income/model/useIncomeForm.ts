@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import type { Income } from '@/entities/income/model/types'
 import { useCreateIncomeMutation } from '@/entities/income/api/useCreateIncomeMutation'
 import { useUpdateIncomeMutation } from '@/entities/income/api/useUpdateIncomeMutation'
+import { isReceivedIncome } from '@/entities/income/lib/incomeStatus'
 import { DEV_USER_ID } from '@/shared/lib/constants'
 import { getErrorMessage } from '@/shared/lib/errors'
 import { useForm } from '@/shared/lib/hooks/useForm'
@@ -18,11 +19,15 @@ import { validateIncomeForm } from './validation'
 type UseIncomeFormParams = {
   editingIncome?: Income | null
   onComplete?: () => void
+  /** Доход перешёл в статус «Получен» этим сохранением (create-as-RECEIVED
+   *  или edit EXPECTED→RECEIVED) — повод предложить правила распределения. */
+  onReceived?: (income: Income) => void
 }
 
 export function useIncomeForm({
   editingIncome = null,
   onComplete,
+  onReceived,
 }: UseIncomeFormParams = {}) {
   const isEditing = editingIncome != null
   const editingIncomeId = editingIncome?.id ?? null
@@ -55,8 +60,11 @@ export function useIncomeForm({
     }
 
     try {
+      const wasReceived =
+        isEditing && editingIncome ? isReceivedIncome(editingIncome) : false
+      let saved: Income
       if (isEditing && editingIncome) {
-        await updateMutation.mutateAsync({
+        saved = await updateMutation.mutateAsync({
           id: editingIncome.id,
           payload: {
             user_id: DEV_USER_ID,
@@ -64,13 +72,16 @@ export function useIncomeForm({
           },
         })
       } else {
-        await createMutation.mutateAsync({
+        saved = await createMutation.mutateAsync({
           user_id: DEV_USER_ID,
           ...result.payload,
         })
         setValues(emptyIncomeFormValues())
       }
       onComplete?.()
+      if (!wasReceived && isReceivedIncome(saved)) {
+        onReceived?.(saved)
+      }
     } catch {
       // ошибка уже в mutation.error
     }

@@ -6,6 +6,7 @@ import { useAllocationRulePreviewQuery } from '@/entities/allocation-rule/api/us
 import { useApplyAllocationRuleMutation } from '@/entities/allocation-rule/api/useApplyAllocationRuleMutation'
 import { CategoryAmountChip } from '@/entities/category/ui/CategoryAmountChip'
 import type { Income } from '@/entities/income/model/types'
+import { isReceivedIncome } from '@/entities/income/lib/incomeStatus'
 import { useReceiveIncomeMutation } from '@/entities/income/api/useReceiveIncomeMutation'
 import { getErrorMessage } from '@/shared/lib/errors'
 import { formatMoneyWithRub } from '@/shared/lib/format'
@@ -95,6 +96,9 @@ export function ReceiveIncomeWithRulesDialog({
 }: ReceiveIncomeWithRulesDialogProps) {
   const [selectedRuleId, setSelectedRuleId] = useState<string | null>(null)
   const [incomeReceived, setIncomeReceived] = useState(false)
+  // Доход уже получен (пришли из формы, а не по кнопке «Получить») —
+  // шаг перевода в факт не нужен, только применяем правило.
+  const applyOnly = income ? isReceivedIncome(income) : false
   const previewQuery = useAllocationRulePreviewQuery(
     open ? income?.id ?? null : null,
   )
@@ -123,7 +127,7 @@ export function ReceiveIncomeWithRulesDialog({
     if (!income) {
       return
     }
-    if (!incomeReceived) {
+    if (!applyOnly && !incomeReceived) {
       await receiveMutation.mutateAsync(income.id)
       setIncomeReceived(true)
     }
@@ -134,7 +138,7 @@ export function ReceiveIncomeWithRulesDialog({
     if (!income || !selectedRule || selectedRule.exceedsRemaining) {
       return
     }
-    if (!incomeReceived) {
+    if (!applyOnly && !incomeReceived) {
       await receiveMutation.mutateAsync(income.id)
       setIncomeReceived(true)
     }
@@ -149,8 +153,12 @@ export function ReceiveIncomeWithRulesDialog({
     <ResponsiveFormDialog
       open={open}
       onOpenChange={onOpenChange}
-      title="Получить доход"
-      description="Проверьте правила распределения перед переводом дохода в факт."
+      title={applyOnly ? 'Распределить доход' : 'Получить доход'}
+      description={
+        applyOnly
+          ? 'Выберите правило, чтобы разложить полученный доход по конвертам.'
+          : 'Проверьте правила распределения перед переводом дохода в факт.'
+      }
       bodyClassName="space-y-4"
     >
       {income ? (
@@ -221,7 +229,7 @@ export function ReceiveIncomeWithRulesDialog({
           className="w-full"
           onClick={() => void receiveOnly()}
         >
-          Получить без распределения
+          {applyOnly ? 'Без распределения' : 'Получить без распределения'}
         </Button>
         {applicableRules.length > 0 ? (
           <Button
@@ -231,7 +239,7 @@ export function ReceiveIncomeWithRulesDialog({
             className="w-full"
             onClick={() => void receiveAndApply()}
           >
-            Получить и применить
+            {applyOnly ? 'Применить' : 'Получить и применить'}
           </Button>
         ) : null}
       </div>

@@ -15,6 +15,7 @@ export type IncomePageMonthBodyProps = {
   isError: boolean
   error: unknown
   onEditIncome: (income: Income) => void
+  onReceiveIncome: (income: Income) => void
 }
 
 export function IncomePageMonthBody({
@@ -24,6 +25,7 @@ export function IncomePageMonthBody({
   isError,
   error,
   onEditIncome,
+  onReceiveIncome,
 }: IncomePageMonthBodyProps) {
   return (
     <>
@@ -38,6 +40,7 @@ export function IncomePageMonthBody({
           isError={isError}
           error={error}
           onEdit={onEditIncome}
+          onReceive={onReceiveIncome}
         />
       </div>
     </>

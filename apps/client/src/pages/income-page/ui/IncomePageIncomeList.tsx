@@ -1,5 +1,3 @@
-import { useState } from 'react'
-
 import type { Income } from '@/entities/income/model/types'
 import { IncomeEntryCard } from '@/entities/income/ui/IncomeEntryCard'
 import { useDeleteIncomeMutation } from '@/entities/income/api/useDeleteIncomeMutation'
@@ -11,14 +9,13 @@ import { getErrorMessage } from '@/shared/lib/errors'
 import { ListEmpty, ListError, ListLoader } from '@/shared/ui'
 import { cn } from '@/shared/lib/utils'
 
-import { ReceiveIncomeWithRulesDialog } from './ReceiveIncomeWithRulesDialog'
-
 type IncomePageIncomeListProps = {
   items: Income[]
   isPending: boolean
   isError: boolean
   error: unknown
   onEdit?: (income: Income) => void
+  onReceive: (income: Income) => void
 }
 
 export function IncomePageIncomeList({
@@ -27,8 +24,8 @@ export function IncomePageIncomeList({
   isError,
   error,
   onEdit,
+  onReceive,
 }: IncomePageIncomeListProps) {
-  const [receivingIncome, setReceivingIncome] = useState<Income | null>(null)
   const deleteMutation = useDeleteIncomeMutation()
 
   if (isPending) {
@@ -75,7 +72,7 @@ export function IncomePageIncomeList({
                 deleteMutation.isPending &&
                 deleteMutation.variables === income.id
               }
-              onReceive={() => setReceivingIncome(income)}
+              onReceive={() => onReceive(income)}
               onDelete={() => {
                 deleteMutation.reset()
                 deleteMutation.mutate(income.id)
@@ -84,18 +81,6 @@ export function IncomePageIncomeList({
           </li>
         ))}
       </ul>
-
-      {receivingIncome ? (
-        <ReceiveIncomeWithRulesDialog
-          income={receivingIncome}
-          open
-          onOpenChange={(open) => {
-            if (!open) {
-              setReceivingIncome(null)
-            }
-          }}
-        />
-      ) : null}
     </section>
   )
 }

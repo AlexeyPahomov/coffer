@@ -16,6 +16,7 @@ export type CreateIncomeFormDialogProps = {
   isEditing: boolean
   onClose: () => void
   editingIncome?: Income | null
+  onReceived?: (income: Income) => void
 }
 
 export function CreateIncomeFormDialog({
@@ -24,6 +25,7 @@ export function CreateIncomeFormDialog({
   isEditing,
   onClose,
   editingIncome = null,
+  onReceived,
 }: CreateIncomeFormDialogProps) {
   const isMobile = useIsMobile()
   const formKey = editingIncome?.id ?? 'new'
@@ -44,6 +46,7 @@ export function CreateIncomeFormDialog({
         editingIncome={editingIncome}
         onCancel={onClose}
         onComplete={onClose}
+        onReceived={onReceived}
       />
     </ResponsiveFormDialog>
   )

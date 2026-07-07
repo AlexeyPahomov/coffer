@@ -1,5 +1,4 @@
 import {
-  DEFAULT_INCOME_STATUS,
   DEFAULT_INCOME_TYPE,
   resolveIncomeStatus,
   resolveIncomeType,
@@ -16,7 +15,9 @@ export function emptyIncomeFormValues(): IncomeFormValues {
     amount: '',
     source: '',
     income_type: DEFAULT_INCOME_TYPE,
-    status: DEFAULT_INCOME_STATUS,
+    // Новый доход по умолчанию — план (EXPECTED); получение идёт через
+    // кнопку «Получить» / статус в форме, чтобы предложить правила.
+    status: 'EXPECTED',
     period_month: todayDateInputValue(),
   }
 }

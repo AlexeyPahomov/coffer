@@ -12,6 +12,7 @@ export type CreateIncomeFormProps = {
   editingIncome?: Income | null
   onCancel?: () => void
   onComplete?: () => void
+  onReceived?: (income: Income) => void
   variant?: CreateIncomeFormVariant
   /** Полноширинные кнопки в колонку — для bottom sheet на мобилках. */
   stackActions?: boolean
@@ -22,11 +23,12 @@ export function CreateIncomeForm({
   editingIncome = null,
   onCancel,
   onComplete,
+  onReceived,
   variant = 'card',
   stackActions = false,
   className,
 }: CreateIncomeFormProps) {
-  const form = useIncomeForm({ editingIncome, onComplete })
+  const form = useIncomeForm({ editingIncome, onComplete, onReceived })
 
   const fields = (
     <IncomeFormFields

@@ -16,6 +16,7 @@ import { useIncomePage } from '../model/useIncomePage'
 
 import { IncomePageMonthBody } from './IncomePageMonthBody'
 import { IncomePageToolbar } from './IncomePageToolbar'
+import { ReceiveIncomeWithRulesDialog } from './ReceiveIncomeWithRulesDialog'
 
 const incomeRoute = getAppRoute('income')
 
@@ -51,12 +52,19 @@ export function IncomePage() {
               isError={isError}
               error={error}
               onEditIncome={page.onEditIncome}
+              onReceiveIncome={page.onReceiveIncome}
             />
           </div>
         </ContentTransition>
       </div>
 
       <CreateIncomeFormDialog {...page.formDialog} />
+      {page.receiveDialog.income ? (
+        <ReceiveIncomeWithRulesDialog
+          key={page.receiveDialog.income.id}
+          {...page.receiveDialog}
+        />
+      ) : null}
     </PageSection>
   )
 }
