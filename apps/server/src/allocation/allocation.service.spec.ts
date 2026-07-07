@@ -21,14 +21,18 @@ describe('AllocationService', () => {
 
   beforeEach(async () => {
     prisma = {
-      income: { findUnique: jest.fn<(...args: unknown[]) => Promise<unknown>>() },
+      income: {
+        findUnique: jest.fn<(...args: unknown[]) => Promise<unknown>>(),
+      },
       allocation: {
         findMany: jest.fn<(...args: unknown[]) => Promise<unknown>>(),
         findFirst: jest.fn<(...args: unknown[]) => Promise<unknown>>(),
         create: jest.fn<(...args: unknown[]) => Promise<unknown>>(),
         update: jest.fn<(...args: unknown[]) => Promise<unknown>>(),
       },
-      category: { findUnique: jest.fn<(...args: unknown[]) => Promise<unknown>>() },
+      category: {
+        findUnique: jest.fn<(...args: unknown[]) => Promise<unknown>>(),
+      },
     };
 
     const module: TestingModule = await Test.createTestingModule({

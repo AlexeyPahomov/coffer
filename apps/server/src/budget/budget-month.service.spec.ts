@@ -52,7 +52,9 @@ describe('BudgetMonthService', () => {
         createMany: jest.fn(),
         deleteMany: jest.fn(),
       },
-      category: { findMany: jest.fn<(...args: unknown[]) => Promise<unknown>>() },
+      category: {
+        findMany: jest.fn<(...args: unknown[]) => Promise<unknown>>(),
+      },
       income: { findMany: jest.fn<(...args: unknown[]) => Promise<unknown>>() },
       plannedExpense: {
         aggregate: jest.fn<(...args: unknown[]) => Promise<unknown>>(),

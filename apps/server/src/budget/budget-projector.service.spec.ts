@@ -37,7 +37,9 @@ describe('BudgetProjectorService', () => {
       update: jest.fn<(...args: unknown[]) => Promise<unknown>>(),
       create: jest.fn<(...args: unknown[]) => Promise<unknown>>(),
     };
-    budgetMonth = { findUnique: jest.fn<(...args: unknown[]) => Promise<unknown>>() };
+    budgetMonth = {
+      findUnique: jest.fn<(...args: unknown[]) => Promise<unknown>>(),
+    };
     db = { categoryMonthSnapshot: snapshot, budgetMonth };
 
     projector = new BudgetProjectorService({
@@ -186,7 +188,9 @@ describe('BudgetProjectorService', () => {
     requireOpenMonth.mockResolvedValue({ id: 'bm-1' });
     snapshot.findUnique
       .mockResolvedValueOnce({ id: 'snap-from' }) // resolveSnapshotId: source
-      .mockResolvedValueOnce(snapshotState({ id: 'snap-from', allocated: 5_000 }))
+      .mockResolvedValueOnce(
+        snapshotState({ id: 'snap-from', allocated: 5_000 }),
+      )
       .mockResolvedValueOnce({ id: 'snap-to' }) // resolveSnapshotId: target
       .mockResolvedValueOnce(
         snapshotState({ id: 'snap-to', allocated: 500, spent: 1_500 }),
@@ -220,7 +224,9 @@ describe('BudgetProjectorService', () => {
     requireOpenMonth.mockResolvedValue({ id: 'bm-1' });
     snapshot.findUnique
       .mockResolvedValueOnce({ id: 'snap-from' })
-      .mockResolvedValueOnce(snapshotState({ id: 'snap-from', allocated: 5_000 }));
+      .mockResolvedValueOnce(
+        snapshotState({ id: 'snap-from', allocated: 5_000 }),
+      );
 
     await projector.onTransferCreated(db as never, {
       ...transfer,
@@ -244,7 +250,9 @@ describe('BudgetProjectorService', () => {
     requireOpenMonth.mockResolvedValue({ id: 'bm-1' });
     snapshot.findUnique
       .mockResolvedValueOnce({ id: 'snap-from' })
-      .mockResolvedValueOnce(snapshotState({ id: 'snap-from', allocated: 4_000 }))
+      .mockResolvedValueOnce(
+        snapshotState({ id: 'snap-from', allocated: 4_000 }),
+      )
       .mockResolvedValueOnce({ id: 'snap-to' })
       .mockResolvedValueOnce(
         snapshotState({ id: 'snap-to', allocated: 1_500, spent: 1_500 }),

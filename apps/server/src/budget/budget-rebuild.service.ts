@@ -93,7 +93,11 @@ export class BudgetRebuildService {
 
   /** Сборка входов rebuild из сырых строк — единый путь для bundle и tx-запросов. */
   private buildRebuildInputs(
-    categories: readonly { id: string; type: string; carry_over_policy: string }[],
+    categories: readonly {
+      id: string;
+      type: string;
+      carry_over_policy: string;
+    }[],
     allocations: readonly AllocationRebuildRow[],
     expenses: readonly {
       category_id: string;

@@ -44,16 +44,17 @@ export class TransferService {
         },
       },
     });
-    return snapshot
-      ? toMoneyNumber(snapshot.closing_balance.toString())
-      : 0;
+    return snapshot ? toMoneyNumber(snapshot.closing_balance.toString()) : 0;
   }
 
   async create(userId: string, dto: CreateTransferDto) {
     if (dto.amount <= 0) {
       throw new BadRequestException('Transfer amount must be positive');
     }
-    if (dto.to_category_id != null && dto.to_category_id === dto.from_category_id) {
+    if (
+      dto.to_category_id != null &&
+      dto.to_category_id === dto.from_category_id
+    ) {
       throw new BadRequestException('Source and target categories must differ');
     }
 

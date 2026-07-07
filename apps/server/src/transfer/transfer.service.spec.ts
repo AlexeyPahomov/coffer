@@ -25,8 +25,12 @@ describe('TransferService', () => {
 
   beforeEach(async () => {
     prisma = {
-      category: { findUnique: jest.fn<(...args: unknown[]) => Promise<unknown>>() },
-      categoryMonthSnapshot: { findUnique: jest.fn<(...args: unknown[]) => Promise<unknown>>() },
+      category: {
+        findUnique: jest.fn<(...args: unknown[]) => Promise<unknown>>(),
+      },
+      categoryMonthSnapshot: {
+        findUnique: jest.fn<(...args: unknown[]) => Promise<unknown>>(),
+      },
       transfer: {
         create: jest.fn<(...args: unknown[]) => Promise<unknown>>(),
         findFirst: jest.fn<(...args: unknown[]) => Promise<unknown>>(),

@@ -26,22 +26,34 @@ describe('BudgetCycleService', () => {
           provide: PrismaService,
           useValue: {
             budgetMonth: {
-              findMany: jest.fn<(...args: unknown[]) => Promise<unknown>>().mockResolvedValue([]),
+              findMany: jest
+                .fn<(...args: unknown[]) => Promise<unknown>>()
+                .mockResolvedValue([]),
             },
             income: {
-              findMany: jest.fn<(...args: unknown[]) => Promise<unknown>>().mockResolvedValue([]),
+              findMany: jest
+                .fn<(...args: unknown[]) => Promise<unknown>>()
+                .mockResolvedValue([]),
             },
             category: {
-              findMany: jest.fn<(...args: unknown[]) => Promise<unknown>>().mockResolvedValue([]),
+              findMany: jest
+                .fn<(...args: unknown[]) => Promise<unknown>>()
+                .mockResolvedValue([]),
             },
             allocation: {
-              findMany: jest.fn<(...args: unknown[]) => Promise<unknown>>().mockResolvedValue([]),
+              findMany: jest
+                .fn<(...args: unknown[]) => Promise<unknown>>()
+                .mockResolvedValue([]),
             },
             expense: {
-              findMany: jest.fn<(...args: unknown[]) => Promise<unknown>>().mockResolvedValue([]),
+              findMany: jest
+                .fn<(...args: unknown[]) => Promise<unknown>>()
+                .mockResolvedValue([]),
             },
             transfer: {
-              findMany: jest.fn<(...args: unknown[]) => Promise<unknown>>().mockResolvedValue([]),
+              findMany: jest
+                .fn<(...args: unknown[]) => Promise<unknown>>()
+                .mockResolvedValue([]),
             },
           },
         },
@@ -54,9 +66,15 @@ describe('BudgetCycleService', () => {
   it('returns grocery balance across May advance cycle into early June', async () => {
     const prisma = service['prisma'] as unknown as {
       income: { findMany: jest.Mock<(...args: unknown[]) => Promise<unknown>> };
-      category: { findMany: jest.Mock<(...args: unknown[]) => Promise<unknown>> };
-      allocation: { findMany: jest.Mock<(...args: unknown[]) => Promise<unknown>> };
-      expense: { findMany: jest.Mock<(...args: unknown[]) => Promise<unknown>> };
+      category: {
+        findMany: jest.Mock<(...args: unknown[]) => Promise<unknown>>;
+      };
+      allocation: {
+        findMany: jest.Mock<(...args: unknown[]) => Promise<unknown>>;
+      };
+      expense: {
+        findMany: jest.Mock<(...args: unknown[]) => Promise<unknown>>;
+      };
     };
 
     prisma.income.findMany.mockResolvedValue([
@@ -146,10 +164,18 @@ describe('BudgetCycleService', () => {
   it('reflects a transfer in the active cycle envelopes', async () => {
     const prisma = service['prisma'] as unknown as {
       income: { findMany: jest.Mock<(...args: unknown[]) => Promise<unknown>> };
-      category: { findMany: jest.Mock<(...args: unknown[]) => Promise<unknown>> };
-      allocation: { findMany: jest.Mock<(...args: unknown[]) => Promise<unknown>> };
-      expense: { findMany: jest.Mock<(...args: unknown[]) => Promise<unknown>> };
-      transfer: { findMany: jest.Mock<(...args: unknown[]) => Promise<unknown>> };
+      category: {
+        findMany: jest.Mock<(...args: unknown[]) => Promise<unknown>>;
+      };
+      allocation: {
+        findMany: jest.Mock<(...args: unknown[]) => Promise<unknown>>;
+      };
+      expense: {
+        findMany: jest.Mock<(...args: unknown[]) => Promise<unknown>>;
+      };
+      transfer: {
+        findMany: jest.Mock<(...args: unknown[]) => Promise<unknown>>;
+      };
     };
 
     const funCategory = {
@@ -171,7 +197,10 @@ describe('BudgetCycleService', () => {
         created_at: new Date('2026-05-22'),
       },
     ]);
-    prisma.category.findMany.mockResolvedValue([groceriesCategory, funCategory]);
+    prisma.category.findMany.mockResolvedValue([
+      groceriesCategory,
+      funCategory,
+    ]);
     prisma.allocation.findMany.mockResolvedValue([
       {
         category_id: 'groceries',
