@@ -142,6 +142,22 @@ describe('resolveActiveIncomeCycle', () => {
     assert.equal(cycle?.cycleEnd, null)
   })
 
+  it('does not anchor cycle on a non-salary income received on a settlement day', () => {
+    const cycle = resolveActiveIncomeCycle(
+      [
+        receivedIncome('july-settlement', '2026-07-07', {
+          income_type: 'salary',
+        }),
+        receivedIncome('avito-other', '2026-07-10', { income_type: 'other' }),
+      ],
+      '2026-07-10',
+    )
+
+    assert.equal(cycle?.incomeId, 'july-settlement')
+    assert.equal(cycle?.cycleStart, '2026-07-07')
+    assert.equal(cycle?.cycleEnd, null)
+  })
+
   it('starts advance cycle when advance income arrives after settlement', () => {
     const cycle = resolveActiveIncomeCycle(
       [

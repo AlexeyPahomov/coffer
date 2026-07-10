@@ -305,7 +305,8 @@ export function resolveActiveIncomeCycle(
   const settlementOnAsOf = received.find(
     (income) =>
       income.received_at === asOfKey &&
-      isSettlementReceivedDate(income.received_at),
+      isSettlementReceivedDate(income.received_at) &&
+      canAnchorIncomeCycle(incomeById.get(income.id)?.income_type),
   )
   if (settlementOnAsOf) {
     const nextAfter = received.find((income) => income.received_at > asOfKey)
