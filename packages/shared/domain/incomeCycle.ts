@@ -328,7 +328,11 @@ export function resolveActiveIncomeCycle(
   const lastSettlementBeforeAsOf = [...activeAtAsOf]
     .filter((income) => income.received_at < asOfKey)
     .reverse()
-    .find((income) => isSettlementReceivedDate(income.received_at))
+    .find(
+      (income) =>
+        isSettlementReceivedDate(income.received_at) &&
+        canAnchorIncomeCycle(incomeById.get(income.id)?.income_type),
+    )
 
   const lowerBoundExclusive = lastSettlementBeforeAsOf?.received_at ?? null
 
