@@ -9,7 +9,7 @@ import { toBudgetRebuildAllocation } from '@/entities/allocation/lib/toBudgetReb
 import type { CategoryBudgetItem } from '../model/types'
 import type { BudgetTotals } from '../model/budgetTotals'
 
-import { getEnvelopeDisplayToneSortIndex } from './envelopeBalanceTone'
+import { getEnvelopeBudgetTotal } from './envelope'
 import { mapCategoryBudgetRows } from './mapCategoryBudgetItems'
 
 export function buildCategoryBudgets(
@@ -33,15 +33,14 @@ export function buildCategoryBudgets(
   return mapCategoryBudgetRows(categories, rebuilt)
 }
 
-/** Красные → жёлтые → синие, внутри группы — по убыванию остатка. */
+/** По убыванию суммы зачисления конверта (второй цифры после «/»), затем по остатку. */
 export function sortBudgetItemsForDisplay(
   items: readonly CategoryBudgetItem[],
 ): CategoryBudgetItem[] {
   return [...items].sort((a, b) => {
-    const byTone =
-      getEnvelopeDisplayToneSortIndex(a) - getEnvelopeDisplayToneSortIndex(b)
-    if (byTone !== 0) {
-      return byTone
+    const byBudget = getEnvelopeBudgetTotal(b) - getEnvelopeBudgetTotal(a)
+    if (byBudget !== 0) {
+      return byBudget
     }
     return b.remaining - a.remaining
   })

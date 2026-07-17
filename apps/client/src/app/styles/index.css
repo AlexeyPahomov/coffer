@@ -270,6 +270,8 @@ body {
   --color-green-hover: var(--green-hover);
   --color-green-subtle: var(--green-subtle);
   --color-green-muted: var(--green-muted);
+  --color-sage: var(--sage);
+  --color-sage-subtle: var(--sage-subtle);
   --color-teal: var(--teal);
   --color-teal-hover: var(--teal-hover);
   --color-teal-subtle: var(--teal-subtle);
@@ -348,6 +350,9 @@ body {
   --green-hover: #429e73;
   --green-subtle: #ecf7f0;
   --green-muted: #d6efe3;
+  /* приглушённый серо-зелёный (sage) — например, конверт израсходован ровно в ноль */
+  --sage: #8bb3a1;
+  --sage-subtle: #eff4f1;
   /* бирюзовая гамма — свободный пул */
   --teal: #14b8a6;
   --teal-hover: #0d9488;
