@@ -2,7 +2,7 @@ export const OUTCOME_HORIZONS = [3, 6, 12] as const
 
 export type OutcomeHorizon = (typeof OUTCOME_HORIZONS)[number]
 
-export const DEFAULT_OUTCOME_HORIZON: OutcomeHorizon = 3
+export const DEFAULT_OUTCOME_HORIZON: OutcomeHorizon = 6
 
 export type PlanningOutcomeMonth = {
   month: string
