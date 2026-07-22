@@ -12,18 +12,67 @@ export type SavingsTransferHint = {
   toCategoryId: string | null
 }
 
-function pickSavingsSource(
+type PickSavingsSourceOptions = {
+  /** Не рассматривать эту категорию как источник. */
+  excludeCategoryId?: string
+  /** Только с положительным остатком (латание дефицита не берёт из пустого). */
+  requirePositive?: boolean
+}
+
+/** Накопительный конверт-источник с наибольшим остатком. */
+export function pickSavingsSource(
   budgets: readonly CategoryBudgetSnapshot[],
-  excludeCategoryId: string,
+  options: PickSavingsSourceOptions = {},
 ): CategoryBudgetSnapshot | undefined {
   return budgets
     .filter(
       (row) =>
         isSavingsCategory(row.categoryType) &&
-        row.categoryId !== excludeCategoryId &&
-        row.remaining > 0,
+        row.categoryId !== options.excludeCategoryId &&
+        (!options.requirePositive || row.remaining > 0),
     )
     .sort((a, b) => b.remaining - a.remaining)[0]
+}
+
+/** Лимит конверта = перенос из прошлого периода + распределённое в этом. */
+function envelopeLimit(snapshot: CategoryBudgetSnapshot | undefined): number {
+  return snapshot ? snapshot.carriedFromPrevious + snapshot.allocated : 0
+}
+
+/**
+ * Осознанная оплата расхода **целиком** из накоплений (тоггл в форме), в отличие
+ * от {@link buildSavingsTransferHint}, латающего лишь дефицит. Источник — конверт
+ * с наибольшим остатком без фильтра `remaining > 0` (минус разрешён — оплатить
+ * можно даже из выработанного конверта).
+ */
+export type SavingsFullFunding = {
+  savingsCategoryId: string
+  /** Полная сумма расхода. */
+  amount: number
+  /** null = долить в свободный пул (категория без лимита); иначе — перевод в этот конверт. */
+  toCategoryId: string | null
+}
+
+export function buildSavingsFullFundingTransfer(
+  budgets: readonly CategoryBudgetSnapshot[],
+  preview: ExpenseBudgetPreview | null,
+): SavingsFullFunding | null {
+  if (!preview || isSavingsCategory(preview.categoryType)) {
+    return null
+  }
+
+  const savings = pickSavingsSource(budgets)
+  if (!savings) {
+    return null
+  }
+
+  const target = budgets.find((row) => row.categoryId === preview.categoryId)
+
+  return {
+    savingsCategoryId: savings.categoryId,
+    amount: preview.amount,
+    toCategoryId: envelopeLimit(target) > 0 ? preview.categoryId : null,
+  }
 }
 
 /**
@@ -42,7 +91,10 @@ export function buildSavingsTransferHint(
     return null
   }
 
-  const savings = pickSavingsSource(budgets, preview.categoryId)
+  const savings = pickSavingsSource(budgets, {
+    excludeCategoryId: preview.categoryId,
+    requirePositive: true,
+  })
   if (!savings) {
     return null
   }
@@ -60,10 +112,7 @@ export function buildSavingsTransferHint(
 
   // Трата из свободных средств (конверт без лимита) уводит пул в минус — доливаем дефицит.
   const target = budgets.find((row) => row.categoryId === preview.categoryId)
-  const envelopeLimit = target
-    ? target.carriedFromPrevious + target.allocated
-    : 0
-  if (envelopeLimit === 0 && freePoolAfter < 0) {
+  if (envelopeLimit(target) === 0 && freePoolAfter < 0) {
     return {
       savingsCategoryId: savings.categoryId,
       savingsName: savings.categoryName,

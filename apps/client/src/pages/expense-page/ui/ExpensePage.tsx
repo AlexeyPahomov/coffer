@@ -214,6 +214,7 @@ export function ExpensePage() {
         incomes={incomes}
         allocations={allocations}
         freePoolAvailable={currentBudgetView?.available ?? 0}
+        savingsReserveAvailable={currentBudgetView?.inReserve ?? 0}
         selectedCategoryId={selectedCategoryId ?? undefined}
         editingExpense={editingExpense}
         onStressCategoryChange={handleStressCategoryChange}

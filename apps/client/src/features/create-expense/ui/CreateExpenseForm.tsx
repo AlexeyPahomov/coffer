@@ -7,6 +7,7 @@ import { CategorySelect } from '@/entities/category/ui/CategorySelect';
 import type { Expense } from '@/entities/expense/model/types';
 import type { Income } from '@/entities/income/model/types';
 import { formLabelClassName } from '@/shared/config/formUi';
+import { formatAmount } from '@/shared/lib/format';
 import { bindMoneyAmountField } from '@/shared/lib/moneyInput';
 import { cn } from '@/shared/lib/utils';
 import {
@@ -14,6 +15,7 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
+  Checkbox,
   DatePicker,
   Input,
   MoneyInput,
@@ -34,6 +36,8 @@ export type CreateExpenseFormProps = {
   allocations: Allocation[];
   /** Свободный пул периода — для подсказки «покрыть из накоплений» при минус-пуле. */
   freePoolAvailable: number;
+  /** Остаток накоплений («В резерве») — для тоггла «оплатить из накоплений». */
+  savingsReserveAvailable: number;
   selectedCategoryId?: string;
   editingExpense?: Expense | null;
   onCancelEdit?: () => void;
@@ -68,8 +72,10 @@ function CreateExpenseFormFields({
   const noCategories = categories.length === 0;
   const onFieldChange = fieldChangeHandler(form.handleChange);
   const savingsTransfer = form.savingsTransfer;
+  const savingsFundingTarget = form.savingsFundingTarget;
   const showOverBudgetWarning =
-    form.budgetPreview?.isOverBudget === true || savingsTransfer != null;
+    !form.payFromSavings &&
+    (form.budgetPreview?.isOverBudget === true || savingsTransfer != null);
   const showCancel =
     onCancelEdit != null && (variant === 'plain' || form.isEditing);
 
@@ -110,6 +116,29 @@ function CreateExpenseFormFields({
           form.handleChange('amount', amount),
         )}
       />
+
+      {savingsFundingTarget ? (
+        <label className="flex items-start gap-2 text-sm text-zinc-600">
+          <Checkbox
+            id="expense-pay-from-savings"
+            className="mt-0.5"
+            checked={form.payFromSavings}
+            disabled={form.isBusy}
+            onCheckedChange={(checked) =>
+              form.onPayFromSavingsChange(checked === true)
+            }
+          />
+          <span className="min-w-0">
+            <span className="font-medium text-zinc-800">
+              Оплатить из накоплений
+            </span>
+            <p className="mt-1 text-xs leading-snug text-zinc-500">
+              Спишем целиком из накоплений · в резерве{' '}
+              {formatAmount(savingsFundingTarget.available)}
+            </p>
+          </span>
+        </label>
+      ) : null}
 
       <Input
         id="expense-description"
@@ -196,6 +225,7 @@ export function CreateExpenseForm({
   incomes,
   allocations,
   freePoolAvailable,
+  savingsReserveAvailable,
   selectedCategoryId,
   editingExpense = null,
   onCancelEdit,
@@ -209,6 +239,7 @@ export function CreateExpenseForm({
     incomes,
     allocations,
     freePoolAvailable,
+    savingsReserveAvailable,
     editingExpense,
     onComplete,
     onStressCategoryChange,
