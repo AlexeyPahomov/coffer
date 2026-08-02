@@ -152,13 +152,23 @@ function hasEnvelopeLimit(
   return getEnvelopeBudgetTotal(row, categoryType) > 0
 }
 
+/**
+ * Заряд свободного пула за перерасход конвертов — ТОЛЬКО новый перерасход
+ * периода. Уже перенесённый отрицательный остаток (opening < 0) списан из пула
+ * в месяце, где возник, и зашит в openingFreePool; повторно вычитать его нельзя,
+ * иначе долг конверта уменьшает свободные средства каждый следующий месяц.
+ */
 function sumExpenseOverspendCharge(
   budgetRows: readonly RebuiltCategoryBudget[],
   categoryTypes: ReadonlyMap<string, string>,
 ): number {
   return budgetRows
     .filter((row) => categoryTypes.get(row.categoryId) !== 'savings')
-    .reduce((sum, row) => sum + Math.min(0, row.closingBalance), 0)
+    .reduce(
+      (sum, row) =>
+        sum + Math.min(0, row.closingBalance) - Math.min(0, row.openingBalance),
+      0,
+    )
 }
 
 function computeFreePoolAvailableForPeriod(

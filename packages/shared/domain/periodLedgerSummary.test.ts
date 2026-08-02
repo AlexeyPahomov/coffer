@@ -132,6 +132,35 @@ describe('computePeriodLedgerSummary', () => {
     assert.deepEqual(summary.nonEnvelopeSpentByCategoryId, {})
   })
 
+  it('CARRY: перерасход не списывается из пула повторно в следующем месяце', () => {
+    // Тот же CARRY-сценарий, но смотрим на АВГУСТ — месяц после перерасхода,
+    // без единого нового события (просто наступил новый месяц). Перерасход
+    // −5000 уже «съел» свободный пул в июле; повторно вычитать его из
+    // свободных средств нельзя, иначе −5000 повторяется/накапливается каждый
+    // следующий месяц, пока долг конверта висит.
+    const summary = computePeriodLedgerSummary({
+      ...buildCarryScenario('CARRY'),
+      periodMonth: '2026-08',
+    })
+
+    // Перенос из июля = 85000 (90000 − 5000 перерасхода, списанного один раз).
+    assert.equal(summary.openingFreePool, 85_000)
+    assert.equal(summary.incomeTotal, 0)
+    assert.equal(summary.allocatedTotal, 0)
+    assert.equal(summary.freePoolExpenseTotal, 0)
+    // Долг конверта −5000 переносится на карточку (opening = closing = −5000),
+    // но нового перерасхода в августе нет → заряд пула = 0.
+    assert.equal(summary.overspendCharge, 0)
+
+    const available =
+      summary.openingFreePool +
+      summary.incomeTotal -
+      summary.allocatedTotal -
+      summary.freePoolExpenseTotal +
+      summary.overspendCharge
+    assert.equal(available, 85_000)
+  })
+
   it('savings reserve = распределено − потрачено по накоплениям за все месяцы', () => {
     const summary = computePeriodLedgerSummary({
       categories: [
