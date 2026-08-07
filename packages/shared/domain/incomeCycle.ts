@@ -3,9 +3,14 @@ import {
   shouldAttributeExpenseToEnvelope,
   type CategoryMonthSnapshotState,
 } from './budget.js'
+import {
+  computeCategoryBudgetsForPeriod,
+  toBudgetRebuildCategory,
+  type BudgetRebuildAllocation,
+} from './budgetRebuild.js'
 import type { CarryOverPolicy } from './category.js'
 import { canAnchorIncomeCycle } from './incomeType.js'
-import { getCalendarDateKey, isDateInActiveCycle, subtractCalendarDays } from './calendarDate.js'
+import { getCalendarDateKey, isDateInActiveCycle } from './calendarDate.js'
 import { getMonthKeyFromIso } from './periodMonth.js'
 import { toMoneyNumber, type MoneyInput } from '../lib/money.js'
 
@@ -166,20 +171,6 @@ export function filterAllocationsExcludingClosedPeriods(
   })
 }
 
-export function filterExpensesExcludingClosedPeriods(
-  expenses: readonly BudgetCycleExpense[],
-  closedPeriodMonths: ReadonlySet<string>,
-): BudgetCycleExpense[] {
-  if (closedPeriodMonths.size === 0) {
-    return [...expenses]
-  }
-
-  return expenses.filter((expense) => {
-    const expensePeriod = getMonthKeyFromIso(expense.date)
-    return !isClosedAccountingPeriod(expensePeriod, closedPeriodMonths)
-  })
-}
-
 export type BudgetCycleExpense = {
   category_id: string
   amount: MoneyInput
@@ -200,11 +191,6 @@ function sumByCategoryId(rows: readonly AmountRow[]): Map<string, number> {
     totals.set(row.category_id, prev + toMoneyNumber(row.amount))
   }
   return totals
-}
-
-/** Перенос opening в цикле аванс→расчёт — только накопления. */
-function shouldCarryOpeningInCycle(category: BudgetCycleCategory): boolean {
-  return category.type === 'savings'
 }
 
 type ReceivedIncomeEntry = { id: string; received_at: string }
@@ -377,182 +363,40 @@ export function resolveActiveIncomeCycle(
   }
 }
 
-/** Цикл расходования, активный накануне начала текущего. */
-export function resolvePreviousIncomeCycle(
-  incomes: readonly ReceivedIncomeRow[],
-  cycle: ResolvedIncomeCycle,
-  allocations: readonly BudgetCycleAllocation[],
-  closedPeriodMonths: ReadonlySet<string> = new Set(),
-): ResolvedIncomeCycle | null {
-  const asOfKey = subtractCalendarDays(cycle.cycleStart, 1)
-  if (!asOfKey) {
-    return null
-  }
-
-  return resolveActiveIncomeCycle(
-    incomes,
-    asOfKey,
-    allocations,
-    closedPeriodMonths,
-  )
-}
-
-function shouldCarryExpenseFromPreviousCycle(category: BudgetCycleCategory): boolean {
-  return category.type === 'expense' && category.carry_over_policy === 'CARRY'
-}
+/**
+ * Sentinel-период «позже любой реальной активности»: `computeCategoryBudgetsForPeriod`
+ * с ним вернёт opening = накопление конверта по всей переданной истории.
+ */
+const ACCUMULATION_SENTINEL_PERIOD = '9999-12'
 
 /**
- * Остаток предыдущего цикла для переноса в следующий аванс.
- * После расчёта с новым лимитом — closing как есть.
- * После расчёта без лимита, но с остатком из аванса:
- * - если тратили из переноса, но не всё — deficit carry как spent − opening;
- * - неиспользованный остаток в расчёте на новый аванс не переносим.
+ * Opening конверта на старте цикла — накопление по всей истории строго до
+ * `cycleStart` (включая переводы и закрытые периоды), с атрибуцией трат из
+ * свободного пула. Переиспользует месячную накопительную модель
+ * (`computeCategoryBudgetsForPeriod`), чтобы не дублировать формулу баланса.
  */
-function resolveCarryOpeningFromPreviousCycle(
-  previousCycle: ResolvedIncomeCycle,
-  row: RebuiltCycleCategoryBudget,
-): number {
-  if (!isSettlementReceivedDate(previousCycle.cycleStart)) {
-    return row.closingBalance
-  }
-
-  const carriedWithoutNewLimit =
-    row.allocated === 0 && row.openingBalance > 0
-
-  if (!carriedWithoutNewLimit) {
-    return row.closingBalance
-  }
-
-  if (row.spent === 0) {
-    return 0
-  }
-
-  if (row.spent < row.openingBalance) {
-    return row.spent - row.openingBalance
-  }
-
-  return row.closingBalance
-}
-
-function buildPreviousCycleCarryOpeningByCategory(
+function computeOpeningBeforeCycleByCategory(
   categories: readonly BudgetCycleCategory[],
-  allocations: readonly BudgetCycleAllocation[],
-  expenses: readonly BudgetCycleExpense[],
-  cycle: ResolvedIncomeCycle,
-  closedPeriodMonths: ReadonlySet<string>,
-  incomes: readonly ReceivedIncomeRow[],
+  allocationsBeforeCycle: readonly BudgetCycleAllocation[],
+  expensesBeforeCycle: readonly BudgetCycleExpense[],
 ): Map<string, number> {
-  if (incomes.length === 0) {
-    return new Map()
-  }
-
-  const previousCycle = resolvePreviousIncomeCycle(
-    incomes,
-    cycle,
-    allocations,
-    closedPeriodMonths,
-  )
-  if (!previousCycle) {
-    return new Map()
-  }
-
-  const asOfKey = subtractCalendarDays(cycle.cycleStart, 1)
-  if (!asOfKey) {
-    return new Map()
-  }
-
-  const carryCategoryIds = new Set(
-    categories
-      .filter(shouldCarryExpenseFromPreviousCycle)
-      .map((category) => category.id),
-  )
-  if (carryCategoryIds.size === 0) {
-    return new Map()
-  }
-
-  // Авансовый цикл на экране считается с opening=0; при переносе в следующий
-  // аванс не подмешиваем остаток из ещё более раннего расчёта.
-  const carryIncomes = isSettlementReceivedDate(previousCycle.cycleStart)
-    ? incomes
-    : []
-
-  const previousBudgets = computeCategoryBudgetsForCycle(
-    categories,
-    allocations,
-    expenses,
-    previousCycle,
-    asOfKey,
-    closedPeriodMonths,
-    carryIncomes,
+  const rebuildAllocations: BudgetRebuildAllocation[] = allocationsBeforeCycle.map(
+    (allocation) => ({
+      category_id: allocation.category_id,
+      amount: allocation.amount,
+      period_month: allocation.allocation_period_month,
+      income_period_month: allocation.income_period_month,
+    }),
   )
 
-  const carryByCategoryId = new Map<string, number>()
-  for (const row of previousBudgets) {
-    if (!carryCategoryIds.has(row.categoryId)) {
-      continue
-    }
-    carryByCategoryId.set(
-      row.categoryId,
-      resolveCarryOpeningFromPreviousCycle(previousCycle, row),
-    )
-  }
-
-  return carryByCategoryId
-}
-
-type CycleLedgerTotals = {
-  carriedFromAlloc: Map<string, number>
-  spentBefore: Map<string, number>
-  allocatedByCategory: Map<string, number>
-  spentByCategory: Map<string, number>
-  previousCycleCarryOpening: Map<string, number>
-}
-
-function prepareCycleLedgerTotals(
-  categories: readonly BudgetCycleCategory[],
-  allocations: readonly BudgetCycleAllocation[],
-  expenses: readonly BudgetCycleExpense[],
-  cycle: ResolvedIncomeCycle,
-  asOfKey: string,
-  closedPeriodMonths: ReadonlySet<string>,
-  incomes: readonly ReceivedIncomeRow[],
-): CycleLedgerTotals {
-  const priorAllocations = filterAllocationsBeforeCycle(
-    allocations,
-    cycle.cycleStart,
+  const budgets = computeCategoryBudgetsForPeriod(
+    categories.map(toBudgetRebuildCategory),
+    rebuildAllocations,
+    expensesBeforeCycle,
+    ACCUMULATION_SENTINEL_PERIOD,
   )
-  const priorExpenses = filterExpensesBeforeCycle(expenses, cycle.cycleStart)
-  const cycleAllocations = filterAllocationsInCycle(allocations, cycle)
-  const cycleExpenses = filterExpensesInCycle(expenses, cycle, asOfKey)
 
-  return {
-    carriedFromAlloc: sumByCategoryId(priorAllocations),
-    spentBefore: sumByCategoryId(priorExpenses),
-    allocatedByCategory: sumByCategoryId(cycleAllocations),
-    spentByCategory: sumByCategoryId(cycleExpenses),
-    previousCycleCarryOpening: buildPreviousCycleCarryOpeningByCategory(
-      categories,
-      allocations,
-      expenses,
-      cycle,
-      closedPeriodMonths,
-      incomes,
-    ),
-  }
-}
-
-function resolveCycleOpeningBalance(
-  category: BudgetCycleCategory,
-  totals: CycleLedgerTotals,
-): number {
-  if (shouldCarryOpeningInCycle(category)) {
-    return (
-      (totals.carriedFromAlloc.get(category.id) ?? 0) -
-      (totals.spentBefore.get(category.id) ?? 0)
-    )
-  }
-
-  return totals.previousCycleCarryOpening.get(category.id) ?? 0
+  return new Map(budgets.map((row) => [row.categoryId, row.openingBalance]))
 }
 
 function filterAllocationsBeforeCycle(
@@ -610,10 +454,15 @@ function filterExpensesInCycle(
 }
 
 /**
- * Конверты за активный доходный цикл.
- * Накопления: opening из распределений до цикла.
- * Расходные CARRY: при старте нового цикла — closing предыдущего цикла.
- * Остальные расходные: распределения в цикле − траты в цикле.
+ * Конверты за активный доходный цикл — как чистое накопление.
+ *
+ * - `opening`: накопление конверта по всей истории строго до `cycleStart`
+ *   (распределения + переводы − атрибутированные траты), включая закрытые
+ *   учётные периоды. Закрытые периоды исключаются только из ВЫБОРА активного
+ *   цикла (`resolveActiveIncomeCycle`), но не из БАЛАНСА конверта.
+ * - `allocated`/`spent`: окно текущего цикла.
+ * - `closing = opening + allocated − атрибутированные траты цикла` — телескопически
+ *   это `Σ распределений + Σ переводов − Σ атрибутированных трат` по всей истории.
  */
 export function computeCategoryBudgetsForCycle(
   categories: readonly BudgetCycleCategory[],
@@ -621,8 +470,6 @@ export function computeCategoryBudgetsForCycle(
   expenses: readonly BudgetCycleExpense[],
   cycle: ResolvedIncomeCycle,
   asOf: string,
-  closedPeriodMonths: ReadonlySet<string> = new Set(),
-  incomes: readonly ReceivedIncomeRow[] = [],
   transfers: readonly BudgetCycleTransfer[] = [],
 ): RebuiltCycleCategoryBudget[] {
   const asOfKey = getCalendarDateKey(asOf)
@@ -630,31 +477,30 @@ export function computeCategoryBudgetsForCycle(
     return []
   }
 
-  const activeAllocations = filterAllocationsExcludingClosedPeriods(
-    mergeTransfersIntoCycleAllocations(allocations, transfers, asOfKey),
-    closedPeriodMonths,
-  )
-  const activeExpenses = filterExpensesExcludingClosedPeriods(
-    expenses,
-    closedPeriodMonths,
+  const mergedAllocations = mergeTransfersIntoCycleAllocations(
+    allocations,
+    transfers,
+    asOfKey,
   )
 
-  const totals = prepareCycleLedgerTotals(
+  const openingByCategory = computeOpeningBeforeCycleByCategory(
     categories,
-    activeAllocations,
-    activeExpenses,
-    cycle,
-    asOfKey,
-    closedPeriodMonths,
-    incomes,
+    filterAllocationsBeforeCycle(mergedAllocations, cycle.cycleStart),
+    filterExpensesBeforeCycle(expenses, cycle.cycleStart),
+  )
+  const allocatedByCategory = sumByCategoryId(
+    filterAllocationsInCycle(mergedAllocations, cycle),
+  )
+  const spentByCategory = sumByCategoryId(
+    filterExpensesInCycle(expenses, cycle, asOfKey),
   )
 
   return categories
     .filter((category) => category.type !== 'income')
     .map((category) => {
-      const openingBalance = resolveCycleOpeningBalance(category, totals)
-      const allocated = totals.allocatedByCategory.get(category.id) ?? 0
-      const rawSpent = totals.spentByCategory.get(category.id) ?? 0
+      const openingBalance = openingByCategory.get(category.id) ?? 0
+      const allocated = allocatedByCategory.get(category.id) ?? 0
+      const rawSpent = spentByCategory.get(category.id) ?? 0
       const envelopeSpent = shouldAttributeExpenseToEnvelope(
         category.type,
         openingBalance,

@@ -244,6 +244,99 @@ describe('BudgetCycleService', () => {
     expect(fun?.closingBalance).toBe(3_000); // 1000 + 2000
   });
 
+  it('keeps closed-period spend in the envelope balance', async () => {
+    const prisma = service['prisma'] as unknown as {
+      budgetMonth: {
+        findMany: jest.Mock<(...args: unknown[]) => Promise<unknown>>;
+      };
+      income: { findMany: jest.Mock<(...args: unknown[]) => Promise<unknown>> };
+      category: {
+        findMany: jest.Mock<(...args: unknown[]) => Promise<unknown>>;
+      };
+      allocation: {
+        findMany: jest.Mock<(...args: unknown[]) => Promise<unknown>>;
+      };
+      expense: {
+        findMany: jest.Mock<(...args: unknown[]) => Promise<unknown>>;
+      };
+    };
+
+    // Апрель закрыт — исключается из ВЫБОРА цикла, но не из баланса конверта.
+    prisma.budgetMonth.findMany.mockResolvedValue([{ year: 2026, month: 4 }]);
+    prisma.income.findMany.mockResolvedValue([
+      {
+        id: 'apr-settlement',
+        user_id: 'user-1',
+        amount: { toString: () => '150000' },
+        source: 'Зарплата',
+        income_type: 'salary',
+        status: 'RECEIVED',
+        period_month: new Date('2026-04-01'),
+        received_at: new Date('2026-04-05'),
+        created_at: new Date('2026-04-05'),
+      },
+      {
+        id: 'may-advance',
+        user_id: 'user-1',
+        amount: { toString: () => '200000' },
+        source: 'Зарплата',
+        income_type: 'salary',
+        status: 'RECEIVED',
+        period_month: new Date('2026-05-01'),
+        received_at: new Date('2026-05-22'),
+        created_at: new Date('2026-05-22'),
+      },
+    ]);
+    prisma.category.findMany.mockResolvedValue([
+      { ...groceriesCategory, id: 'apartment', name: 'Квартира', carry_over_policy: 'CARRY' },
+    ]);
+    prisma.allocation.findMany.mockResolvedValue([
+      {
+        category_id: 'apartment',
+        income_id: 'apr-settlement',
+        amount: { toString: () => '20000' },
+        period_month: new Date('2026-04-01'),
+        income: {
+          status: 'RECEIVED',
+          received_at: new Date('2026-04-05'),
+          period_month: new Date('2026-04-01'),
+        },
+      },
+      {
+        category_id: 'apartment',
+        income_id: 'may-advance',
+        amount: { toString: () => '7000' },
+        period_month: new Date('2026-05-01'),
+        income: {
+          status: 'RECEIVED',
+          received_at: new Date('2026-05-22'),
+          period_month: new Date('2026-05-01'),
+        },
+      },
+    ]);
+    prisma.expense.findMany.mockResolvedValue([
+      {
+        category_id: 'apartment',
+        amount: { toString: () => '15000' },
+        date: new Date('2026-04-20'), // закрытый апрель
+      },
+      {
+        category_id: 'apartment',
+        amount: { toString: () => '3000' },
+        date: new Date('2026-05-30'),
+      },
+    ]);
+
+    const view = await service.getCurrentView('user-1', '2026-06-04');
+    const apartment = view.snapshots.find((s) => s.categoryId === 'apartment');
+
+    // Апрель в opening: 20 000 − 15 000 = 5 000; май: +7 000 − 3 000 → 9 000.
+    // Если бы закрытый апрель исключался (баг), было бы 7 000 − 3 000 = 4 000.
+    expect(view.cycleStart).toBe('2026-05-22');
+    expect(apartment?.openingBalance).toBe(5_000);
+    expect(apartment?.closingBalance).toBe(9_000);
+  });
+
   it('throws when no received income exists before asOf', async () => {
     const prisma = service['prisma'] as unknown as {
       income: { findMany: jest.Mock<(...args: unknown[]) => Promise<unknown>> };

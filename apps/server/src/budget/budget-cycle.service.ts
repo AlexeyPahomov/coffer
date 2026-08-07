@@ -2,7 +2,6 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import {
   computeCategoryBudgetsForCycle,
   filterAllocationsExcludingClosedPeriods,
-  filterExpensesExcludingClosedPeriods,
   filterIncomesExcludingClosedPeriods,
   formatPeriodMonthKeyFromDate,
   formatReceivedAtFromDate,
@@ -69,30 +68,26 @@ export class BudgetCycleService {
     };
   }
 
-  private mapReceivedAllocations(
-    allocations: (Allocation & { income: Income })[],
-    closedPeriodMonths: Set<string>,
-  ) {
-    return filterAllocationsExcludingClosedPeriods(
-      allocations
-        .filter((allocation) => allocation.income.status === 'RECEIVED')
-        .filter((allocation) => allocation.income.received_at != null)
-        .map((allocation) => ({
-          category_id: allocation.category_id,
-          income_id: allocation.income_id,
-          income_received_at: formatReceivedAtFromDate(
-            allocation.income.received_at!,
-          ),
-          income_period_month: formatPeriodMonthKeyFromDate(
-            allocation.income.period_month,
-          ),
-          allocation_period_month: formatPeriodMonthKeyFromDate(
-            allocation.period_month,
-          ),
-          amount: allocation.amount.toString(),
-        })),
-      closedPeriodMonths,
-    );
+  // Баланс конверта — по всей истории, включая закрытые периоды; отсев закрытых
+  // делаем только при ВЫБОРЕ активного цикла (см. buildCurrentView).
+  private mapReceivedAllocations(allocations: (Allocation & { income: Income })[]) {
+    return allocations
+      .filter((allocation) => allocation.income.status === 'RECEIVED')
+      .filter((allocation) => allocation.income.received_at != null)
+      .map((allocation) => ({
+        category_id: allocation.category_id,
+        income_id: allocation.income_id,
+        income_received_at: formatReceivedAtFromDate(
+          allocation.income.received_at!,
+        ),
+        income_period_month: formatPeriodMonthKeyFromDate(
+          allocation.income.period_month,
+        ),
+        allocation_period_month: formatPeriodMonthKeyFromDate(
+          allocation.period_month,
+        ),
+        amount: allocation.amount.toString(),
+      }));
   }
 
   private mapActiveIncomes(incomes: Income[], closedPeriodMonths: Set<string>) {
@@ -110,15 +105,13 @@ export class BudgetCycleService {
     );
   }
 
-  private mapExpenseRows(expenses: Expense[], closedPeriodMonths: Set<string>) {
-    return filterExpensesExcludingClosedPeriods(
-      expenses.map((expense) => ({
-        category_id: expense.category_id,
-        amount: expense.amount.toString(),
-        date: formatReceivedAtFromDate(expense.date),
-      })),
-      closedPeriodMonths,
-    );
+  // Как и распределения — все траты, включая закрытые периоды (баланс конверта).
+  private mapExpenseRows(expenses: Expense[]) {
+    return expenses.map((expense) => ({
+      category_id: expense.category_id,
+      amount: expense.amount.toString(),
+      date: formatReceivedAtFromDate(expense.date),
+    }));
   }
 
   private mapTransferRows(transfers: Transfer[]) {
@@ -159,16 +152,17 @@ export class BudgetCycleService {
     expenses: Expense[],
     transfers: Transfer[],
   ): BudgetCycleViewDto {
-    const receivedAllocations = this.mapReceivedAllocations(
-      allocations,
-      closedPeriodMonths,
-    );
+    const receivedAllocations = this.mapReceivedAllocations(allocations);
     const activeIncomes = this.mapActiveIncomes(incomes, closedPeriodMonths);
 
+    // Выбор активного цикла отсеивает закрытые периоды; баланс — нет.
     const cycle = resolveActiveIncomeCycle(
       activeIncomes,
       asOf,
-      receivedAllocations,
+      filterAllocationsExcludingClosedPeriods(
+        receivedAllocations,
+        closedPeriodMonths,
+      ),
       closedPeriodMonths,
     );
 
@@ -181,7 +175,7 @@ export class BudgetCycleService {
       throw new NotFoundException('Active income has no received_at');
     }
 
-    const expenseRows = this.mapExpenseRows(expenses, closedPeriodMonths);
+    const expenseRows = this.mapExpenseRows(expenses);
     const transferRows = this.mapTransferRows(transfers);
 
     const rebuilt = computeCategoryBudgetsForCycle(
@@ -190,8 +184,6 @@ export class BudgetCycleService {
       expenseRows,
       cycle,
       asOf,
-      closedPeriodMonths,
-      activeIncomes,
       transferRows,
     );
 

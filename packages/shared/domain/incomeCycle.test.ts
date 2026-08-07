@@ -58,7 +58,7 @@ function expense(category_id: string, amount: number, date: string) {
 }
 
 function computeJuneAdvanceBudgets(
-  incomes: readonly ReceivedIncomeRow[],
+  _incomes: readonly ReceivedIncomeRow[],
   allocations: readonly BudgetCycleAllocation[],
   expenses: readonly ReturnType<typeof expense>[],
 ) {
@@ -68,8 +68,6 @@ function computeJuneAdvanceBudgets(
     expenses,
     JUNE_ADVANCE_CYCLE,
     '2026-06-22',
-    new Set(),
-    incomes,
   )
 }
 
@@ -381,7 +379,7 @@ describe('computeCategoryBudgetsForCycle', () => {
     assert.equal(groceries?.closingBalance, 31_000)
   })
 
-  it('does not add pre-cycle carry for expense envelopes with CARRY policy', () => {
+  it('accumulates pre-cycle carry into opening for CARRY envelopes', () => {
     const [groceries] = computeCategoryBudgetsForCycle(
       [{ id: 'groceries', type: 'expense', carry_over_policy: 'CARRY' }],
       [
@@ -407,13 +405,14 @@ describe('computeCategoryBudgetsForCycle', () => {
       '2026-06-04',
     )
 
-    assert.equal(groceries?.openingBalance, 0)
+    // Апрельский аванс (38 000) — до цикла, значит в opening (накопление).
+    assert.equal(groceries?.openingBalance, 38_000)
     assert.equal(groceries?.allocated, 72_000)
     assert.equal(groceries?.spent, 42_000)
-    assert.equal(groceries?.closingBalance, 30_000)
+    assert.equal(groceries?.closingBalance, 68_000)
   })
 
-  it('matches SQL case: 72k allocated in cycle minus 42k spent', () => {
+  it('accumulates a pre-cycle allocation into opening (was SQL 72k case)', () => {
     const [groceries] = computeCategoryBudgetsForCycle(
       [{ id: 'groceries', type: 'expense', carry_over_policy: 'CARRY' }],
       [
@@ -454,14 +453,16 @@ describe('computeCategoryBudgetsForCycle', () => {
       '2026-06-04',
     )
 
+    // Аванс 05-21 (70 000) — до cycleStart 05-22, значит в opening.
+    assert.equal(groceries?.openingBalance, 70_000)
     assert.equal(groceries?.allocated, 72_000)
     assert.equal(groceries?.spent, 42_000)
-    assert.equal(groceries?.closingBalance, 30_000)
+    assert.equal(groceries?.closingBalance, 100_000)
   })
 
-  it('excludes closed April accounting period from active cycle', () => {
-    const closedApril = new Set(['2026-04'])
-
+  it('keeps closed-period allocations in the envelope balance', () => {
+    // Закрытые периоды исключаются только из выбора цикла, но не из баланса:
+    // апрельский аванс 05-21 (учётный месяц 2026-04) остаётся в opening.
     const [groceries] = computeCategoryBudgetsForCycle(
       [{ id: 'groceries', type: 'expense', carry_over_policy: 'CARRY' }],
       [
@@ -493,11 +494,11 @@ describe('computeCategoryBudgetsForCycle', () => {
       ],
       mayCycle,
       '2026-06-04',
-      closedApril,
     )
 
+    assert.equal(groceries?.openingBalance, 70_000)
     assert.equal(groceries?.allocated, 71_000)
-    assert.equal(groceries?.closingBalance, 29_000)
+    assert.equal(groceries?.closingBalance, 99_000)
   })
 
   it('does not show unallocated category spend as envelope deficit', () => {
@@ -515,21 +516,6 @@ describe('computeCategoryBudgetsForCycle', () => {
   })
 
   it('carries CARRY envelope closing balance into settlement cycle', () => {
-    const incomes = [
-      {
-        id: 'may-advance',
-        status: 'RECEIVED',
-        received_at: '2026-05-22T10:00:00.000Z',
-        period_month: '2026-05-01',
-      },
-      {
-        id: 'june-settlement',
-        status: 'RECEIVED',
-        received_at: '2026-06-05T08:00:00.000Z',
-        period_month: '2026-06-01',
-      },
-    ]
-
     const allocations = [
       alloc({
         category_id: 'groceries',
@@ -564,8 +550,6 @@ describe('computeCategoryBudgetsForCycle', () => {
       expenses,
       juneCycle,
       '2026-06-06',
-      new Set(),
-      incomes,
     )
 
     assert.equal(groceries?.openingBalance, 30_000)
@@ -621,7 +605,7 @@ describe('computeCategoryBudgetsForCycle', () => {
     )
   })
 
-  it('does not inflate advance carry from settlement surplus in earlier cycle', () => {
+  it('accumulates earlier settlement surplus into advance opening', () => {
     const budgets = computeJuneAdvanceBudgets(
       [
         receivedIncome('apr-settlement', '2026-04-05'),
@@ -678,10 +662,12 @@ describe('computeCategoryBudgetsForCycle', () => {
       ],
     )
 
+    // Апрель: groceries +38 000 профицит, pocket +25 000; май: groceries −1 000,
+    // pocket −4 000 → opening = накопление всей истории до июньского аванса.
     assertCarryIntoJuneAdvance(
       budgets,
-      { opening: -1_000, closing: 69_000 },
-      { opening: -4_000, closing: 6_000 },
+      { opening: 37_000, closing: 107_000 },
+      { opening: 21_000, closing: 31_000 },
     )
   })
 
@@ -795,21 +781,16 @@ describe('computeCategoryBudgetsForCycle', () => {
 
     assertCarryIntoJuneAdvance(
       budgets,
-      { opening: -1_000, closing: 69_000 },
+      { opening: 1_000, closing: 71_000 },
       { opening: -4_000, closing: 6_000 },
     )
   })
 
-  it('does not carry unused settlement opening into next advance', () => {
+  it('carries unused settlement surplus into next advance opening', () => {
     const categories = [
       { id: 'groceries', type: 'expense', carry_over_policy: 'CARRY' },
       { id: 'apartment', type: 'expense', carry_over_policy: 'CARRY' },
     ] as const
-    const incomes = [
-      receivedIncome('may-advance', '2026-05-22'),
-      receivedIncome('june-settlement', '2026-06-05'),
-      receivedIncome('june-advance', '2026-06-22'),
-    ]
     const allocations = [
       alloc({
         category_id: 'groceries',
@@ -850,19 +831,112 @@ describe('computeCategoryBudgetsForCycle', () => {
       expenses,
       JUNE_ADVANCE_CYCLE,
       '2026-06-23',
-      new Set(),
-      incomes,
     )
 
     const groceries = budgets.find((row) => row.categoryId === 'groceries')
     const apartment = budgets.find((row) => row.categoryId === 'apartment')
 
-    assert.equal(groceries?.openingBalance, -1_000)
+    // groceries: 72 000 − (34 000 + 37 000) = 1 000 до аванса; apartment: 7 000 − 1 000 = 6 000.
+    assert.equal(groceries?.openingBalance, 1_000)
     assert.equal(groceries?.allocated, 70_000)
-    assert.equal(groceries?.closingBalance, 60_000)
-    assert.equal(apartment?.openingBalance, 0)
+    assert.equal(groceries?.closingBalance, 62_000)
+    assert.equal(apartment?.openingBalance, 6_000)
     assert.equal(apartment?.allocated, 7_000)
-    assert.equal(apartment?.closingBalance, 7_000)
+    assert.equal(apartment?.closingBalance, 13_000)
+  })
+
+  // Оракул: closing каждого конверта = Σ распределений + Σ переводов −
+  // Σ атрибутированных трат по всей истории. Все конверты проверяются сразу,
+  // чтобы точечная правка одного бага не ломала другой (см.
+  // docs/cycle-envelope-accounting-issues.md).
+  it('accumulates every envelope to its ledger balance (oracle, all bugs at once)', () => {
+    const categories = [
+      { id: 'groceries', type: 'expense', carry_over_policy: 'CARRY' }, // перенос через зарплату
+      { id: 'pocket', type: 'expense', carry_over_policy: 'CARRY' }, // траты до первого цикла
+      { id: 'apartment', type: 'expense', carry_over_policy: 'CARRY' }, // траты закрытого периода
+      { id: 'savings', type: 'savings', carry_over_policy: 'RESET' }, // снятие переводом
+      { id: 'fun', type: 'expense', carry_over_policy: 'CARRY' }, // перерасход из свободного пула
+    ] as const
+
+    const allocations = [
+      alloc({
+        category_id: 'groceries',
+        income_id: 'may-advance',
+        income_received_at: '2026-05-22',
+        amount: 72_000,
+      }),
+      alloc({
+        category_id: 'groceries',
+        income_id: 'june-advance',
+        income_received_at: '2026-06-22',
+        income_period_month: '2026-06',
+        amount: 70_000,
+      }),
+      alloc({
+        category_id: 'pocket',
+        income_id: 'may-advance',
+        income_received_at: '2026-05-22',
+        amount: 10_000,
+      }),
+      alloc({
+        category_id: 'apartment',
+        income_id: 'apr-settlement',
+        income_received_at: '2026-04-05',
+        income_period_month: '2026-04',
+        amount: 20_000,
+      }),
+      alloc({
+        category_id: 'apartment',
+        income_id: 'june-advance',
+        income_received_at: '2026-06-22',
+        income_period_month: '2026-06',
+        amount: 7_000,
+      }),
+      alloc({
+        category_id: 'savings',
+        income_id: 'may-advance',
+        income_received_at: '2026-05-22',
+        amount: 50_000,
+      }),
+    ]
+
+    const expenses = [
+      expense('groceries', 42_000, '2026-05-30'),
+      expense('pocket', 5_000, '2026-05-10'), // до первого цикла
+      expense('pocket', 2_000, '2026-06-23'),
+      expense('apartment', 15_000, '2026-04-20'), // закрытый апрель
+      expense('apartment', 3_000, '2026-06-24'),
+      expense('fun', 4_000, '2026-06-23'), // без лимита → свободный пул
+    ]
+
+    const transfers = [
+      {
+        from_category_id: 'savings',
+        to_category_id: null,
+        amount: 20_000,
+        period_month: '2026-06',
+        created_at: '2026-06-10T10:00:00.000Z',
+      },
+    ]
+
+    const budgets = computeCategoryBudgetsForCycle(
+      categories,
+      allocations,
+      expenses,
+      JUNE_ADVANCE_CYCLE,
+      '2026-06-25',
+      transfers,
+    )
+
+    const closingById = new Map(
+      budgets.map((row) => [row.categoryId, row.closingBalance]),
+    )
+
+    assert.equal(closingById.get('groceries'), 100_000) // 142 000 − 42 000
+    assert.equal(closingById.get('pocket'), 3_000) // 10 000 − 7 000
+    assert.equal(closingById.get('apartment'), 9_000) // 27 000 − 18 000 (вкл. закрытый апрель)
+    assert.equal(closingById.get('savings'), 30_000) // 50 000 − 20 000 (снятие переводом)
+    assert.equal(closingById.get('fun'), 0) // трата из свободного пула не создаёт долг
   })
 })
 
@@ -957,8 +1031,6 @@ describe('computeCategoryBudgetsForCycle with transfers', () => {
       [],
       cycle,
       '2026-06-30',
-      new Set(),
-      [],
       [transfer()],
     )
 
@@ -976,23 +1048,26 @@ describe('computeCategoryBudgetsForCycle with transfers', () => {
     )
   })
 
-  it('ignores a transfer whose created_at falls before the cycle window', () => {
+  it('applies a pre-cycle transfer to opening, not to cycle allocation', () => {
     const budgets = computeCategoryBudgetsForCycle(
       categories,
       allocations,
       [],
       cycle,
       '2026-06-30',
-      new Set(),
-      [],
       [transfer({ created_at: '2026-06-20T10:00:00.000Z' })], // до cycleStart 22-го
     )
 
     const groceries = budgets.find((row) => row.categoryId === 'groceries')
     const fun = budgets.find((row) => row.categoryId === 'fun')
 
+    // Перевод до цикла — часть истории: попадает в opening, а не в allocated цикла.
+    assert.equal(groceries?.openingBalance, -2_000)
     assert.equal(groceries?.allocated, 5_000)
+    assert.equal(groceries?.closingBalance, 3_000)
+    assert.equal(fun?.openingBalance, 2_000)
     assert.equal(fun?.allocated, 1_000)
+    assert.equal(fun?.closingBalance, 3_000)
   })
 
   it('ignores a transfer recorded after asOf', () => {
@@ -1002,8 +1077,6 @@ describe('computeCategoryBudgetsForCycle with transfers', () => {
       [],
       cycle,
       '2026-06-24', // asOf раньше даты перевода
-      new Set(),
-      [],
       [transfer({ created_at: '2026-06-25T10:00:00.000Z' })],
     )
 
@@ -1015,22 +1088,21 @@ describe('computeCategoryBudgetsForCycle with transfers', () => {
     assert.equal(fun?.allocated, 1_000)
   })
 
-  it('excludes a transfer tagged to a closed accounting period', () => {
+  it('applies a transfer even when tagged to a closed accounting period', () => {
+    // Закрытые периоды не исключаются из баланса конверта — перевод учитывается.
     const budgets = computeCategoryBudgetsForCycle(
       categories,
       allocations,
       [],
       cycle,
       '2026-06-30',
-      new Set(['2026-05']),
-      [],
       [transfer({ period_month: '2026-05' })], // закрытый учётный месяц
     )
 
     const groceries = budgets.find((row) => row.categoryId === 'groceries')
     const fun = budgets.find((row) => row.categoryId === 'fun')
 
-    assert.equal(groceries?.allocated, 5_000)
-    assert.equal(fun?.allocated, 1_000)
+    assert.equal(groceries?.allocated, 3_000)
+    assert.equal(fun?.allocated, 3_000)
   })
 })
