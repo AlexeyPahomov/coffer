@@ -130,6 +130,7 @@ describe('BudgetCycleService', () => {
         income_id: 'may-advance',
         amount: { toString: () => '72000' },
         period_month: new Date('2026-05-01'),
+        created_at: new Date('2026-05-22'),
         income: {
           status: 'RECEIVED',
           received_at: new Date('2026-05-22'),
@@ -207,6 +208,7 @@ describe('BudgetCycleService', () => {
         income_id: 'may-advance',
         amount: { toString: () => '5000' },
         period_month: new Date('2026-05-01'),
+        created_at: new Date('2026-05-22'),
         income: {
           status: 'RECEIVED',
           received_at: new Date('2026-05-22'),
@@ -218,6 +220,7 @@ describe('BudgetCycleService', () => {
         income_id: 'may-advance',
         amount: { toString: () => '1000' },
         period_month: new Date('2026-05-01'),
+        created_at: new Date('2026-05-22'),
         income: {
           status: 'RECEIVED',
           received_at: new Date('2026-05-22'),
@@ -296,6 +299,7 @@ describe('BudgetCycleService', () => {
         income_id: 'apr-settlement',
         amount: { toString: () => '20000' },
         period_month: new Date('2026-04-01'),
+        created_at: new Date('2026-04-05'),
         income: {
           status: 'RECEIVED',
           received_at: new Date('2026-04-05'),
@@ -307,6 +311,7 @@ describe('BudgetCycleService', () => {
         income_id: 'may-advance',
         amount: { toString: () => '7000' },
         period_month: new Date('2026-05-01'),
+        created_at: new Date('2026-05-22'),
         income: {
           status: 'RECEIVED',
           received_at: new Date('2026-05-22'),

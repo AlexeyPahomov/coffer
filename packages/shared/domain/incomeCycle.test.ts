@@ -515,6 +515,31 @@ describe('computeCategoryBudgetsForCycle', () => {
     assert.equal(travel?.closingBalance, 0)
   })
 
+  it('counts a top-up made in the cycle from a previous-cycle income as cycle allocation', () => {
+    // Пополнение 22.10 из нераспределённого остатка зарплаты 08.10 — это лимит
+    // текущего цикла (с 22.10), а не «до цикла» (иначе RESET-конверт обнулится).
+    const [other] = computeCategoryBudgetsForCycle(
+      [{ id: 'other', type: 'expense', carry_over_policy: 'RESET' }],
+      [
+        alloc({
+          category_id: 'other',
+          income_id: 'oct-settlement',
+          income_received_at: '2026-10-08',
+          created_at: '2026-10-22',
+          amount: 12_000,
+        }),
+      ],
+      [expense('other', 12_000, '2026-10-22')],
+      { incomeId: 'oct-advance', cycleStart: '2026-10-22', cycleEnd: null },
+      '2026-10-22',
+    )
+
+    assert.equal(other?.openingBalance, 0)
+    assert.equal(other?.allocated, 12_000)
+    assert.equal(other?.spent, 12_000)
+    assert.equal(other?.closingBalance, 0)
+  })
+
   it('carries CARRY envelope closing balance into settlement cycle', () => {
     const allocations = [
       alloc({

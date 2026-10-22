@@ -87,6 +87,7 @@ export class BudgetCycleService {
           allocation.period_month,
         ),
         amount: allocation.amount.toString(),
+        created_at: formatReceivedAtFromDate(allocation.created_at),
       }));
   }
 

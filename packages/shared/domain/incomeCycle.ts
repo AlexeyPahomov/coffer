@@ -57,6 +57,11 @@ export type BudgetCycleAllocation = {
   income_period_month: string
   allocation_period_month: string
   amount: MoneyInput
+  /**
+   * Дата записи распределения (`YYYY-MM-DD`). Пополнение из дохода прошлого
+   * цикла, сделанное позже, слотуется в цикл по ней (см. `getAllocationCycleDate`).
+   */
+  created_at?: string
 }
 
 export type BudgetCycleTransfer = {
@@ -399,12 +404,23 @@ function computeOpeningBeforeCycleByCategory(
   return new Map(budgets.map((row) => [row.categoryId, row.openingBalance]))
 }
 
+/**
+ * Дата, по которой распределение попадает в окно цикла: получение дохода или,
+ * если распределение записано позже (пополнение из остатка прошлого дохода), — запись.
+ */
+function getAllocationCycleDate(allocation: BudgetCycleAllocation): string {
+  const createdAt = allocation.created_at
+  return createdAt != null && createdAt > allocation.income_received_at
+    ? createdAt
+    : allocation.income_received_at
+}
+
 function filterAllocationsBeforeCycle(
   allocations: readonly BudgetCycleAllocation[],
   cycleStart: string,
 ): BudgetCycleAllocation[] {
   return allocations.filter(
-    (allocation) => allocation.income_received_at < cycleStart,
+    (allocation) => getAllocationCycleDate(allocation) < cycleStart,
   )
 }
 
@@ -413,7 +429,7 @@ function filterAllocationsInCycle(
   cycle: ResolvedIncomeCycle,
 ): BudgetCycleAllocation[] {
   return allocations.filter((allocation) => {
-    const receivedAt = allocation.income_received_at
+    const receivedAt = getAllocationCycleDate(allocation)
     if (receivedAt < cycle.cycleStart) {
       return false
     }
