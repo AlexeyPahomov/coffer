@@ -13,18 +13,13 @@ import {
   buildEnvelopeLimitByCategoryId,
   computeFreePoolExpensesInPeriodMonth,
 } from './computeFreePoolExpensesInPeriodMonth'
-import {
-  computeOperationalSummary,
-  sumExpenseOverspendCharge,
-} from './computeOperationalSummary'
+import { computeOperationalSummary } from './computeOperationalSummary'
 
 export type ComputeExpensePageOperationalSummaryParams = BudgetLedgerInput & {
   periodMonth: string
   useCycleEnvelopes: boolean
   /** Все конверты (цикл или месяц) до фильтра карточек. */
   allBudgetItems: readonly CategoryBudgetItem[]
-  /** Конверты для отображения (после filterExpenseEnvelopeBudgetItems). */
-  displayBudgetItems: readonly CategoryBudgetItem[]
   plannedExpenses?: readonly PlannedExpense[]
   ledgerSummary?: PeriodLedgerSummary
 }
@@ -57,6 +52,8 @@ function summarizeCycleEnvelopesWithPeriodPool(
         ),
       }
 
+  // Перерасход не переопределяем конвертами цикла: пул — по учётному месяцу, а
+  // цикл, начавшийся посреди месяца, не видит перерасход прошлого цикла того же месяца.
   return computeOperationalSummary(
     periodBudgetItems,
     ledger,
@@ -65,7 +62,6 @@ function summarizeCycleEnvelopesWithPeriodPool(
     {
       openingFreePool,
       ...cycleOverrides,
-      overspendCharge: sumExpenseOverspendCharge(params.displayBudgetItems),
     },
     params.ledgerSummary,
   )
