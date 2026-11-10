@@ -84,7 +84,7 @@ export function usePlanningPage() {
     [allPlanned, periodMonth],
   )
 
-  const { core, periodBudget, budgetCycle, isBudgetLoading } =
+  const { core, periodBudget, budgetCycle, isBudgetLoading, isBudgetError } =
     usePlanningPeriodBudget(periodMonth, periodPlanned)
 
   const operationalSummary = periodBudget.operationalSummary
@@ -308,6 +308,7 @@ export function usePlanningPage() {
       allocationRulesQuery.isPending &&
       allocationRulesQuery.data === undefined,
     isBudgetLoading,
+    isBudgetError,
     isForecastLoading:
       isBudgetLoading ||
       ledgerEvents.isLedgerLoading ||

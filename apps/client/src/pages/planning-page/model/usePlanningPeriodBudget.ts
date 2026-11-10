@@ -55,10 +55,15 @@ export function usePlanningPeriodBudget(
     ],
   )
 
+  // Без сводки за месяц клиентский fallback считает пул без распределений и трат.
+  const isBudgetError =
+    core.ledgerSummaryQuery.isError && !periodBudget.hasLedgerSummary
+
   return {
     core,
     periodBudget,
     budgetCycle: budgetCycleQuery.data,
     isBudgetLoading,
+    isBudgetError,
   }
 }
