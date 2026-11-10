@@ -299,12 +299,13 @@ function buildEnvelopeForecastItems(
 
       // В следующий период переносится реальный остаток конверта.
       // Расходный конверт: аллокация месяца считается потраченной (базовое
-      // потребление = аллокация, ADR 003), поэтому в перенос она НЕ копится —
-      // остаётся только текущий остаток за вычетом планов (профицит/дефицит).
+      // потребление = аллокация, ADR 003), поэтому в перенос она НЕ копится.
+      // Планы конверта тратят эту же аллокацию, а не идут сверх неё: остаток
+      // уменьшает только превышение планов над аллокацией месяца.
       // Savings-конверт копит аллокацию как накопление.
       const projectedRemaining = isSavingsCategory(category.type)
         ? currentRemaining + forecastAmount - plannedAmount
-        : currentRemaining - plannedAmount
+        : currentRemaining - Math.max(0, plannedAmount - forecastAmount)
 
       return {
         category,

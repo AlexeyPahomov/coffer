@@ -119,21 +119,30 @@ describe('buildEnvelopeForecastChain — перенос остатка расх�
     expect(item).toMatchObject({ currentRemaining: 500, forecastAmount: 200 })
   })
 
-  it('уменьшает перенос на суммы планов месяца', () => {
+  it('планы в пределах аллокации месяца не уменьшают перенос', () => {
     const item = selectedItem(['2026-08', '2026-09'], '2026-09', {
-      plannedExpenses: [plan('2026-08', 120)],
+      plannedExpenses: [plan('2026-08', 200)],
     })
 
-    // Август: 500 − 120 = 380 переносится в сентябрь.
+    // Август: планы 200 покрыты аллокацией 200 → переносится остаток 500.
+    expect(item?.currentRemaining).toBe(500)
+  })
+
+  it('уменьшает перенос на превышение планов над аллокацией', () => {
+    const item = selectedItem(['2026-08', '2026-09'], '2026-09', {
+      plannedExpenses: [plan('2026-08', 320)],
+    })
+
+    // Август: 500 − (320 − 200) = 380 переносится в сентябрь.
     expect(item?.currentRemaining).toBe(380)
   })
 
-  it('переносит дефицит в минус, когда планы больше остатка', () => {
+  it('переносит дефицит в минус, когда планы больше остатка и аллокации', () => {
     const item = selectedItem(['2026-08', '2026-09'], '2026-09', {
-      plannedExpenses: [plan('2026-08', 700)],
+      plannedExpenses: [plan('2026-08', 900)],
     })
 
-    // Август: 500 − 700 = −200.
+    // Август: 500 − (900 − 200) = −200.
     expect(item?.currentRemaining).toBe(-200)
   })
 })
