@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { getNextPeriodMonth } from '@coffer/shared'
 import type { ForecastMonth, MonthBudgetProjection } from '@/processes/forecasting'
 
 import { formatPlanningPeriodLabel } from '@/entities/budget'
@@ -70,6 +71,13 @@ export function usePlanningPage() {
   const periodMonth = pickedPeriodMonth ?? currentCalendarMonth
   usePrefetchBudgetMonth(periodMonth)
   usePrefetchPeriodLedgerSummary(periodMonth)
+  // Планируют вперёд: греем сводку следующих месяцев, чтобы переключение было без спиннера.
+  // Budget month не префетчим — fetchOrOpenBudgetMonth открывает месяц на сервере.
+  const nextPeriodMonth = getNextPeriodMonth(periodMonth)
+  usePrefetchPeriodLedgerSummary(nextPeriodMonth)
+  usePrefetchPeriodLedgerSummary(
+    nextPeriodMonth && getNextPeriodMonth(nextPeriodMonth),
+  )
   const ledgerEvents = useBudgetLedgerEventsQuery(true)
   const plannedQuery = usePlannedExpensesQuery()
   const allocationRulesQuery = useAllocationRulesQuery()

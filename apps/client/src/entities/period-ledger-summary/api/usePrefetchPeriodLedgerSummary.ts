@@ -4,10 +4,16 @@ import { useQueryClient } from '@tanstack/react-query'
 import { fetchPeriodLedgerSummary } from './periodLedgerSummaryApi'
 import { periodLedgerSummaryQueryKeys } from './periodLedgerSummaryQueryKeys'
 
-export function usePrefetchPeriodLedgerSummary(periodMonth: string): void {
+export function usePrefetchPeriodLedgerSummary(
+  periodMonth: string | undefined,
+): void {
   const queryClient = useQueryClient()
 
   useEffect(() => {
+    if (!periodMonth) {
+      return
+    }
+
     const queryKey = periodLedgerSummaryQueryKeys.byPeriod(periodMonth)
 
     void queryClient.prefetchQuery({
