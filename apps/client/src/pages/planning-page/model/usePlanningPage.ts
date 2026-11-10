@@ -339,9 +339,9 @@ export function usePlanningPage() {
     periodLabel: operationalSummary.periodLabel,
     periodPlanned,
     projection,
-    // Будущий месяц — прогноз на конец месяца (первая точка траектории итогов = periodMonth),
-    // текущий и прошлый — факт.
-    isSavingsForecast: !isAnchorSelectedMonth,
+    // Будущий месяц: суммы — прогноз по цепочке от факта текущего, а не факт.
+    isFuturePeriod: !isAnchorSelectedMonth,
+    // Накопления будущего месяца — на конец месяца (первая точка траектории итогов = periodMonth).
     savingsTotal: isAnchorSelectedMonth
       ? operationalSummary.inReserve
       : (outcome.months[0]?.savingsBalance ?? anchorInReserve),

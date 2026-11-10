@@ -76,7 +76,7 @@ export function PlanningPageMonthBody({
           className="hidden md:grid"
           projection={page.projection}
           savingsTotal={page.savingsTotal}
-          isSavingsForecast={page.isSavingsForecast}
+          isSavingsForecast={page.isFuturePeriod}
         />
       )}
 
@@ -124,7 +124,10 @@ export function PlanningPageMonthBody({
       ) : page.isBudgetError ? (
         <PeriodLedgerSummaryError message={page.budgetErrorMessage} />
       ) : (
-        <PlanningEnvelopeForecastSection forecast={page.envelopeForecast} />
+        <PlanningEnvelopeForecastSection
+          forecast={page.envelopeForecast}
+          isFuturePeriod={page.isFuturePeriod}
+        />
       )}
     </div>
   )

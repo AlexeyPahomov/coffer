@@ -11,6 +11,8 @@ import { infoHintTitleTextClassName } from '@/shared/ui/info-hint/infoHintLayout
 
 type PlanningEnvelopeForecastSectionProps = {
   forecast: EnvelopeForecast;
+  /** Будущий месяц: остаток — прогноз на начало месяца, а не факт на сегодня. */
+  isFuturePeriod?: boolean;
 };
 
 function ForecastAmount({
@@ -42,6 +44,7 @@ function ForecastAmount({
 
 export function PlanningEnvelopeForecastSection({
   forecast,
+  isFuturePeriod = false,
 }: PlanningEnvelopeForecastSectionProps) {
   if (forecast.items.length === 0) {
     return null;
@@ -95,7 +98,10 @@ export function PlanningEnvelopeForecastSection({
               className="text-sm font-semibold text-zinc-900"
             />
             <div className="mt-3 grid grid-cols-3 gap-2 text-sm">
-              <ForecastAmount label="сейчас" value={item.currentRemaining} />
+              <ForecastAmount
+                label={isFuturePeriod ? 'на начало' : 'сейчас'}
+                value={item.currentRemaining}
+              />
               <ForecastAmount
                 label="ожидается"
                 value={item.forecastAmount}
