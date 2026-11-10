@@ -125,4 +125,20 @@ describe('buildSavingsTrajectory', () => {
 
     expect(trajectory.map((point) => point.balance)).toEqual([1200, 1200])
   })
+
+  it('копит месяцы разгона, но возвращает только запрошенные', () => {
+    const trajectory = buildSavingsTrajectory({
+      months: ['2026-09'],
+      leadInMonths: ['2026-08'],
+      incomes: [income('2026-08', '1000'), income('2026-09', '1000')],
+      rules: [savingsRule('10')],
+      plannedExpenses: [],
+      savingsCategoryIds: new Set([SAVINGS_CATEGORY.id]),
+      initialBalance: 500,
+    })
+
+    expect(trajectory).toEqual([
+      { month: '2026-09', allocated: 100, withdrawn: 0, balance: 700 },
+    ])
+  })
 })

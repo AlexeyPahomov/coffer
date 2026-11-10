@@ -28,7 +28,7 @@ export type OperationalSummaryOverrides = {
   overspendCharge?: number
 }
 
-function computeAvailableFromLedgerSummary(
+export function computeAvailableFromLedgerSummary(
   summary: PeriodLedgerSummary,
   poolOpening: number,
   overrides?: OperationalSummaryOverrides,

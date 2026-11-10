@@ -5,7 +5,10 @@ import type { ForecastMonth, MonthBudgetProjection } from '@/processes/forecasti
 import { formatPlanningPeriodLabel } from '@/entities/budget'
 import { useBudgetLedgerEventsQuery } from '@/entities/budget/model/useBudgetLedgerEventsQuery'
 import { usePrefetchBudgetMonth } from '@/entities/budget-month/api/usePrefetchBudgetMonth'
-import { usePrefetchPeriodLedgerSummary } from '@/entities/period-ledger-summary'
+import {
+  usePeriodLedgerSummaryQuery,
+  usePrefetchPeriodLedgerSummary,
+} from '@/entities/period-ledger-summary'
 import { resolveEnvelopeForecastInputs } from '@/entities/budget/lib/resolveEnvelopeForecastInputs'
 import { filterExpenseCategories } from '@/entities/category/lib/filterExpenseCategories'
 import { isSavingsCategory } from '@/entities/category/lib/categoryKind'
@@ -36,6 +39,11 @@ import { currentMonthInputValue } from '@/shared/lib/date'
 import { buildPlanningForecast } from '../lib/buildPlanningForecast'
 import { buildEnvelopeForecastChain } from '../lib/buildEnvelopeForecast'
 import { buildForecastHorizonMonths } from '../lib/buildForecastHorizonMonths'
+import {
+  buildForecastLeadInMonths,
+  resolveForecastAnchorMonth,
+  resolveForecastAnchorSummary,
+} from '../lib/forecastAnchor'
 import { buildSavingsTrajectory } from '../lib/buildSavingsTrajectory'
 import { PLANNING_TABS } from '../lib/planningTabs'
 import { usePlanningPeriodBudget } from './usePlanningPeriodBudget'
@@ -97,6 +105,37 @@ export function usePlanningPage() {
 
   const operationalSummary = periodBudget.operationalSummary
 
+  // Цепочки прогноза стартуют от факта текущего месяца, а не от сводки выбранного будущего.
+  // От якоря нужны только available и inReserve — их даёт серверная сводка, без расчёта конвертов.
+  // Якорь = выбранный месяц → сводка страницы (тот же запрос из кэша).
+  const anchorMonth = resolveForecastAnchorMonth(periodMonth, currentCalendarMonth)
+  const isAnchorSelectedMonth = anchorMonth === periodMonth
+  const anchorLedgerSummaryQuery = usePeriodLedgerSummaryQuery(anchorMonth)
+  const anchorLedgerSummary = resolveForecastAnchorSummary(
+    anchorLedgerSummaryQuery.data,
+    anchorMonth,
+  )
+  const anchorAvailable = isAnchorSelectedMonth
+    ? operationalSummary.available
+    : (anchorLedgerSummary?.available ?? 0)
+  const anchorInReserve = isAnchorSelectedMonth
+    ? operationalSummary.inReserve
+    : (anchorLedgerSummary?.inReserve ?? 0)
+  const leadInMonths = useMemo(
+    () => buildForecastLeadInMonths(anchorMonth, periodMonth),
+    [anchorMonth, periodMonth],
+  )
+  const isAnyBudgetLoading =
+    isBudgetLoading ||
+    (!isAnchorSelectedMonth &&
+      anchorLedgerSummary == null &&
+      !anchorLedgerSummaryQuery.isError)
+  const isAnyBudgetError =
+    isBudgetError ||
+    (!isAnchorSelectedMonth &&
+      anchorLedgerSummary == null &&
+      anchorLedgerSummaryQuery.isError)
+
   const timelineMonths = useMemo(
     () => buildPlanningTimelineMonths(periodMonth),
     [periodMonth],
@@ -109,17 +148,24 @@ export function usePlanningPage() {
     () =>
       buildPlanningForecast({
         months: forecastMonths,
-        incomes: core.incomes,
+        leadInMonths,
+        incomes: buildProjectedIncomes(
+          [...leadInMonths, ...forecastMonths],
+          core.incomes,
+          currentCalendarMonth,
+        ),
         plannedExpenses: allPlanned,
         rules: allocationRulesQuery.data ?? [],
-        initialAvailable: operationalSummary.available,
+        initialAvailable: anchorAvailable,
       }),
     [
       allPlanned,
       allocationRulesQuery.data,
+      anchorAvailable,
       core.incomes,
+      currentCalendarMonth,
       forecastMonths,
-      operationalSummary.available,
+      leadInMonths,
     ],
   )
   const forecastMonth = forecast.months.find(
@@ -226,7 +272,7 @@ export function usePlanningPage() {
   const outcome = useMemo<PlanningOutcome>(() => {
     const horizonMonths = buildForecastHorizonMonths(periodMonth, outcomeHorizon)
     const projectedIncomes = buildProjectedIncomes(
-      horizonMonths,
+      [...leadInMonths, ...horizonMonths],
       core.incomes,
       currentCalendarMonth,
     )
@@ -234,18 +280,20 @@ export function usePlanningPage() {
 
     const outcomeForecast = buildPlanningForecast({
       months: horizonMonths,
+      leadInMonths,
       incomes: projectedIncomes,
       plannedExpenses: allPlanned,
       rules,
-      initialAvailable: operationalSummary.available,
+      initialAvailable: anchorAvailable,
     })
     const savingsTrajectory = buildSavingsTrajectory({
       months: horizonMonths,
+      leadInMonths,
       incomes: projectedIncomes,
       rules,
       plannedExpenses: allPlanned,
       savingsCategoryIds,
-      initialBalance: operationalSummary.inReserve,
+      initialBalance: anchorInReserve,
     })
 
     const months = outcomeForecast.months.map((forecastMonthPoint, index) => ({
@@ -264,10 +312,11 @@ export function usePlanningPage() {
   }, [
     allPlanned,
     allocationRulesQuery.data,
+    anchorAvailable,
+    anchorInReserve,
     core.incomes,
     currentCalendarMonth,
-    operationalSummary.available,
-    operationalSummary.inReserve,
+    leadInMonths,
     outcomeHorizon,
     periodMonth,
     savingsCategoryIds,
@@ -315,10 +364,10 @@ export function usePlanningPage() {
     isRulesLoading:
       allocationRulesQuery.isPending &&
       allocationRulesQuery.data === undefined,
-    isBudgetLoading,
-    isBudgetError,
+    isBudgetLoading: isAnyBudgetLoading,
+    isBudgetError: isAnyBudgetError,
     isForecastLoading:
-      isBudgetLoading ||
+      isAnyBudgetLoading ||
       ledgerEvents.isLedgerLoading ||
       (allocationRulesQuery.isPending &&
         allocationRulesQuery.data === undefined),
@@ -326,6 +375,6 @@ export function usePlanningPage() {
       (plannedQuery.isPending && plannedQuery.data === undefined) ||
       (allocationRulesQuery.isPending &&
         allocationRulesQuery.data === undefined) ||
-      isBudgetLoading,
+      isAnyBudgetLoading,
   }
 }

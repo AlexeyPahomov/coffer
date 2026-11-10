@@ -1,5 +1,6 @@
 import {
   buildForecastChain,
+  collectForecastChainMetadata,
   type ForecastChainResult,
 } from '@coffer/planning-core'
 
@@ -19,6 +20,11 @@ type BuildPlanningForecastInput = {
   plannedExpenses: readonly PlannedExpense[]
   rules: readonly AllocationRule[]
   initialAvailable: number
+  /**
+   * Месяцы между якорем факта и первым месяцем прогноза: по ним цепочка
+   * проходит, чтобы получить opening первого месяца, но в результат они не попадают.
+   */
+  leadInMonths?: readonly string[]
 }
 
 function isExpectedIncome(income: Pick<Income, 'status'>): boolean {
@@ -51,13 +57,14 @@ export function buildPlanningForecast({
   plannedExpenses,
   rules,
   initialAvailable,
+  leadInMonths = [],
 }: BuildPlanningForecastInput): ForecastChainResult {
   const expectedIncomeByMonth = sumExpectedIncomeByMonth(incomes)
   const plannedByMonth = groupPlannedExpensesByPeriodMonth(plannedExpenses)
 
-  return buildForecastChain({
+  const chain = buildForecastChain({
     initialOpening: initialAvailable,
-    months: months.map((month) => ({
+    months: [...leadInMonths, ...months].map((month) => ({
       month,
       income: expectedIncomeByMonth.get(month) ?? 0,
       expectedEnvelopeAllocation: sumExpectedEnvelopeAllocationForMonth(
@@ -68,4 +75,10 @@ export function buildPlanningForecast({
       commitmentRows: toPoolCommitmentRows(plannedByMonth.get(month) ?? []),
     })),
   })
+  const visibleMonths = chain.months.slice(leadInMonths.length)
+
+  return {
+    months: visibleMonths,
+    metadata: collectForecastChainMetadata(visibleMonths),
+  }
 }

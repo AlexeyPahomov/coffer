@@ -25,6 +25,8 @@ type BuildSavingsTrajectoryInput = {
   savingsCategoryIds: ReadonlySet<string>
   /** Накопления на текущий момент (до первого месяца траектории). */
   initialBalance: number
+  /** Месяцы между якорем факта и первым месяцем траектории — копятся, но не возвращаются. */
+  leadInMonths?: readonly string[]
 }
 
 function sumSavingsWithdrawalForMonth(
@@ -55,10 +57,11 @@ export function buildSavingsTrajectory({
   plannedExpenses,
   savingsCategoryIds,
   initialBalance,
+  leadInMonths = [],
 }: BuildSavingsTrajectoryInput): SavingsTrajectoryPoint[] {
   let balance = initialBalance
 
-  return months.map((month) => {
+  const projectMonth = (month: string): SavingsTrajectoryPoint => {
     const allocated = sumSavingsAllocationForMonth(month, incomes, rules)
     const withdrawn = sumSavingsWithdrawalForMonth(
       plannedExpenses,
@@ -68,5 +71,9 @@ export function buildSavingsTrajectory({
     balance = balance + allocated - withdrawn
 
     return { month, allocated, withdrawn, balance }
-  })
+  }
+
+  leadInMonths.forEach(projectMonth)
+
+  return months.map(projectMonth)
 }
