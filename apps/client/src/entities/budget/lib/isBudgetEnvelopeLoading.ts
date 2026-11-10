@@ -1,5 +1,6 @@
 export type QueryPendingState = {
   isPending: boolean
+  isPlaceholderData?: boolean
   data: unknown
 }
 
@@ -47,10 +48,12 @@ export function isBudgetEnvelopeLoading({
     return true
   }
 
+  // keepPreviousData отдаёт сводку прошлого месяца — без неё клиентский
+  // fallback считает пул без распределений и трат (огромные суммы).
   if (
-    ledgerSummaryQuery?.isPending &&
-    ledgerSummaryQuery.data === undefined &&
-    !hasLedgerSummary
+    ledgerSummaryQuery &&
+    !hasLedgerSummary &&
+    (ledgerSummaryQuery.isPending || ledgerSummaryQuery.isPlaceholderData)
   ) {
     return true
   }
