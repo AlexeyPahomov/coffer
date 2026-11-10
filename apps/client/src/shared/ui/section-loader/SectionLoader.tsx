@@ -15,6 +15,8 @@ export function SectionLoader({ label, className }: SectionLoaderProps) {
         'flex min-h-24 items-center justify-center rounded-xl border border-dashed border-zinc-200 bg-white/60',
         className,
       )}
+      role="status"
+      aria-live="polite"
       aria-busy="true"
     >
       <Spinner className="size-6 text-zinc-400" aria-label={label} />
