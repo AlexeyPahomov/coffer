@@ -12,6 +12,9 @@ import { cn } from '@/shared/lib/utils'
 import { Button } from '@/shared/ui/button/Button'
 import { buttonVariants } from '@/shared/ui/button/variants'
 
+/** Сколько лет вперёд доступно в выпадающем списке лет. */
+const DROPDOWN_YEARS_AHEAD = 10
+
 function Calendar({
   className,
   classNames,
@@ -21,15 +24,26 @@ function Calendar({
   locale,
   formatters,
   components,
+  endMonth,
   ...props
 }: React.ComponentProps<typeof DayPicker> & {
   buttonVariant?: React.ComponentProps<typeof Button>['variant']
 }) {
   const defaultClassNames = getDefaultClassNames()
+  // С выпадающим списком лет DayPicker по умолчанию обрезает навигацию концом
+  // текущего года — будущие доходы и планы нельзя было бы выбрать.
+  const hasYearDropdown =
+    captionLayout === 'dropdown' || captionLayout === 'dropdown-years'
+  const resolvedEndMonth =
+    endMonth ??
+    (hasYearDropdown
+      ? new Date(new Date().getFullYear() + DROPDOWN_YEARS_AHEAD, 11)
+      : undefined)
 
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
+      endMonth={resolvedEndMonth}
       className={cn(
         'group/calendar bg-background p-2 [--cell-radius:var(--radius-md)] [--cell-size:--spacing(7)] in-data-[slot=card-content]:bg-transparent in-data-[slot=popover-content]:bg-transparent',
         String.raw`rtl:**:[.rdp-button\_next>svg]:rotate-180`,
