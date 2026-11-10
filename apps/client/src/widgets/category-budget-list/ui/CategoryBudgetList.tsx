@@ -20,6 +20,8 @@ export type CategoryBudgetListProps = {
   isPending: boolean;
   isError: boolean;
   error: unknown;
+  /** Текст ошибки вместо стандартного «Не удалось загрузить конверты». */
+  errorFallback?: string;
   isFetching?: boolean;
   selectedCategoryId?: string | null;
   stressCategoryId?: string | null;
@@ -40,6 +42,7 @@ export function CategoryBudgetList({
   isPending,
   isError,
   error,
+  errorFallback = 'Не удалось загрузить конверты',
   isFetching = false,
   selectedCategoryId,
   stressCategoryId,
@@ -73,7 +76,7 @@ export function CategoryBudgetList({
       title={hideListTitle ? undefined : 'Конверты'}
       headerEnd={headerEnd}
       emptyMessage="Нет категорий расходов."
-      errorFallback="Не удалось загрузить конверты"
+      errorFallback={errorFallback}
     >
       {(items) =>
         items.map((item) => {

@@ -15,6 +15,7 @@ type ExpenseWorkspaceProps = {
   isBudgetPending: boolean;
   isBudgetError: boolean;
   budgetError: unknown;
+  budgetErrorFallback?: string;
   isBudgetFetching: boolean;
   renderItemAction?: (item: CategoryBudgetItem) => ReactNode;
   listLayout?: ItemsListLayout;
@@ -29,6 +30,7 @@ export function ExpenseWorkspace({
   isBudgetPending,
   isBudgetError,
   budgetError,
+  budgetErrorFallback,
   isBudgetFetching,
   renderItemAction,
   listLayout = 'fill',
@@ -43,6 +45,7 @@ export function ExpenseWorkspace({
       isPending={isBudgetPending}
       isError={isBudgetError}
       error={budgetError}
+      errorFallback={budgetErrorFallback}
       isFetching={isBudgetFetching}
       selectedCategoryId={selectedCategoryId}
       stressCategoryId={stressCategoryId}

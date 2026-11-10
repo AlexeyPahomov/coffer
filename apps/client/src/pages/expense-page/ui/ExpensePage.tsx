@@ -7,6 +7,7 @@ import {
   useExpenseHistoryQuery,
 } from '@/entities/expense/api/useExpenseHistoryQuery';
 import type { Expense } from '@/entities/expense/model/types';
+import { PERIOD_LEDGER_SUMMARY_ERROR_MESSAGE } from '@/entities/period-ledger-summary';
 import type { ExpenseListItem } from '@/widgets/expense-list';
 import { ExpenseFormDialog } from '@/features/create-expense/ui/ExpenseFormDialog';
 import {
@@ -184,6 +185,9 @@ export function ExpensePage() {
               isBudgetPending,
               isBudgetError,
               budgetError: isSummaryError ? null : budgetError,
+              budgetErrorFallback: isSummaryError
+                ? PERIOD_LEDGER_SUMMARY_ERROR_MESSAGE
+                : undefined,
               isBudgetFetching,
               sortedExpenses,
               expenseCategoryFilter,

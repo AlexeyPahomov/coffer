@@ -106,6 +106,7 @@ export {
 } from './page-section'
 export { PagePlaceholder } from './page-placeholder/PagePlaceholder'
 export { PageContentLoader } from './page-content-loader'
+export { SectionLoader } from './section-loader'
 export { Spinner } from './spinner/Spinner'
 export {
   SummaryMetricCard,

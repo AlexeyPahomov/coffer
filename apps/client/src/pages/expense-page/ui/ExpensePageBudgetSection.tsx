@@ -1,5 +1,6 @@
 import type { CurrentBudgetSummaryView } from '@/entities/budget/model/currentBudgetSummaryView';
-import { ListError, Spinner } from '@/shared/ui';
+import { PeriodLedgerSummaryError } from '@/entities/period-ledger-summary';
+import { SectionLoader } from '@/shared/ui';
 import { CurrentBudgetSummary } from '@/widgets/current-budget-summary';
 
 import { expensePageBudgetSectionClassName } from '../lib/expensePageLayout';
@@ -18,17 +19,9 @@ export function ExpensePageBudgetSection({
   return (
     <div className={expensePageBudgetSectionClassName}>
       {isPending ? (
-        <div
-          className="flex min-h-24 items-center justify-center rounded-xl border border-dashed border-zinc-200 bg-white/60"
-          aria-busy="true"
-        >
-          <Spinner className="size-6 text-zinc-400" aria-label="Загрузка сводки" />
-        </div>
+        <SectionLoader label="Загрузка сводки" />
       ) : isError ? (
-        <ListError
-          error={null}
-          fallbackMessage="Не удалось загрузить сводку за месяц — данные недоступны"
-        />
+        <PeriodLedgerSummaryError />
       ) : (
         <CurrentBudgetSummary {...summary} />
       )}

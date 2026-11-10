@@ -38,6 +38,7 @@ export function ExpensePageCategoriesPanel({
     isBudgetPending,
     isBudgetError,
     budgetError,
+    budgetErrorFallback,
     isBudgetFetching,
     renderItemAction,
   } = useExpensePageWorkAreaContext()
@@ -54,6 +55,7 @@ export function ExpensePageCategoriesPanel({
         isBudgetPending={isBudgetPending}
         isBudgetError={isBudgetError}
         budgetError={budgetError}
+        budgetErrorFallback={budgetErrorFallback}
         isBudgetFetching={isBudgetFetching}
         renderItemAction={renderItemAction}
       />

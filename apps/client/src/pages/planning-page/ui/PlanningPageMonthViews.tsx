@@ -1,4 +1,5 @@
 import type { PlannedExpense } from '@/entities/planned-expense/model/types'
+import { PeriodLedgerSummaryError } from '@/entities/period-ledger-summary'
 import {
   carouselTabsContentClassName,
   carouselTabsItemClassName,
@@ -6,15 +7,13 @@ import {
   carouselTabsRootClassName,
   carouselTabsViewportClassName,
 } from '@/shared/lib/carouselTabsLayout'
-import { cn } from '@/shared/lib/utils'
 import {
   Carousel,
   CarouselContent,
   CarouselItem,
-  ListError,
   PageContentLoader,
+  SectionLoader,
   SegmentedSwitcher,
-  Spinner,
 } from '@/shared/ui'
 import { MonthLiquidityFlow, PlanningMobileLiquidityHeader } from '@/widgets/liquidity-flow-preview'
 import { PlanningMonthMetrics } from '@/widgets/planning-month-metrics'
@@ -31,37 +30,6 @@ type PlanningPageMonthViewsProps = {
   page: ReturnType<typeof usePlanningPage>
   onEditPlanned: (item: PlannedExpense) => void
   onFinishPlanned: (item: PlannedExpense) => void
-}
-
-function PlanningSectionFallback({
-  label,
-  className,
-}: {
-  label: string
-  className?: string
-}) {
-  return (
-    <div
-      className={cn(
-        'flex min-h-24 items-center justify-center rounded-xl border border-dashed border-zinc-200 bg-white/60',
-        className,
-      )}
-      aria-busy="true"
-    >
-      <Spinner className="size-6 text-zinc-400" aria-label={label} />
-    </div>
-  )
-}
-
-function PlanningSectionError({ className }: { className?: string }) {
-  return (
-    <div className={className}>
-      <ListError
-        error={null}
-        fallbackMessage="Не удалось загрузить сводку за месяц — данные недоступны"
-      />
-    </div>
-  )
 }
 
 export function PlanningPageMonthMobileHeader({
@@ -94,12 +62,12 @@ export function PlanningPageMonthBody({
   const plansPanel = (
     <div className="flex min-h-0 flex-col gap-4 md:gap-6">
       {page.isBudgetLoading ? (
-        <PlanningSectionFallback
+        <SectionLoader
           label="Загрузка метрик"
           className="hidden md:flex"
         />
       ) : page.isBudgetError ? (
-        <PlanningSectionError className="hidden md:block" />
+        <PeriodLedgerSummaryError className="hidden md:block" />
       ) : (
         <PlanningMonthMetrics
           className="hidden md:grid"
@@ -121,9 +89,9 @@ export function PlanningPageMonthBody({
   )
 
   const forecastPanel = page.isForecastLoading ? (
-    <PlanningSectionFallback label="Загрузка прогноза по месяцам" />
+    <SectionLoader label="Загрузка прогноза по месяцам" />
   ) : page.isBudgetError ? (
-    <PlanningSectionError />
+    <PeriodLedgerSummaryError />
   ) : (
     <PlanningOutcomeForecast
       outcome={page.outcome}
@@ -134,20 +102,20 @@ export function PlanningPageMonthBody({
   const overviewPanel = (
     <div className="flex min-h-0 flex-col gap-4 md:gap-6">
       {page.isBudgetLoading ? (
-        <PlanningSectionFallback
+        <SectionLoader
           label="Загрузка ликвидности"
           className="hidden md:flex"
         />
       ) : page.isBudgetError ? (
-        <PlanningSectionError className="hidden md:block" />
+        <PeriodLedgerSummaryError className="hidden md:block" />
       ) : (
         <MonthLiquidityFlow className="hidden md:flex" {...liquidityFlowProps} />
       )}
 
       {page.isForecastLoading ? (
-        <PlanningSectionFallback label="Загрузка прогноза конвертов" />
+        <SectionLoader label="Загрузка прогноза конвертов" />
       ) : page.isBudgetError ? (
-        <PlanningSectionError />
+        <PeriodLedgerSummaryError />
       ) : (
         <PlanningEnvelopeForecastSection forecast={page.envelopeForecast} />
       )}

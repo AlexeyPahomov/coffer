@@ -29,6 +29,8 @@ export type ExpensePageWorkAreaContextValue = {
   isBudgetPending: boolean
   isBudgetError: boolean
   budgetError: unknown
+  /** Текст ошибки списка конвертов вместо стандартного. */
+  budgetErrorFallback?: string
   isBudgetFetching: boolean
   sortedExpenses: ExpenseListItem[]
   expenseCategoryFilter: string
