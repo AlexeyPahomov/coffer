@@ -75,6 +75,7 @@ export function PlanningPageMonthBody({
         <PlanningMonthMetrics
           className="hidden md:grid"
           projection={page.projection}
+          envelopeCommitments={page.envelopeCommitments}
           savingsTotal={page.savingsTotal}
           isSavingsForecast={page.isFuturePeriod}
         />

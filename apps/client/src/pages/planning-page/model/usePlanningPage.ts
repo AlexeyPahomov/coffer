@@ -24,6 +24,7 @@ import {
   fullReserveMutationArgs,
   unreservePlannedExpenseMutationArgs,
 } from '@/entities/planned-expense/lib/fullReserveMutationArgs'
+import { sumEnvelopeCommitments } from '@/entities/planned-expense/lib/plannedExpenseCommitmentRows'
 import { useAllocationRulesQuery } from '@/entities/allocation-rule/api/useAllocationRulesQuery'
 import { usePlannedExpensesQuery } from '@/entities/planned-expense/api/usePlannedExpensesQuery'
 import { useDeletePlannedExpenseMutation } from '@/entities/planned-expense/api/useDeletePlannedExpenseMutation'
@@ -100,6 +101,11 @@ export function usePlanningPage() {
   const periodPlanned = useMemo(
     () => filterPlannedExpensesByPeriodMonth(allPlanned, periodMonth),
     [allPlanned, periodMonth],
+  )
+
+  const envelopeCommitments = useMemo(
+    () => sumEnvelopeCommitments(periodPlanned),
+    [periodPlanned],
   )
 
   const { core, periodBudget, budgetCycle, isBudgetLoading, isBudgetError } =
@@ -339,6 +345,7 @@ export function usePlanningPage() {
     periodLabel: operationalSummary.periodLabel,
     periodPlanned,
     projection,
+    envelopeCommitments,
     // Будущий месяц: суммы — прогноз по цепочке от факта текущего, а не факт.
     isFuturePeriod: !isAnchorSelectedMonth,
     // Накопления будущего месяца — на конец месяца (первая точка траектории итогов = periodMonth).

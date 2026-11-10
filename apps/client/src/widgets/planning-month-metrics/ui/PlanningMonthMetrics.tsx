@@ -1,4 +1,7 @@
-import type { MonthBudgetProjection } from '@/processes/forecasting'
+import type {
+  MonthBudgetProjection,
+  PlannedExpenseCommitments,
+} from '@/processes/forecasting'
 import { cn } from '@/shared/lib/utils'
 
 import { PLANNING_METRIC_COPY } from '@/entities/budget'
@@ -8,6 +11,8 @@ import { PlanningMetricCard } from './PlanningMetricCard'
 
 export type PlanningMonthMetricsProps = {
   projection: MonthBudgetProjection
+  /** Планы конвертов месяца: в «Остаток» не входят, в карточках показываются отдельной строкой. */
+  envelopeCommitments: PlannedExpenseCommitments
   savingsTotal: number
   /** Будущий месяц: накопления — прогноз на конец месяца, а не текущий факт. */
   isSavingsForecast?: boolean
@@ -16,6 +21,7 @@ export type PlanningMonthMetricsProps = {
 
 export function PlanningMonthMetrics({
   projection,
+  envelopeCommitments,
   savingsTotal,
   isSavingsForecast = false,
   className,
@@ -42,16 +48,22 @@ export function PlanningMonthMetrics({
       <PlanningMetricCard
         accent="reserved"
         title={copy.reserved.title}
-        caption={copy.reserved.caption}
+        caption={copy.reserved.caption(
+          projection.reservedTotal,
+          envelopeCommitments.reserved,
+        )}
         infoText={copy.reserved.infoText}
-        value={projection.reservedTotal}
+        value={projection.reservedTotal + envelopeCommitments.reserved}
       />
       <PlanningMetricCard
         accent="planned"
         title={copy.planned.title}
-        caption={copy.planned.caption}
+        caption={copy.planned.caption(
+          projection.plannedTotal,
+          envelopeCommitments.planned,
+        )}
         infoText={copy.planned.infoText}
-        value={projection.plannedTotal}
+        value={projection.plannedTotal + envelopeCommitments.planned}
       />
       <PlanningMetricCard
         accent="savings"

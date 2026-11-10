@@ -1,11 +1,17 @@
+import { formatAmount } from '@/shared/lib/format'
+
 import { BUDGET_METRIC_LABELS } from './budgetMetricLabels'
+
+function formatPoolEnvelopeBreakdown(poolTotal: number, envelopeTotal: number) {
+  return `Из пула ${formatAmount(poolTotal)} · из конвертов ${formatAmount(envelopeTotal)}`
+}
 
 export const PLANNING_METRIC_COPY = {
   forecast: {
     title: 'Остаток',
     caption: 'Прогнозируемый остаток после ожидаемых поступлений и планов',
     infoText:
-      'Доступно сейчас плюс ожидаемые доходы, минус прогноз распределения по конвертам, минус запланированные траты и уже зарезервированные суммы.',
+      'Доступно сейчас плюс ожидаемые доходы, минус прогноз распределения по конвертам, минус планы и резервы из свободного пула.',
   },
   pool: {
     title: BUDGET_METRIC_LABELS.poolAvailableNow,
@@ -15,13 +21,15 @@ export const PLANNING_METRIC_COPY = {
   },
   planned: {
     title: BUDGET_METRIC_LABELS.planned,
-    caption: 'Запланированные траты',
-    infoText: 'Сумма планов со статусом «План», ещё не зарезервированная.',
+    caption: formatPoolEnvelopeBreakdown,
+    infoText:
+      'Все планы месяца, ещё не зарезервированные. В «Остаток» входят только планы из свободного пула: планы конвертов покрывает их аллокация.',
   },
   reserved: {
     title: BUDGET_METRIC_LABELS.reserved,
-    caption: 'Замороженные средства',
-    infoText: 'Сумма планов, по которым ликвидность уже заморожена.',
+    caption: formatPoolEnvelopeBreakdown,
+    infoText:
+      'Сумма планов, по которым ликвидность уже заморожена. В «Остаток» входят только резервы из свободного пула: резервы конвертов лежат в их аллокации.',
   },
   savings: {
     title: BUDGET_METRIC_LABELS.reserve,
