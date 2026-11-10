@@ -53,6 +53,7 @@ export function ExpensePage() {
     isBudgetPending,
     isBudgetError,
     budgetError,
+    isSummaryError,
     isBudgetFetching,
   } = useExpensePage();
 
@@ -157,6 +158,8 @@ export function ExpensePage() {
     >
       <div className={getExpensePageShellClassName()}>
         <ExpensePageBudgetSection
+          isPending={isBudgetPending}
+          isError={isSummaryError}
           summary={
             currentBudgetView ?? {
               available: 0,
@@ -171,7 +174,8 @@ export function ExpensePage() {
           <ExpensePageWorkAreaContext.Provider
             value={{
               periodMonth,
-              budgetItems,
+              // undefined — чтобы ItemsList показал ошибку вместо конвертов с неверными суммами
+              budgetItems: isSummaryError ? undefined : budgetItems,
               selectedCategoryId,
               stressCategoryId,
               onCategorySelect: handleCategorySelect,
@@ -179,7 +183,7 @@ export function ExpensePage() {
               onAddExpense: expenseFormDialog.openForAdd,
               isBudgetPending,
               isBudgetError,
-              budgetError,
+              budgetError: isSummaryError ? null : budgetError,
               isBudgetFetching,
               sortedExpenses,
               expenseCategoryFilter,

@@ -123,6 +123,13 @@ export function useExpensePage() {
       : null) ??
     (useCycleEnvelopes ? core.budgetCycleQuery.error : null)
 
+  // Без сводки за месяц клиентский fallback считает пул без распределений и трат
+  // (кроме цикла текущего месяца — там подгружаются реальные события).
+  const isSummaryError =
+    core.ledgerSummaryQuery.isError &&
+    !periodBudget.hasLedgerSummary &&
+    !needsCycleLedgerEvents
+
   const isBudgetFetching =
     core.categoriesQuery.isFetching ||
     core.incomesQuery.isFetching ||
@@ -149,6 +156,7 @@ export function useExpensePage() {
     isBudgetPending,
     isBudgetError,
     budgetError,
+    isSummaryError,
     isBudgetFetching,
     categoriesQuery: core.categoriesQuery,
     incomesQuery: core.incomesQuery,

@@ -8,7 +8,7 @@ import { CategoryBudgetList } from '@/widgets/category-budget-list';
 import { expensePageListInTabClassName } from '../lib/expensePageLayout';
 
 type ExpenseWorkspaceProps = {
-  budgetItems: CategoryBudgetItem[];
+  budgetItems: CategoryBudgetItem[] | undefined;
   selectedCategoryId: string | null;
   stressCategoryId: string | null;
   onCategorySelect: (categoryId: string) => void;

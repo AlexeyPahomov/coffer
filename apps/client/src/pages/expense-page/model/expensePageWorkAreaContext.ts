@@ -17,7 +17,8 @@ import type { ExpenseListItem } from '@/widgets/expense-list'
  */
 export type ExpensePageWorkAreaContextValue = {
   periodMonth: string
-  budgetItems: CategoryBudgetItem[]
+  /** undefined — данных нет (ошибка), список покажет заглушку. */
+  budgetItems: CategoryBudgetItem[] | undefined
   selectedCategoryId: string | null
   stressCategoryId: string | null
   /** Базовый обработчик; рабочая область оборачивает его переключением слайда. */
