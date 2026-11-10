@@ -6,6 +6,8 @@ import type { Category } from '@/entities/category/model/types'
 import type { Income } from '@/entities/income/model/types'
 import type { PlannedExpense } from '@/entities/planned-expense/model/types'
 
+import { buildProjectedIncomes } from '@/entities/income/lib/projectRecurringIncome'
+
 import { buildEnvelopeForecastChain } from './buildEnvelopeForecast'
 
 const EXPENSE_CATEGORY: Category = {
@@ -133,5 +135,119 @@ describe('buildEnvelopeForecastChain — перенос остатка расх�
 
     // Август: 500 − 700 = −200.
     expect(item?.currentRemaining).toBe(-200)
+  })
+})
+
+const SAVINGS_CATEGORY: Category = {
+  ...EXPENSE_CATEGORY,
+  id: 'cat-savings',
+  name: 'Накопления',
+  type: 'savings',
+}
+
+function savingsRule(amount: string): AllocationRule {
+  const rule = fixedRule(amount)
+  return {
+    ...rule,
+    lines: rule.lines.map((line) => ({
+      ...line,
+      category_id: SAVINGS_CATEGORY.id,
+      category: SAVINGS_CATEGORY,
+    })),
+  }
+}
+
+function savingsItem(
+  months: string[],
+  selected: string,
+  incomes: Income[],
+  extra = {},
+) {
+  const forecast = buildEnvelopeForecastChain({
+    months,
+    selectedPeriodMonth: selected,
+    incomes,
+    rules: [savingsRule('40000')],
+    initialBudgetItems: [
+      { ...budgetItem(0), category: SAVINGS_CATEGORY },
+    ],
+    savingsReserveBalance: 10000,
+    ...extra,
+  })
+  return forecast.items.find((item) => item.category.id === SAVINGS_CATEGORY.id)
+}
+
+describe('buildEnvelopeForecastChain — savings-конверт', () => {
+  const months = ['2026-11', '2026-12', '2027-01']
+  // Ноябрьский доход уже получен и сидит в факте 10k; ожидаются декабрь и январь.
+  const expectedIncomes = months.slice(1).map((month) => income(month, '100000'))
+
+  it('копит аллокацию по месяцам цепочки', () => {
+    const item = savingsItem(months, '2027-01', expectedIncomes)
+
+    // 10k + 40k (декабрь) = 50k на начало января, +40k = 90k.
+    expect(item).toMatchObject({
+      currentRemaining: 50000,
+      forecastAmount: 40000,
+      projectedRemaining: 90000,
+    })
+  })
+
+  it('вычитает планы из накоплений в промежуточных месяцах', () => {
+    const item = savingsItem(months, '2027-01', expectedIncomes, {
+      plannedExpenses: [
+        { ...plan('2026-12', 30000), category_id: SAVINGS_CATEGORY.id },
+      ],
+    })
+
+    expect(item).toMatchObject({
+      currentRemaining: 20000,
+      projectedRemaining: 60000,
+    })
+  })
+
+  it('для текущего месяца «сейчас» — факт накоплений', () => {
+    const item = savingsItem(
+      months,
+      '2026-11',
+      months.map((month) => income(month, '100000')),
+    )
+
+    expect(item).toMatchObject({
+      currentRemaining: 10000,
+      projectedRemaining: 50000,
+    })
+  })
+
+  it('savings-конверт без снапшота стартует с остатка накоплений', () => {
+    const item = savingsItem(months, '2027-01', expectedIncomes, {
+      initialBudgetItems: [],
+    })
+
+    expect(item).toMatchObject({
+      currentRemaining: 50000,
+      projectedRemaining: 90000,
+    })
+  })
+
+  it('аллокация будущего месяца без EXPECTED-доходов берётся из шаблона', () => {
+    // Повторяющийся доход в двух прошлых месяцах → шаблон для будущих.
+    const received = ['2026-09', '2026-10'].map((month) => ({
+      ...income(month, '100000'),
+      status: 'RECEIVED' as const,
+      received_at: `${month}-05T00:00:00.000Z`,
+    }))
+    const item = savingsItem(
+      months,
+      '2027-01',
+      buildProjectedIncomes(months, received, '2026-11'),
+    )
+
+    // Ноябрь (текущий) без EXPECTED — аллокации нет; декабрь и январь — из шаблона.
+    expect(item).toMatchObject({
+      currentRemaining: 50000,
+      forecastAmount: 40000,
+      projectedRemaining: 90000,
+    })
   })
 })

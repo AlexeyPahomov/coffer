@@ -4,10 +4,16 @@ import { ListError } from '@/shared/ui'
 export const PERIOD_LEDGER_SUMMARY_ERROR_MESSAGE =
   'Не удалось загрузить сводку за месяц — данные недоступны'
 
-export function PeriodLedgerSummaryError({ className }: { className?: string }) {
+export function PeriodLedgerSummaryError({
+  className,
+  message = PERIOD_LEDGER_SUMMARY_ERROR_MESSAGE,
+}: {
+  className?: string
+  message?: string
+}) {
   return (
     <div className={className}>
-      <ListError error={null} fallbackMessage={PERIOD_LEDGER_SUMMARY_ERROR_MESSAGE} />
+      <ListError error={null} fallbackMessage={message} />
     </div>
   )
 }

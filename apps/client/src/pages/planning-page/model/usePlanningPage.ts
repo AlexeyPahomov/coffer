@@ -16,6 +16,7 @@ import { buildProjectedIncomes } from '@/entities/income/lib/projectRecurringInc
 import { useCarouselTabs } from '@/shared/hooks/useCarouselTabs'
 import {
   DEFAULT_OUTCOME_HORIZON,
+  OUTCOME_HORIZONS,
   type OutcomeHorizon,
   type PlanningOutcome,
 } from '@/widgets/planning-outcome-forecast'
@@ -45,6 +46,7 @@ import {
   resolveForecastAnchorSummary,
 } from '../lib/forecastAnchor'
 import { buildSavingsTrajectory } from '../lib/buildSavingsTrajectory'
+import { PLANNING_ANCHOR_SUMMARY_ERROR_MESSAGE } from '../lib/planningPageCopy'
 import { PLANNING_TABS } from '../lib/planningTabs'
 import { usePlanningPeriodBudget } from './usePlanningPeriodBudget'
 
@@ -125,16 +127,12 @@ export function usePlanningPage() {
     () => buildForecastLeadInMonths(anchorMonth, periodMonth),
     [anchorMonth, periodMonth],
   )
+  // Нужна отдельная сводка якоря, а её ещё нет: загрузка или ошибка.
+  const isAnchorPending = !isAnchorSelectedMonth && anchorLedgerSummary == null
+  const isAnchorError = isAnchorPending && anchorLedgerSummaryQuery.isError
   const isAnyBudgetLoading =
-    isBudgetLoading ||
-    (!isAnchorSelectedMonth &&
-      anchorLedgerSummary == null &&
-      !anchorLedgerSummaryQuery.isError)
-  const isAnyBudgetError =
-    isBudgetError ||
-    (!isAnchorSelectedMonth &&
-      anchorLedgerSummary == null &&
-      anchorLedgerSummaryQuery.isError)
+    isBudgetLoading || (isAnchorPending && !anchorLedgerSummaryQuery.isError)
+  const isAnyBudgetError = isBudgetError || isAnchorError
 
   const timelineMonths = useMemo(
     () => buildPlanningTimelineMonths(periodMonth),
@@ -144,16 +142,29 @@ export function usePlanningPage() {
     () => timelineMonths.filter((month) => month >= periodMonth),
     [periodMonth, timelineMonths],
   )
+  // Один набор прогнозных доходов для всех цепочек: lead-in + максимальный горизонт
+  // покрывает и таймлайн, и прогноз конвертов, и любой выбранный горизонт итогов.
+  const projectedIncomes = useMemo(
+    () =>
+      buildProjectedIncomes(
+        [
+          ...leadInMonths,
+          ...buildForecastHorizonMonths(
+            periodMonth,
+            Math.max(...OUTCOME_HORIZONS),
+          ),
+        ],
+        core.incomes,
+        currentCalendarMonth,
+      ),
+    [core.incomes, currentCalendarMonth, leadInMonths, periodMonth],
+  )
   const forecast = useMemo(
     () =>
       buildPlanningForecast({
         months: forecastMonths,
         leadInMonths,
-        incomes: buildProjectedIncomes(
-          [...leadInMonths, ...forecastMonths],
-          core.incomes,
-          currentCalendarMonth,
-        ),
+        incomes: projectedIncomes,
         plannedExpenses: allPlanned,
         rules: allocationRulesQuery.data ?? [],
         initialAvailable: anchorAvailable,
@@ -162,10 +173,9 @@ export function usePlanningPage() {
       allPlanned,
       allocationRulesQuery.data,
       anchorAvailable,
-      core.incomes,
-      currentCalendarMonth,
       forecastMonths,
       leadInMonths,
+      projectedIncomes,
     ],
   )
   const forecastMonth = forecast.months.find(
@@ -241,21 +251,22 @@ export function usePlanningPage() {
       buildEnvelopeForecastChain({
         months: envelopeForecastInputs.months,
         selectedPeriodMonth: periodMonth,
-        incomes: core.incomes,
+        incomes: projectedIncomes,
         rules: allocationRulesQuery.data ?? [],
         initialBudgetItems: envelopeForecastInputs.initialBudgetItems,
-        savingsReserveBalance: operationalSummary.inReserve,
+        // Цепочка конвертов стартует с месяца якоря — и накопления от его факта.
+        savingsReserveBalance: anchorInReserve,
         plannedExpenses: allPlanned,
         expenseCategories,
       }),
     [
       allPlanned,
       allocationRulesQuery.data,
-      core.incomes,
+      anchorInReserve,
       envelopeForecastInputs,
       expenseCategories,
-      operationalSummary.inReserve,
       periodMonth,
+      projectedIncomes,
     ],
   )
 
@@ -271,11 +282,6 @@ export function usePlanningPage() {
 
   const outcome = useMemo<PlanningOutcome>(() => {
     const horizonMonths = buildForecastHorizonMonths(periodMonth, outcomeHorizon)
-    const projectedIncomes = buildProjectedIncomes(
-      [...leadInMonths, ...horizonMonths],
-      core.incomes,
-      currentCalendarMonth,
-    )
     const rules = allocationRulesQuery.data ?? []
 
     const outcomeForecast = buildPlanningForecast({
@@ -314,11 +320,10 @@ export function usePlanningPage() {
     allocationRulesQuery.data,
     anchorAvailable,
     anchorInReserve,
-    core.incomes,
-    currentCalendarMonth,
     leadInMonths,
     outcomeHorizon,
     periodMonth,
+    projectedIncomes,
     savingsCategoryIds,
   ])
 
@@ -334,7 +339,12 @@ export function usePlanningPage() {
     periodLabel: operationalSummary.periodLabel,
     periodPlanned,
     projection,
-    savingsTotal: operationalSummary.inReserve,
+    // Будущий месяц — прогноз на конец месяца (первая точка траектории итогов = periodMonth),
+    // текущий и прошлый — факт.
+    isSavingsForecast: !isAnchorSelectedMonth,
+    savingsTotal: isAnchorSelectedMonth
+      ? operationalSummary.inReserve
+      : (outcome.months[0]?.savingsBalance ?? anchorInReserve),
     forecast,
     forecastMonth,
     forecastMetadata: forecast.metadata,
@@ -366,6 +376,11 @@ export function usePlanningPage() {
       allocationRulesQuery.data === undefined,
     isBudgetLoading: isAnyBudgetLoading,
     isBudgetError: isAnyBudgetError,
+    // Сводка выбранного месяца загрузилась, а якоря — нет: ошибка про текущий месяц.
+    budgetErrorMessage:
+      !isBudgetError && isAnchorError
+        ? PLANNING_ANCHOR_SUMMARY_ERROR_MESSAGE
+        : undefined,
     isForecastLoading:
       isAnyBudgetLoading ||
       ledgerEvents.isLedgerLoading ||

@@ -67,12 +67,16 @@ export function PlanningPageMonthBody({
           className="hidden md:flex"
         />
       ) : page.isBudgetError ? (
-        <PeriodLedgerSummaryError className="hidden md:block" />
+        <PeriodLedgerSummaryError
+          className="hidden md:block"
+          message={page.budgetErrorMessage}
+        />
       ) : (
         <PlanningMonthMetrics
           className="hidden md:grid"
           projection={page.projection}
           savingsTotal={page.savingsTotal}
+          isSavingsForecast={page.isSavingsForecast}
         />
       )}
 
@@ -91,7 +95,7 @@ export function PlanningPageMonthBody({
   const forecastPanel = page.isForecastLoading ? (
     <SectionLoader label="Загрузка прогноза по месяцам" />
   ) : page.isBudgetError ? (
-    <PeriodLedgerSummaryError />
+    <PeriodLedgerSummaryError message={page.budgetErrorMessage} />
   ) : (
     <PlanningOutcomeForecast
       outcome={page.outcome}
@@ -107,7 +111,10 @@ export function PlanningPageMonthBody({
           className="hidden md:flex"
         />
       ) : page.isBudgetError ? (
-        <PeriodLedgerSummaryError className="hidden md:block" />
+        <PeriodLedgerSummaryError
+          className="hidden md:block"
+          message={page.budgetErrorMessage}
+        />
       ) : (
         <MonthLiquidityFlow className="hidden md:flex" {...liquidityFlowProps} />
       )}
@@ -115,7 +122,7 @@ export function PlanningPageMonthBody({
       {page.isForecastLoading ? (
         <SectionLoader label="Загрузка прогноза конвертов" />
       ) : page.isBudgetError ? (
-        <PeriodLedgerSummaryError />
+        <PeriodLedgerSummaryError message={page.budgetErrorMessage} />
       ) : (
         <PlanningEnvelopeForecastSection forecast={page.envelopeForecast} />
       )}

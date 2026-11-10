@@ -46,7 +46,10 @@ type BuildEnvelopeForecastChainInput = {
   incomes: readonly Income[]
   rules: readonly AllocationRule[]
   initialBudgetItems: readonly CategoryBudgetItem[]
-  /** Полный остаток накоплений (все распределения − все траты), для поля «сейчас». */
+  /**
+   * Остаток накоплений на начало первого месяца цепочки (все распределения − все траты).
+   * Дальше savings-конверт копится по цепочке: + аллокация − планы.
+   */
   savingsReserveBalance?: number
   plannedExpenses?: readonly PlannedExpense[]
   /** Все категории расходов — для планов по конвертам без остатка. */
@@ -270,50 +273,9 @@ function resolveEnvelopeRemaining(
   return item.remaining
 }
 
-function applySavingsReserveDisplay(
-  forecast: EnvelopeForecast,
-  savingsReserveBalance: number | undefined,
-): EnvelopeForecast {
-  if (savingsReserveBalance == null) {
-    return forecast
-  }
-
-  return {
-    ...forecast,
-    items: forecast.items.map((item) => {
-      if (!isSavingsCategory(item.category.type)) {
-        return item
-      }
-
-      return {
-        ...item,
-        currentRemaining: savingsReserveBalance,
-        projectedRemaining:
-          savingsReserveBalance + item.forecastAmount - item.plannedAmount,
-      }
-    }),
-  }
-}
-
-function resolveSavingsProjectedRemaining(
-  item: EnvelopeForecastItem,
-  savingsReserveBalance: number | undefined,
-): number {
-  if (
-    savingsReserveBalance != null &&
-    isSavingsCategory(item.category.type)
-  ) {
-    return (
-      savingsReserveBalance + item.forecastAmount - item.plannedAmount
-    )
-  }
-
-  return item.projectedRemaining
-}
-
 function buildEnvelopeForecastItems(
   forecastByCategoryId: CategoryForecastAmounts,
-  getCurrentRemaining: (categoryId: string) => number,
+  getCurrentRemaining: (category: Category) => number,
   plannedByCategoryId: Map<string, number>,
   categoriesById: Map<string, Category>,
 ): EnvelopeForecastItem[] {
@@ -331,7 +293,7 @@ function buildEnvelopeForecastItems(
         return null
       }
 
-      const currentRemaining = getCurrentRemaining(categoryId)
+      const currentRemaining = getCurrentRemaining(category)
       const forecastAmount = forecastEntry?.amount ?? 0
       const plannedAmount = plannedByCategoryId.get(categoryId) ?? 0
 
@@ -369,7 +331,7 @@ function buildMonthEnvelopeForecast(
   periodMonth: string,
   incomes: readonly Income[],
   rules: readonly AllocationRule[],
-  getCurrentRemaining: (categoryId: string) => number,
+  getCurrentRemaining: (category: Category) => number,
   plannedByCategoryId: Map<string, number>,
   categoriesById: Map<string, Category>,
 ): EnvelopeForecast {
@@ -466,7 +428,12 @@ export function buildEnvelopeForecastChain({
       month,
       incomes,
       rules,
-      (categoryId) => balanceByCategoryId.get(categoryId)?.remaining ?? 0,
+      // Savings-конверт без снапшота (новый) стартует с полного остатка накоплений.
+      (category) =>
+        balanceByCategoryId.get(category.id)?.remaining ??
+        (savingsReserveBalance != null && isSavingsCategory(category.type)
+          ? savingsReserveBalance
+          : 0),
       plannedByCategoryId,
       categoriesById,
     )
@@ -474,18 +441,12 @@ export function buildEnvelopeForecastChain({
     for (const item of monthForecast.items) {
       balanceByCategoryId.set(item.category.id, {
         category: item.category,
-        remaining: resolveSavingsProjectedRemaining(
-          item,
-          savingsReserveBalance,
-        ),
+        remaining: item.projectedRemaining,
       })
     }
 
     if (month === selectedPeriodMonth) {
-      selectedForecast = applySavingsReserveDisplay(
-        monthForecast,
-        savingsReserveBalance,
-      )
+      selectedForecast = monthForecast
     }
   }
 

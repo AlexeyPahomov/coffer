@@ -9,15 +9,19 @@ import { PlanningMetricCard } from './PlanningMetricCard'
 export type PlanningMonthMetricsProps = {
   projection: MonthBudgetProjection
   savingsTotal: number
+  /** Будущий месяц: накопления — прогноз на конец месяца, а не текущий факт. */
+  isSavingsForecast?: boolean
   className?: string
 }
 
 export function PlanningMonthMetrics({
   projection,
   savingsTotal,
+  isSavingsForecast = false,
   className,
 }: PlanningMonthMetricsProps) {
   const copy = PLANNING_METRIC_COPY
+  const savingsCopy = isSavingsForecast ? copy.savingsForecast : copy.savings
 
   return (
     <div className={cn(planningMonthMetricsGridClassName, className)}>
@@ -51,9 +55,9 @@ export function PlanningMonthMetrics({
       />
       <PlanningMetricCard
         accent="savings"
-        title={copy.savings.title}
-        caption={copy.savings.caption}
-        infoText={copy.savings.infoText}
+        title={savingsCopy.title}
+        caption={savingsCopy.caption}
+        infoText={savingsCopy.infoText}
         infoBottomOnMax240
         value={savingsTotal}
       />
