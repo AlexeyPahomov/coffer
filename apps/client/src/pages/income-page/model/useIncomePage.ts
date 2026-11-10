@@ -9,6 +9,7 @@ import {
 import { useAllocationRulesQuery } from '@/entities/allocation-rule/api/useAllocationRulesQuery'
 import { useIncomesQuery } from '@/entities/income/api/useIncomesQuery'
 import type { Income } from '@/entities/income/model/types'
+import { useCopyPreviousMonthIncomes } from '@/features/create-income/model/useCopyPreviousMonthIncomes'
 import { useIncomeFormDialog } from '@/features/create-income/model/useIncomeFormDialog'
 import { INCOME_ADD_LABEL } from '@/features/create-income/lib/incomeFormDialogCopy'
 import { buildIncomePageMetrics } from '@/pages/income-page/lib/incomePageAnalytics'
@@ -45,6 +46,11 @@ export function useIncomePage() {
     [incomes, selectedPeriodMonth],
   )
 
+  const copyPreviousMonth = useCopyPreviousMonthIncomes(
+    incomes,
+    selectedPeriodMonth,
+  )
+
   const toolbar = useMemo(
     () => ({
       periodMonth: selectedPeriodMonth,
@@ -63,6 +69,10 @@ export function useIncomePage() {
     toolbar,
     monthIncomes,
     metrics,
+    copyPreviousMonth: {
+      ...copyPreviousMonth,
+      copy: () => void copyPreviousMonth.copy(),
+    },
     onEditIncome: setEditingIncome,
     onReceiveIncome: setReceivingIncome,
     formDialog: {

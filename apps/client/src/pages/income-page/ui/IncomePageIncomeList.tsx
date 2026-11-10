@@ -6,14 +6,22 @@ import {
   incomePageListUlClassName,
 } from '@/pages/income-page/lib/incomePageLayout'
 import { getErrorMessage } from '@/shared/lib/errors'
-import { ListEmpty, ListError, ListLoader } from '@/shared/ui'
+import { Button, ListEmpty, ListError, ListLoader } from '@/shared/ui'
 import { cn } from '@/shared/lib/utils'
+
+export type IncomePageCopyPreviousMonth = {
+  count: number
+  copy: () => void
+  isCopying: boolean
+  error: unknown
+}
 
 type IncomePageIncomeListProps = {
   items: Income[]
   isPending: boolean
   isError: boolean
   error: unknown
+  copyPreviousMonth: IncomePageCopyPreviousMonth
   onEdit?: (income: Income) => void
   onReceive: (income: Income) => void
 }
@@ -23,6 +31,7 @@ export function IncomePageIncomeList({
   isPending,
   isError,
   error,
+  copyPreviousMonth,
   onEdit,
   onReceive,
 }: IncomePageIncomeListProps) {
@@ -44,7 +53,31 @@ export function IncomePageIncomeList({
     return (
       <section className="flex min-h-0 flex-1 flex-col">
         <div className={incomePageListEmptyClassName}>
-          <ListEmpty message="Пока нет доходов за выбранный месяц. Добавьте первую запись." />
+          <ListEmpty
+            message="Пока нет доходов за выбранный месяц. Добавьте первую запись."
+            action={
+              copyPreviousMonth.count > 0 ? (
+                <div className="flex flex-col items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    isLoading={copyPreviousMonth.isCopying}
+                    onClick={copyPreviousMonth.copy}
+                  >
+                    Как в прошлом месяце ({copyPreviousMonth.count})
+                  </Button>
+                  {copyPreviousMonth.error ? (
+                    <p className="text-sm text-destructive">
+                      {getErrorMessage(
+                        copyPreviousMonth.error,
+                        'Не удалось скопировать доходы',
+                      )}
+                    </p>
+                  ) : null}
+                </div>
+              ) : undefined
+            }
+          />
         </div>
       </section>
     )

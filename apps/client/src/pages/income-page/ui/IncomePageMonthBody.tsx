@@ -5,7 +5,10 @@ import {
   incomePageListScrollClassName,
 } from '@/pages/income-page/lib/incomePageLayout'
 
-import { IncomePageIncomeList } from './IncomePageIncomeList'
+import {
+  IncomePageIncomeList,
+  type IncomePageCopyPreviousMonth,
+} from './IncomePageIncomeList'
 import { IncomePageMetrics as IncomePageMetricsBlock } from './IncomePageMetrics'
 
 export type IncomePageMonthBodyProps = {
@@ -14,6 +17,7 @@ export type IncomePageMonthBodyProps = {
   isPending: boolean
   isError: boolean
   error: unknown
+  copyPreviousMonth: IncomePageCopyPreviousMonth
   onEditIncome: (income: Income) => void
   onReceiveIncome: (income: Income) => void
 }
@@ -24,6 +28,7 @@ export function IncomePageMonthBody({
   isPending,
   isError,
   error,
+  copyPreviousMonth,
   onEditIncome,
   onReceiveIncome,
 }: IncomePageMonthBodyProps) {
@@ -39,6 +44,7 @@ export function IncomePageMonthBody({
           isPending={isPending}
           isError={isError}
           error={error}
+          copyPreviousMonth={copyPreviousMonth}
           onEdit={onEditIncome}
           onReceive={onReceiveIncome}
         />

@@ -51,6 +51,7 @@ export function IncomePage() {
               isPending={isPending}
               isError={isError}
               error={error}
+              copyPreviousMonth={page.copyPreviousMonth}
               onEditIncome={page.onEditIncome}
               onReceiveIncome={page.onReceiveIncome}
             />
