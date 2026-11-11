@@ -3,13 +3,6 @@ import { scrollAreaClassName } from '@/shared/lib/scrollLayout';
 import { mobileFabScrollReserveClassName } from '@/shared/ui/fab';
 import type { ItemsListLayout } from '@/shared/ui/items-list/ItemsList';
 
-/** MonthPicker в шапке страницы. */
-export const expensePageMonthPickerClassName =
-  'w-auto [&_[data-slot=select-trigger]]:h-9 [&_[data-slot=select-trigger]]:rounded-lg [&_[data-slot=select-trigger]]:bg-transparent [&_[data-slot=select-trigger]]:px-2.5 [&_[data-slot=select-trigger]]:text-base [&_[data-slot=select-trigger]]:text-zinc-600 hover:[&_[data-slot=select-trigger]]:bg-zinc-100';
-
-export const expensePageMonthPickerIconClassName =
-  'size-4 shrink-0 text-zinc-500 opacity-60';
-
 export const expensePageToolbarClassName =
   'max-md:flex-col max-md:items-stretch';
 
