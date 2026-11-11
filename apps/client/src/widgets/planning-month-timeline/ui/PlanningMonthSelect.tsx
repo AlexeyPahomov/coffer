@@ -70,7 +70,7 @@ export function PlanningMonthSelect({
       <SelectTrigger
         showIcon={false}
         aria-label="Месяц"
-        className="min-w-36 justify-start gap-2 rounded-xl data-[size=default]:h-9 border-zinc-200 bg-white px-3 font-medium text-zinc-900 hover:bg-zinc-50 data-[state=open]:bg-zinc-100 focus-visible:border-zinc-500 focus-visible:ring-0"
+        className="min-w-36 justify-start gap-2 rounded-xl data-[size=default]:h-9 border-zinc-200 bg-white px-3 font-medium text-zinc-900 hover:bg-zinc-50 data-[state=open]:bg-zinc-100 focus-visible:border-zinc-300 focus-visible:ring-0"
       >
         <CalendarIcon className="size-4 text-zinc-500" aria-hidden />
         <SelectValue />
