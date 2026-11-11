@@ -17,52 +17,15 @@ function buildMonthRange(start: Date, end: Date): string[] {
   return options
 }
 
-type FormatPeriodMonthSelectLabelOptions = {
-  /** Без года, например «Май» вместо «май 2026». */
-  omitYear?: boolean
-}
-
-/** Подпись пункта: «май 2026» или «Май» (именительный падеж). */
-export function formatPeriodMonthSelectLabel(
-  periodMonth: string,
-  options?: FormatPeriodMonthSelectLabelOptions,
-): string {
-  const date = parseMonthStringToDate(periodMonth)
-
-  if (!date) {
-    return periodMonth
-  }
-
-  const monthPart = new Intl.DateTimeFormat('ru-RU', {
-    month: 'long',
-  })
-    .format(date)
-    .toLowerCase()
-
-  if (options?.omitYear) {
-    return monthPart.charAt(0).toUpperCase() + monthPart.slice(1)
-  }
-
-  return `${monthPart} ${date.getFullYear()}`
-}
-
-export type PeriodMonthSelectOption = {
-  value: string
-  label: string
-}
-
-/** Список месяцев для Select вокруг выбранного значения. */
-export function buildPeriodMonthSelectOptions(
+/** Месяцы (`YYYY-MM`) на `spanMonths` назад и вперёд от `anchorPeriodMonth`. */
+export function buildPeriodMonthRange(
   anchorPeriodMonth: string,
   spanMonths = 24,
-  options?: FormatPeriodMonthSelectLabelOptions,
-): PeriodMonthSelectOption[] {
+): string[] {
   const anchorDate = parseMonthStringToDate(anchorPeriodMonth) ?? new Date()
-  const start = addMonths(anchorDate, -spanMonths)
-  const end = addMonths(anchorDate, spanMonths)
 
-  return buildMonthRange(start, end).map((value) => ({
-    value,
-    label: formatPeriodMonthSelectLabel(value, options),
-  }))
+  return buildMonthRange(
+    addMonths(anchorDate, -spanMonths),
+    addMonths(anchorDate, spanMonths),
+  )
 }

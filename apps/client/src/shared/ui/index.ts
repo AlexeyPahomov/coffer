@@ -50,7 +50,6 @@ export type {
 } from './items-list'
 export { DatePicker } from './date-picker/DatePicker'
 export { DateRangePicker } from './date-picker/DateRangePicker'
-export { MonthPicker } from './month-picker/MonthPicker'
 export { ResponsiveLabel } from './responsive-label/ResponsiveLabel'
 export { SegmentedSwitcher } from './segmented-switcher'
 export type {

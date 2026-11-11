@@ -9,7 +9,7 @@ import {
 import { formatPlannedExpenseCount } from '@/entities/planned-expense/lib/formatPlannedExpenseCount'
 import { currentMonthInputValue } from '@/shared/lib/date'
 import { cn } from '@/shared/lib/utils'
-import { buildPeriodMonthSelectOptions } from '@/shared/ui/month-picker/lib/monthSelectOptions'
+import { buildPeriodMonthRange } from '@/shared/ui/month-picker/lib/monthSelectOptions'
 import {
   SelectContent,
   SelectItem,
@@ -40,11 +40,12 @@ export function PlanningMonthSelect({
   const [open, setOpen] = useState(false)
   const currentMonth = currentMonthInputValue()
 
-  // Опции симметричны вокруг текущего месяца — лишнее с обеих сторон отрезаем.
+  // Диапазон симметричен вокруг текущего месяца — лишнее с обеих сторон отрезаем.
   const span = Math.max(pastMonths, FUTURE_MONTHS)
-  const months = buildPeriodMonthSelectOptions(currentMonth, span)
-    .map((option) => option.value)
-    .slice(span - pastMonths, span + FUTURE_MONTHS + 1)
+  const months = buildPeriodMonthRange(currentMonth, span).slice(
+    span - pastMonths,
+    span + FUTURE_MONTHS + 1,
+  )
   // Месяц вне окна (выбран в мобильной ленте) — иначе кнопка окажется пустой.
   if (!months.includes(periodMonth)) {
     months.push(periodMonth)
