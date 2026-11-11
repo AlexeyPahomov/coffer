@@ -22,7 +22,7 @@ export function AddButton({
       {...props}
     >
       <span className="inline-flex items-center gap-2">
-        <PlusCircle className="size-3 mt-1" aria-hidden="true" />
+        <PlusCircle className="size-3" aria-hidden="true" />
         {children}
       </span>
     </Button>
