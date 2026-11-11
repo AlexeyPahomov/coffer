@@ -19,7 +19,10 @@ import {
   PlanningPageHeader,
   PlanningPageToolbarSlot,
 } from './PlanningPageHeader'
-import { PlanningPageMonthBody } from './PlanningPageMonthViews'
+import {
+  PlanningPageMonthBody,
+  PlanningPageTabsSwitcher,
+} from './PlanningPageMonthViews'
 import { PlanningPageMonthTransition } from './PlanningPageMonthTransition'
 
 export function PlanningPage() {
@@ -42,7 +45,10 @@ export function PlanningPage() {
       <div className={planningPageShellClassName}>
         {!isMobile ? (
           <div className={planningPageToolbarStickyClassName}>
-            <PlanningPageToolbarSlot page={page} />
+            <PlanningPageToolbarSlot
+              page={page}
+              tabs={<PlanningPageTabsSwitcher page={page} />}
+            />
           </div>
         ) : null}
 

@@ -7,6 +7,7 @@ import {
   carouselTabsRootClassName,
   carouselTabsViewportClassName,
 } from '@/shared/lib/carouselTabsLayout'
+import { cn } from '@/shared/lib/utils'
 import {
   Carousel,
   CarouselContent,
@@ -46,6 +47,21 @@ export function PlanningPageMonthMobileHeader({
 
   return (
     <PlanningMobileLiquidityHeader {...liquidityFlowProps} />
+  )
+}
+
+export function PlanningPageTabsSwitcher({
+  page,
+}: Pick<PlanningPageMonthViewsProps, 'page'>) {
+  return (
+    <SegmentedSwitcher
+      items={PLANNING_TABS}
+      activeId={page.activeTabId}
+      onSelect={(id) =>
+        page.selectTabSlide(PLANNING_TABS.findIndex((tab) => tab.id === id))
+      }
+      ariaLabel="Разделы планирования"
+    />
   )
 }
 
@@ -136,16 +152,10 @@ export function PlanningPageMonthBody({
   const panels = [plansPanel, forecastPanel, overviewPanel]
 
   return (
-    <div className={carouselTabsRootClassName}>
-      <div className="pb-2 md:pb-3">
-        <SegmentedSwitcher
-          items={PLANNING_TABS}
-          activeId={page.activeTabId}
-          onSelect={(id) =>
-            page.selectTabSlide(PLANNING_TABS.findIndex((tab) => tab.id === id))
-          }
-          ariaLabel="Разделы планирования"
-        />
+    <div className={cn(carouselTabsRootClassName, 'md:grid-rows-[minmax(0,1fr)]')}>
+      {/* На десктопе вкладки живут в тулбаре рядом с месяцами. */}
+      <div className="pb-2 md:hidden">
+        <PlanningPageTabsSwitcher page={page} />
       </div>
 
       <Carousel

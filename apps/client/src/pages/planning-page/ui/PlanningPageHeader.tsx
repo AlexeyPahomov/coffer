@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react'
+
 import { PlanningPageToolbar } from '@/widgets/planning-page-toolbar'
 
 import type { usePlanningPage } from '../model/usePlanningPage'
@@ -11,7 +13,8 @@ type PlanningPageHeaderProps = {
 
 export function PlanningPageToolbarSlot({
   page,
-}: PlanningPageHeaderProps) {
+  tabs,
+}: PlanningPageHeaderProps & { tabs?: ReactNode }) {
   return (
     <PlanningPageToolbar
       periodMonth={page.periodMonth}
@@ -23,6 +26,7 @@ export function PlanningPageToolbarSlot({
       resolveAvailableFunds={page.resolveAvailableFunds}
       onSelectMonth={page.setPeriodMonth}
       showAddFab={page.activeTabId === 'plans'}
+      tabs={tabs}
     />
   )
 }
