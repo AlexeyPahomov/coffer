@@ -13,6 +13,7 @@ import { parsePeriodMonthKey } from '../lib/period-month';
 import { BudgetMonthService } from '../budget/budget-month.service';
 import { BudgetProjectorService } from '../budget/budget-projector.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { TransferService } from '../transfer/transfer.service';
 import { CreateExpenseDto } from './dto/create-expense.dto';
 import { UpdateExpenseDto } from './dto/update-expense.dto';
 
@@ -31,6 +32,7 @@ export class ExpenseService {
     private prisma: PrismaService,
     private readonly budgetMonthService: BudgetMonthService,
     private readonly budgetProjector: BudgetProjectorService,
+    private readonly transferService: TransferService,
   ) {}
 
   private async assertCategoryExists(categoryId: string) {
@@ -202,12 +204,20 @@ export class ExpenseService {
     });
 
     if (linkedPlan) {
+      // Доля плана, переведённая из накоплений при проведении, возвращается вместе с расходом.
+      if (linkedPlan.completed_transfer_id) {
+        await this.transferService.remove(
+          linkedPlan.completed_transfer_id,
+          userId,
+        );
+      }
       await this.prisma.plannedExpense.update({
         where: { id: linkedPlan.id },
         data: {
           status: 'RESERVED',
           reserved_amount: Number(linkedPlan.amount.toString()),
           completed_expense_id: null,
+          completed_transfer_id: null,
         },
       });
     }

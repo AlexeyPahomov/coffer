@@ -33,6 +33,8 @@ function poolPlan(month: string, amount: number): PlannedExpense {
     planned_date_end: null,
     status: 'PLANNED',
     category_id: null,
+    savings_category_id: null,
+    savings_amount: 0,
     budget_month_id: month,
     period_month: month,
     created_at: `${month}-01T00:00:00.000Z`,
@@ -80,5 +82,23 @@ describe('buildPlanningForecast', () => {
     })
 
     expect(fromJanuary.months[0]).toEqual(fromDecember.months[1])
+  })
+
+  it('план с долей из накоплений списывает из пула только остаток', () => {
+    const forecast = buildPlanningForecast({
+      months: ['2026-12'],
+      incomes,
+      plannedExpenses: [
+        {
+          ...poolPlan('2026-12', 15000),
+          savings_category_id: 'cat-savings',
+          savings_amount: 10000,
+        },
+      ],
+      rules: [],
+      initialAvailable: 6000,
+    })
+
+    expect(forecast.months[0]).toMatchObject({ projectedFree: 26000 })
   })
 })

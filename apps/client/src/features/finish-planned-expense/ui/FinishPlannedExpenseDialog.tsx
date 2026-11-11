@@ -11,6 +11,7 @@ import {
 import {
   finishPlannedExpenseDialogDescription,
   finishPlannedExpenseDialogTitle,
+  formatFinishPlannedExpenseSavingsNote,
 } from '../lib/finishPlannedExpenseDialogCopy'
 import { useFinishPlannedExpenseForm } from '../model/useFinishPlannedExpenseForm'
 
@@ -33,6 +34,7 @@ export function FinishPlannedExpenseDialog({
     item,
     onSuccess: () => onOpenChange(false),
   })
+  const savingsNote = item ? formatFinishPlannedExpenseSavingsNote(item) : null
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -41,6 +43,7 @@ export function FinishPlannedExpenseDialog({
           <DialogTitle>{finishPlannedExpenseDialogTitle}</DialogTitle>
           <DialogDescription>
             {finishPlannedExpenseDialogDescription}
+            {savingsNote ? ` ${savingsNote}` : null}
           </DialogDescription>
         </DialogHeader>
         {item ? (

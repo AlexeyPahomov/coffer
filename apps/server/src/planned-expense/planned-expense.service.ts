@@ -11,8 +11,10 @@ import { BudgetMonthService } from '../budget/budget-month.service';
 import { BudgetProjectorService } from '../budget/budget-projector.service';
 import { awaitBudgetProjection } from '../lib/budget-projection';
 import { indexRelatedByIds } from '../lib/attach-relation';
+import { toMoneyNumber } from '../lib/money';
 import { withTransientDbRetry } from '../prisma/db-retry';
 import { PrismaService } from '../prisma/prisma.service';
+import { TransferService } from '../transfer/transfer.service';
 import { CreatePlannedExpenseDto } from './dto/create-planned-expense.dto';
 import { FinishPlannedExpenseDto } from './dto/finish-planned-expense.dto';
 import { UpdatePlannedExpenseDto } from './dto/update-planned-expense.dto';
@@ -35,6 +37,7 @@ export class PlannedExpenseService {
     private readonly prisma: PrismaService,
     private readonly budgetMonthService: BudgetMonthService,
     private readonly budgetProjector: BudgetProjectorService,
+    private readonly transferService: TransferService,
   ) {}
 
   private parsePeriodOrThrow(periodMonth: string) {
@@ -55,6 +58,41 @@ export class PlannedExpenseService {
     if (!category) {
       throw new BadRequestException('Category not found');
     }
+  }
+
+  /** Доля из накоплений: 0 ≤ savings_amount ≤ amount, источник — конверт накоплений. */
+  private async resolveSavingsSplit(
+    amount: number,
+    savingsCategoryId: string | null,
+    savingsAmount: number,
+    categoryId: string | null,
+  ): Promise<{ savings_category_id: string | null; savings_amount: number }> {
+    if (savingsAmount < 0 || savingsAmount > amount) {
+      throw new BadRequestException(
+        'savings_amount must be between 0 and amount',
+      );
+    }
+    // Без конверта (в т.ч. удалён — FK обнулил id) доли нет.
+    if (savingsAmount === 0 || !savingsCategoryId) {
+      return { savings_category_id: null, savings_amount: 0 };
+    }
+    if (savingsCategoryId === categoryId) {
+      throw new BadRequestException(
+        'savings_category_id must differ from category_id',
+      );
+    }
+
+    const category = await this.prisma.category.findUnique({
+      where: { id: savingsCategoryId },
+    });
+    if (!category || category.type !== 'savings') {
+      throw new BadRequestException('Savings category not found');
+    }
+
+    return {
+      savings_category_id: savingsCategoryId,
+      savings_amount: savingsAmount,
+    };
   }
 
   private async resolveBudgetMonthId(
@@ -92,6 +130,15 @@ export class PlannedExpenseService {
     return row;
   }
 
+  private async removeCompletedTransfer(
+    plan: { completed_transfer_id: string | null },
+    userId: string,
+  ): Promise<void> {
+    if (plan.completed_transfer_id) {
+      await this.transferService.remove(plan.completed_transfer_id, userId);
+    }
+  }
+
   /** Сначала план → RESERVED, потом удаление расхода (иначе остаётся COMPLETED при обрыве после DELETE). */
   private async revertPlanToReserved(
     planId: string,
@@ -104,6 +151,7 @@ export class PlannedExpenseService {
         status: 'RESERVED',
         reserved_amount: reserved,
         completed_expense_id: null,
+        completed_transfer_id: null,
       },
     });
   }
@@ -155,6 +203,12 @@ export class PlannedExpenseService {
     assertPlannedDateRange(plannedDate, plannedDateEnd);
     const periodMonth = monthValueFromDate(plannedDate);
     const budgetMonthId = await this.resolveBudgetMonthId(userId, periodMonth);
+    const savingsSplit = await this.resolveSavingsSplit(
+      dto.amount,
+      dto.savings_category_id ?? null,
+      dto.savings_amount ?? 0,
+      dto.category_id ?? null,
+    );
 
     const created = await this.prisma.plannedExpense.create({
       data: {
@@ -167,6 +221,7 @@ export class PlannedExpenseService {
         planned_date: plannedDate,
         planned_date_end: plannedDateEnd,
         category_id: dto.category_id ?? null,
+        ...savingsSplit,
         budget_month_id: budgetMonthId,
       },
     });
@@ -194,14 +249,15 @@ export class PlannedExpenseService {
 
       for (const row of rows) {
         if (row.status === 'COMPLETED' && row.completed_expense_id == null) {
-          void this.revertPlanToReserved(row.id, row.amount).catch(
-            (error: unknown) => {
+          // Расход удалён вручную — возвращаем и долю, переведённую из накоплений.
+          void this.removeCompletedTransfer(row, userId)
+            .then(() => this.revertPlanToReserved(row.id, row.amount))
+            .catch((error: unknown) => {
               this.logger.warn(
                 'Failed to repair orphan completed planned expense',
                 error instanceof Error ? error.stack : String(error),
               );
-            },
-          );
+            });
           row.status = 'RESERVED';
           row.reserved_amount = row.amount;
         }
@@ -281,6 +337,37 @@ export class PlannedExpenseService {
       Number(before.reserved_amount.toString()),
     );
 
+    // Разбивку проверяем, только если её затрагивает запрос: смена статуса или
+    // резерва не должна падать на устаревшем конверте накоплений.
+    const touchesSavingsSplit =
+      dto.amount !== undefined ||
+      dto.category_id !== undefined ||
+      dto.savings_category_id !== undefined ||
+      dto.savings_amount !== undefined;
+    // У проведённого плана перевод из накоплений уже сделан — разбивку не меняем.
+    const changesSavingsSplit =
+      (dto.savings_category_id !== undefined &&
+        dto.savings_category_id !== before.savings_category_id) ||
+      (dto.savings_amount !== undefined &&
+        dto.savings_amount !== toMoneyNumber(before.savings_amount.toString()));
+    if (before.status === 'COMPLETED' && changesSavingsSplit) {
+      throw new BadRequestException(
+        'Cannot change savings split of a completed planned expense',
+      );
+    }
+    const savingsSplit = touchesSavingsSplit
+      ? await this.resolveSavingsSplit(
+          amount,
+          dto.savings_category_id !== undefined
+            ? dto.savings_category_id
+            : before.savings_category_id,
+          dto.savings_amount !== undefined
+            ? dto.savings_amount
+            : toMoneyNumber(before.savings_amount.toString()),
+          dto.category_id !== undefined ? dto.category_id : before.category_id,
+        )
+      : {};
+
     await this.prisma.plannedExpense.update({
       where: { id },
       data: {
@@ -298,6 +385,7 @@ export class PlannedExpenseService {
         status: dto.status,
         category_id:
           dto.category_id === undefined ? undefined : dto.category_id,
+        ...savingsSplit,
         budget_month_id: periodChanged ? budgetMonthId : undefined,
       },
     });
@@ -367,26 +455,82 @@ export class PlannedExpenseService {
 
     const description = this.resolveFinishDescription(dto, plan);
 
-    const expense = await this.prisma.expense.create({
-      data: {
-        user_id: userId,
-        category_id: categoryId,
-        amount: dto.amount,
-        description,
-        date: expenseDate,
-      },
-    });
+    // Доля из накоплений переводится в конверт расхода до самого расхода:
+    // нехватка в накоплениях отклоняет проведение, ничего не создав, а сбой
+    // следующих шагов откатывает перевод (интерактивных транзакций нет).
+    const savingsPart = Math.min(
+      toMoneyNumber(plan.savings_amount.toString()),
+      dto.amount,
+    );
+    // Расход прямо в конверт накоплений и так списывается с него — перевод не нужен.
+    const transfer =
+      plan.savings_category_id &&
+      plan.savings_category_id !== categoryId &&
+      savingsPart > 0
+        ? await this.transferService.create(userId, {
+            from_category_id: plan.savings_category_id,
+            to_category_id: categoryId,
+            amount: savingsPart,
+            period_month: `${expensePeriodMonth}-01`,
+          })
+        : null;
 
-    const plannedExpense = await this.prisma.plannedExpense.update({
-      where: { id },
-      data: {
-        status: 'COMPLETED',
-        reserved_amount: 0,
-        amount: dto.amount,
-        category_id: categoryId,
-        completed_expense_id: expense.id,
-      },
-    });
+    let expense:
+      | Awaited<ReturnType<PrismaService['expense']['create']>>
+      | undefined;
+    let plannedExpense: Awaited<
+      ReturnType<PrismaService['plannedExpense']['update']>
+    >;
+    try {
+      expense = await this.prisma.expense.create({
+        data: {
+          user_id: userId,
+          category_id: categoryId,
+          amount: dto.amount,
+          description,
+          date: expenseDate,
+        },
+      });
+
+      plannedExpense = await this.prisma.plannedExpense.update({
+        where: { id },
+        data: {
+          status: 'COMPLETED',
+          reserved_amount: 0,
+          amount: dto.amount,
+          category_id: categoryId,
+          completed_expense_id: expense.id,
+          completed_transfer_id: transfer?.id ?? null,
+        },
+      });
+    } catch (error) {
+      // Проекция по расходу ещё не запускалась — его можно просто удалить.
+      if (expense) {
+        await this.prisma.expense
+          .delete({ where: { id: expense.id } })
+          .catch((rollbackError: unknown) => {
+            this.logger.error(
+              `Failed to roll back expense ${expense?.id} after finish failure`,
+              rollbackError instanceof Error
+                ? rollbackError.stack
+                : String(rollbackError),
+            );
+          });
+      }
+      if (transfer) {
+        await this.transferService
+          .remove(transfer.id, userId)
+          .catch((rollbackError: unknown) => {
+            this.logger.error(
+              `Failed to roll back transfer ${transfer.id} after finish failure`,
+              rollbackError instanceof Error
+                ? rollbackError.stack
+                : String(rollbackError),
+            );
+          });
+      }
+      throw error;
+    }
 
     await awaitBudgetProjection(
       this.logger,
@@ -413,6 +557,8 @@ export class PlannedExpenseService {
     if (!budgetMonth || budgetMonth.status !== 'OPEN') {
       throw new ConflictException('Budget month is not open');
     }
+
+    await this.removeCompletedTransfer(plan, userId);
 
     if (!plan.completed_expense_id) {
       return this.revertPlanToReserved(id, plan.amount);

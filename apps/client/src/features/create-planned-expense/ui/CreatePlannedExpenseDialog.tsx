@@ -8,6 +8,7 @@ import {
 import type { Category } from '@/entities/category/model/types'
 
 import { plannedExpenseFormDialogDescription } from '../lib/plannedExpenseFormDialogCopy'
+import type { ResolvePlannedExpenseAvailableFunds } from '../model/types'
 import { useCreatePlannedExpenseForm } from '../model/useCreatePlannedExpenseForm'
 
 import { CreatePlannedExpenseFields } from './CreatePlannedExpenseFields'
@@ -17,6 +18,8 @@ export type CreatePlannedExpenseDialogProps = {
   onOpenChange: (open: boolean) => void
   anchorPeriodMonth: string
   categories: readonly Category[]
+  savingsCategories?: readonly Category[]
+  resolveAvailableFunds?: ResolvePlannedExpenseAvailableFunds
 }
 
 export function CreatePlannedExpenseDialog({
@@ -24,6 +27,8 @@ export function CreatePlannedExpenseDialog({
   onOpenChange,
   anchorPeriodMonth: _anchorPeriodMonth,
   categories,
+  savingsCategories,
+  resolveAvailableFunds,
 }: CreatePlannedExpenseDialogProps) {
   const form = useCreatePlannedExpenseForm({
     onSuccess: () => onOpenChange(false),
@@ -42,6 +47,8 @@ export function CreatePlannedExpenseDialog({
           <CreatePlannedExpenseFields
             values={form.values}
             categories={categories}
+            savingsCategories={savingsCategories}
+            resolveAvailableFunds={resolveAvailableFunds}
             onChange={form.handleChange}
             patchValues={form.patchValues}
             onSubmit={form.submit}

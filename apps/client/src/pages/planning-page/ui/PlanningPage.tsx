@@ -69,6 +69,8 @@ export function PlanningPage() {
         }}
         item={editingPlanned}
         categories={page.expenseCategories}
+        savingsCategories={page.savingsCategories}
+        resolveAvailableFunds={page.resolveAvailableFunds}
       />
 
       <FinishPlannedExpenseDialog

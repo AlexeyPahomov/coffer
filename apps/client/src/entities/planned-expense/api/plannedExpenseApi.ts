@@ -36,6 +36,8 @@ export type PlannedExpenseApiRow = {
   planned_date_end?: string | null
   status: PlannedExpenseStatus
   category_id: string | null
+  savings_category_id?: string | null
+  savings_amount?: string | number
   budget_month_id: string
   budgetMonth?: BudgetMonthApiSlice
   completed_expense_id?: string | null
@@ -68,6 +70,8 @@ export function mapPlannedExpenseFromApiRow(
     planned_date_end: row.planned_date_end ?? null,
     status: row.status,
     category_id: row.category_id,
+    savings_category_id: row.savings_category_id ?? null,
+    savings_amount: toMoneyNumber(row.savings_amount ?? 0),
     budget_month_id: row.budget_month_id,
     period_month: periodMonthFromRow(row),
     completed_expense_id: row.completed_expense_id ?? null,

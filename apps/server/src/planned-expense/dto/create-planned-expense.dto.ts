@@ -7,4 +7,6 @@ export class CreatePlannedExpenseDto {
   planned_date: string;
   planned_date_end?: string;
   category_id?: string;
+  savings_category_id?: string;
+  savings_amount?: number;
 }

@@ -12,6 +12,7 @@ import {
   editPlannedExpenseDialogDescription,
   editPlannedExpenseDialogTitle,
 } from '../lib/plannedExpenseFormDialogCopy'
+import type { ResolvePlannedExpenseAvailableFunds } from '../model/types'
 import { useCreatePlannedExpenseForm } from '../model/useCreatePlannedExpenseForm'
 
 import { CreatePlannedExpenseFields } from './CreatePlannedExpenseFields'
@@ -21,6 +22,8 @@ export type EditPlannedExpenseDialogProps = {
   onOpenChange: (open: boolean) => void
   item: PlannedExpense | null
   categories: readonly Category[]
+  savingsCategories?: readonly Category[]
+  resolveAvailableFunds?: ResolvePlannedExpenseAvailableFunds
 }
 
 export function EditPlannedExpenseDialog({
@@ -28,6 +31,8 @@ export function EditPlannedExpenseDialog({
   onOpenChange,
   item,
   categories,
+  savingsCategories,
+  resolveAvailableFunds,
 }: EditPlannedExpenseDialogProps) {
   const form = useCreatePlannedExpenseForm({
     editingPlannedExpense: item,
@@ -49,6 +54,9 @@ export function EditPlannedExpenseDialog({
           <CreatePlannedExpenseFields
             values={form.values}
             categories={categories}
+            savingsCategories={savingsCategories}
+            resolveAvailableFunds={resolveAvailableFunds}
+            editingPlanId={item?.id ?? null}
             onChange={form.handleChange}
             patchValues={form.patchValues}
             onSubmit={form.submit}

@@ -19,6 +19,8 @@ export function PlanningPageToolbarSlot({
       itemCounts={page.itemCounts}
       itemSwatches={page.itemSwatches}
       categories={page.expenseCategories}
+      savingsCategories={page.savingsCategories}
+      resolveAvailableFunds={page.resolveAvailableFunds}
       onSelectMonth={page.setPeriodMonth}
       showAddFab={page.activeTabId === 'plans'}
     />

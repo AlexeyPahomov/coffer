@@ -21,3 +21,14 @@ export function formatFinishPlannedExpenseReserveSummary(
 
   return `В резерве: ${formatMoneyWithRub(item.reserved_amount)} · план ${formatMoneyWithRub(item.amount)}`
 }
+
+/** Доля из накоплений, которую сервер переведёт в конверт расхода при проведении. */
+export function formatFinishPlannedExpenseSavingsNote(
+  item: Pick<PlannedExpense, 'savings_category_id' | 'savings_amount'>,
+): string | null {
+  if (!item.savings_category_id || item.savings_amount <= 0) {
+    return null
+  }
+
+  return `Из накоплений будет переведено до ${formatMoneyWithRub(item.savings_amount)}.`
+}

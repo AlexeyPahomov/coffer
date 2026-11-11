@@ -9,4 +9,6 @@ export class UpdatePlannedExpenseDto {
   status?: 'PLANNED' | 'RESERVED' | 'COMPLETED' | 'CANCELLED';
   reserved_amount?: number;
   category_id?: string | null;
+  savings_category_id?: string | null;
+  savings_amount?: number;
 }

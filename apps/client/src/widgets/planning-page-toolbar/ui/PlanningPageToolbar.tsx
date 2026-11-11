@@ -1,6 +1,7 @@
 import { useState } from 'react'
 
 import type { Category } from '@/entities/category/model/types'
+import type { ResolvePlannedExpenseAvailableFunds } from '@/features/create-planned-expense/model/types'
 import { CreatePlannedExpenseDialog } from '@/features/create-planned-expense/ui/CreatePlannedExpenseDialog'
 import { cn } from '@/shared/lib/utils'
 import { AddButton, Fab } from '@/shared/ui'
@@ -18,6 +19,8 @@ export type PlanningPageToolbarProps = {
   itemCounts: Record<string, number>
   itemSwatches: Record<string, string[]>
   categories: readonly Category[]
+  savingsCategories: readonly Category[]
+  resolveAvailableFunds: ResolvePlannedExpenseAvailableFunds
   onSelectMonth: (periodMonth: string) => void
   /** Мобильный FAB «Новый план» — только на вкладке «Планы». */
   showAddFab?: boolean
@@ -29,6 +32,8 @@ export function PlanningPageToolbar({
   itemCounts,
   itemSwatches,
   categories,
+  savingsCategories,
+  resolveAvailableFunds,
   onSelectMonth,
   showAddFab = true,
 }: PlanningPageToolbarProps) {
@@ -73,6 +78,8 @@ export function PlanningPageToolbar({
         onOpenChange={setCreateOpen}
         anchorPeriodMonth={periodMonth}
         categories={categories}
+        savingsCategories={savingsCategories}
+        resolveAvailableFunds={resolveAvailableFunds}
       />
     </>
   )

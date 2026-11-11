@@ -71,6 +71,7 @@ model Category {
   allocationRuleLines    AllocationRuleLine[]
   expenses               Expense[]
   plannedExpenses        PlannedExpense[]
+  savingsPlannedExpenses PlannedExpense[]        @relation("PlannedExpenseSavings")
   categoryMonthSnapshots CategoryMonthSnapshot[]
   transfersFrom          Transfer[]              @relation("TransferFrom")
   transfersTo            Transfer[]              @relation("TransferTo")
@@ -133,6 +134,8 @@ model Transfer {
   period_month     DateTime
   created_at       DateTime  @default(now())
 
+  plannedExpense PlannedExpense?
+
   @@index([user_id, period_month])
 }
 
@@ -181,10 +184,17 @@ model PlannedExpense {
   status               PlannedExpenseStatus @default(PLANNED)
   category_id          String?
   category             Category?            @relation(fields: [category_id], references: [id])
+  /** Доля плана, которая берётся из конверта накоплений (остальное — из category_id или пула). */
+  savings_category_id  String?
+  savingsCategory      Category?            @relation("PlannedExpenseSavings", fields: [savings_category_id], references: [id])
+  savings_amount       Decimal              @default(0)
   budget_month_id      String
   budgetMonth          BudgetMonth          @relation(fields: [budget_month_id], references: [id], onDelete: Cascade)
   completed_expense_id String?              @unique @db.Uuid
   completedExpense     Expense?             @relation(fields: [completed_expense_id], references: [id], onDelete: SetNull)
+  /** Перевод доли из накоплений, созданный при проведении плана. */
+  completed_transfer_id String?             @unique @db.Uuid
+  completedTransfer    Transfer?            @relation(fields: [completed_transfer_id], references: [id], onDelete: SetNull)
   created_at           DateTime             @default(now())
   updated_at           DateTime             @updatedAt
 

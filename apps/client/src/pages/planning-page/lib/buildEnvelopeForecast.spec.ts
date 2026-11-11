@@ -85,6 +85,8 @@ function plan(month: string, amount: number): PlannedExpense {
     planned_date_end: null,
     status: 'PLANNED',
     category_id: EXPENSE_CATEGORY.id,
+    savings_category_id: null,
+    savings_amount: 0,
     budget_month_id: month,
     period_month: month,
     created_at: `${month}-01T00:00:00.000Z`,

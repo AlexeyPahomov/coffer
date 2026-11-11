@@ -1,3 +1,5 @@
+import { useMemo } from 'react'
+
 import { Button, DateRangePicker, Input, MoneyInput } from '@/shared/ui'
 import type { Category } from '@/entities/category/model/types'
 import { CategorySelect } from '@/entities/category/ui/CategorySelect'
@@ -5,12 +7,22 @@ import { formLabelClassName } from '@/shared/config/formUi'
 import { bindMoneyAmountField } from '@/shared/lib/moneyInput'
 
 import { createPlannedExpenseInputChangeHandler } from '../lib/plannedExpenseFormFieldHandlers'
+import { resolvePlannedExpenseSavingsAmountError } from '../lib/plannedExpenseFormValues'
+import { PlannedExpenseFundsHint } from './PlannedExpenseFundsHint'
 import { PlannedExpenseIconPicker } from './PlannedExpenseIconPicker'
-import type { CreatePlannedExpenseFormValues } from '../model/types'
+import type {
+  CreatePlannedExpenseFormValues,
+  ResolvePlannedExpenseAvailableFunds,
+} from '../model/types'
 
 export type CreatePlannedExpenseFieldsProps = {
   values: CreatePlannedExpenseFormValues
   categories: readonly Category[]
+  /** Конверты накоплений — источник доли «из накоплений». */
+  savingsCategories?: readonly Category[]
+  resolveAvailableFunds?: ResolvePlannedExpenseAvailableFunds
+  /** Редактируемый план — не учитывается в доступных средствах. */
+  editingPlanId?: string | null
   onChange: (name: keyof CreatePlannedExpenseFormValues, value: string) => void
   patchValues: (patch: Partial<CreatePlannedExpenseFormValues>) => void
   onSubmit: () => void
@@ -22,6 +34,9 @@ export type CreatePlannedExpenseFieldsProps = {
 export function CreatePlannedExpenseFields({
   values,
   categories,
+  savingsCategories = [],
+  resolveAvailableFunds,
+  editingPlanId = null,
   onChange,
   patchValues,
   onSubmit,
@@ -31,6 +46,16 @@ export function CreatePlannedExpenseFields({
 }: CreatePlannedExpenseFieldsProps) {
   const onFieldChange = createPlannedExpenseInputChangeHandler(onChange)
   const noCategories = categories.length === 0
+  const planPeriodMonth = values.planned_date.slice(0, 7)
+  // Пересчёт прогноза — только при смене месяца, не на каждый ввод.
+  const availableFunds = useMemo(
+    () =>
+      planPeriodMonth
+        ? (resolveAvailableFunds?.(planPeriodMonth, editingPlanId) ?? null)
+        : null,
+    [editingPlanId, planPeriodMonth, resolveAvailableFunds],
+  )
+  const savingsAmountError = resolvePlannedExpenseSavingsAmountError(values)
 
   return (
     <>
@@ -89,6 +114,40 @@ export function CreatePlannedExpenseFields({
           конверта при проведении, если в нём есть лимит.
         </p>
       </div>
+      {savingsCategories.length > 0 ? (
+        <div className="space-y-2">
+          <label
+            htmlFor="planned-expense-savings-category"
+            className={formLabelClassName}
+          >
+            Добавить из накоплений
+          </label>
+          <CategorySelect
+            id="planned-expense-savings-category"
+            value={values.savings_category_id}
+            onValueChange={(value) => onChange('savings_category_id', value)}
+            categories={savingsCategories}
+            optional
+            optionalLabel="Не добавлять"
+            placeholder="Не добавлять"
+            disabled={isPending}
+          />
+          {values.savings_category_id ? (
+            <MoneyInput
+              name="savings_amount"
+              placeholder="Сколько из накоплений"
+              {...bindMoneyAmountField(values.savings_amount, (amount) =>
+                onChange('savings_amount', amount),
+              )}
+            />
+          ) : null}
+          {savingsAmountError ? (
+            <p className="text-xs text-amber-700 dark:text-amber-400">
+              {savingsAmountError}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
       <DateRangePicker
         emptyLabel="Когда?"
         from={values.planned_date}
@@ -98,6 +157,14 @@ export function CreatePlannedExpenseFields({
         }
         disabled={isPending}
       />
+      {availableFunds ? (
+        <PlannedExpenseFundsHint
+          values={values}
+          periodMonth={planPeriodMonth}
+          funds={availableFunds}
+          hasSeveralSavingsEnvelopes={savingsCategories.length > 1}
+        />
+      ) : null}
       <Button
         type="button"
         variant="default"

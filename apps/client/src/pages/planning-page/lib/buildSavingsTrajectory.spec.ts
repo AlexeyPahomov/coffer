@@ -71,6 +71,8 @@ function savingsPlan(month: string, amount: number): PlannedExpense {
     planned_date_end: null,
     status: 'PLANNED',
     category_id: SAVINGS_CATEGORY.id,
+    savings_category_id: null,
+    savings_amount: 0,
     budget_month_id: month,
     period_month: month,
     created_at: `${month}-01T00:00:00.000Z`,
@@ -140,5 +142,25 @@ describe('buildSavingsTrajectory', () => {
     expect(trajectory).toEqual([
       { month: '2026-09', allocated: 100, withdrawn: 0, balance: 700 },
     ])
+  })
+
+  it('вычитает долю из накоплений у плана с разбивкой', () => {
+    const trajectory = buildSavingsTrajectory({
+      months: ['2026-08'],
+      incomes: [],
+      rules: [],
+      plannedExpenses: [
+        {
+          ...savingsPlan('2026-08', 1000),
+          category_id: null,
+          savings_category_id: SAVINGS_CATEGORY.id,
+          savings_amount: 300,
+        },
+      ],
+      savingsCategoryIds: new Set([SAVINGS_CATEGORY.id]),
+      initialBalance: 500,
+    })
+
+    expect(trajectory[0]).toMatchObject({ withdrawn: 300, balance: 200 })
   })
 })

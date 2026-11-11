@@ -10,6 +10,7 @@ import {
   buildPlannedExpenseDatePayload,
   buildPlannedExpenseDateUpdatePatch,
   emptyPlannedExpenseFormValues,
+  parsePlannedExpenseSavingsAmount,
   plannedExpenseToFormValues,
   resolvePlannedExpenseFormValues,
 } from '../lib/plannedExpenseFormValues'
@@ -53,15 +54,26 @@ export function useCreatePlannedExpenseForm(
   const activeMutation = isEditing ? updateMutation : createMutation
 
   const parsedAmount = parseMoneyInput(values.amount)
+  const parsedSavingsAmount = parsePlannedExpenseSavingsAmount(
+    values,
+    parsedAmount,
+  )
   const isSubmitDisabled =
     activeMutation.isPending ||
     !values.title.trim() ||
     parsedAmount === null ||
+    parsedSavingsAmount === null ||
     !values.planned_date.trim()
 
   const submit = async () => {
     const amount = parseMoneyInput(values.amount)
-    if (!values.title.trim() || amount === null || !values.planned_date.trim()) {
+    const savingsAmount = parsePlannedExpenseSavingsAmount(values, amount)
+    if (
+      !values.title.trim() ||
+      amount === null ||
+      savingsAmount === null ||
+      !values.planned_date.trim()
+    ) {
       return
     }
     const dateFields = buildPlannedExpenseDatePayload(
@@ -77,6 +89,8 @@ export function useCreatePlannedExpenseForm(
         icon_color: values.icon_color,
         amount,
         category_id: values.category_id || null,
+        savings_category_id: values.savings_category_id || null,
+        savings_amount: savingsAmount,
         ...buildPlannedExpenseDateUpdatePatch(
           dateFields.planned_date,
           values.planned_date_end,
@@ -96,6 +110,8 @@ export function useCreatePlannedExpenseForm(
         icon_color: values.icon_color,
         amount,
         category_id: values.category_id || undefined,
+        savings_category_id: values.savings_category_id || undefined,
+        savings_amount: savingsAmount,
         ...dateFields,
       })
       reset()

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { getNextPeriodMonth } from '@coffer/shared'
 import type { ForecastMonth, MonthBudgetProjection } from '@/processes/forecasting'
 
@@ -47,6 +47,7 @@ import {
   resolveForecastAnchorSummary,
 } from '../lib/forecastAnchor'
 import { buildSavingsTrajectory } from '../lib/buildSavingsTrajectory'
+import { resolvePlannedExpenseAvailableFunds } from '../lib/resolvePlannedExpenseAvailableFunds'
 import { PLANNING_ANCHOR_SUMMARY_ERROR_MESSAGE } from '../lib/planningPageCopy'
 import { PLANNING_TABS } from '../lib/planningTabs'
 import { usePlanningPeriodBudget } from './usePlanningPeriodBudget'
@@ -276,14 +277,48 @@ export function usePlanningPage() {
     ],
   )
 
-  const savingsCategoryIds = useMemo(
-    () =>
-      new Set(
-        core.categories
-          .filter((category) => isSavingsCategory(category.type))
-          .map((category) => category.id),
-      ),
+  const savingsCategories = useMemo(
+    () => core.categories.filter((category) => isSavingsCategory(category.type)),
     [core.categories],
+  )
+  const savingsCategoryIds = useMemo(
+    () => new Set(savingsCategories.map((category) => category.id)),
+    [savingsCategories],
+  )
+
+  const resolveAvailableFunds = useCallback(
+    (planPeriodMonth: string, excludePlanId: string | null) => {
+      const horizon = Math.max(...OUTCOME_HORIZONS)
+      return resolvePlannedExpenseAvailableFunds({
+        periodMonth: planPeriodMonth,
+        anchorMonth,
+        horizon,
+        incomes: buildProjectedIncomes(
+          [
+            ...buildForecastLeadInMonths(anchorMonth, planPeriodMonth),
+            ...buildForecastHorizonMonths(planPeriodMonth, horizon),
+          ],
+          core.incomes,
+          currentCalendarMonth,
+        ),
+        rules: allocationRulesQuery.data ?? [],
+        plannedExpenses: allPlanned,
+        excludePlanId,
+        savingsCategoryIds,
+        initialAvailable: anchorAvailable,
+        initialSavings: anchorInReserve,
+      })
+    },
+    [
+      allPlanned,
+      allocationRulesQuery.data,
+      anchorAvailable,
+      anchorInReserve,
+      anchorMonth,
+      core.incomes,
+      currentCalendarMonth,
+      savingsCategoryIds,
+    ],
   )
 
   const outcome = useMemo<PlanningOutcome>(() => {
@@ -361,6 +396,8 @@ export function usePlanningPage() {
     itemCounts,
     itemSwatches,
     expenseCategories,
+    savingsCategories,
+    resolveAvailableFunds,
     reserve: (id: string, amount: number) =>
       statusMutation.mutate(fullReserveMutationArgs(id, amount)),
     deletePlan: (id: string) => deletePlanMutation.mutate(id),
