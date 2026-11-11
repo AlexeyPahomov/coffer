@@ -5,12 +5,17 @@ import {
 } from '@coffer/shared'
 
 import type { Income } from '@/entities/income/model/types'
-import { isoToDateInputValue, todayDateInputValue } from '@/shared/lib/date'
+import {
+  currentMonthInputValue,
+  isoToDateInputValue,
+  todayDateInputValue,
+} from '@/shared/lib/date'
 import { moneyAmountToFormValue } from '@/shared/lib/moneyInput'
 
 import type { IncomeFormValues } from '../model/types'
 
-export function emptyIncomeFormValues(): IncomeFormValues {
+/** `periodMonth` (`YYYY-MM`) — месяц, открытый на странице: для чужого месяца берём его 1-е число. */
+export function emptyIncomeFormValues(periodMonth?: string): IncomeFormValues {
   return {
     amount: '',
     source: '',
@@ -18,15 +23,19 @@ export function emptyIncomeFormValues(): IncomeFormValues {
     // Новый доход по умолчанию — план (EXPECTED); получение идёт через
     // кнопку «Получить» / статус в форме, чтобы предложить правила.
     status: 'EXPECTED',
-    period_month: todayDateInputValue(),
+    period_month:
+      periodMonth && periodMonth !== currentMonthInputValue()
+        ? `${periodMonth}-01`
+        : todayDateInputValue(),
   }
 }
 
 export function resolveIncomeFormValues(
   income: Income | null | undefined,
+  defaultPeriodMonth?: string,
 ): IncomeFormValues {
   if (!income) {
-    return emptyIncomeFormValues()
+    return emptyIncomeFormValues(defaultPeriodMonth)
   }
 
   return {

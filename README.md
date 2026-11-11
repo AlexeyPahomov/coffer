@@ -43,7 +43,7 @@ coffer/
 
 Feature-Sliced Design: `app` → `pages` → `widgets` → `features` → `entities` → `shared`.
 
-Маршруты: `/income`, `/allocation`, `/expenses`, `/planning`, `/categories` (по умолчанию — `/planning`).
+Маршруты: `/allocation` (Бюджет: доходы + распределение; `/income` редиректит сюда), `/expenses`, `/planning`, `/categories` (по умолчанию — `/planning`).
 
 ### Сервер (`apps/server`)
 

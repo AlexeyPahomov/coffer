@@ -1,12 +1,4 @@
-export type IncomeCardTone = 'empty' | 'partial' | 'full'
-
-export type IncomeCardView = {
-  id: string
-  periodMonth: string
-  periodLabel: string
-  amount: number
-  tone: IncomeCardTone
-}
+export type IncomeCardTone = 'empty' | 'partial' | 'full' | 'over'
 
 export function resolveIncomeCardTone(
   allocated: number,

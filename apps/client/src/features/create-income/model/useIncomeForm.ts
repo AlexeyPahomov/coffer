@@ -22,12 +22,15 @@ type UseIncomeFormParams = {
   /** Доход перешёл в статус «Получен» этим сохранением (create-as-RECEIVED
    *  или edit EXPECTED→RECEIVED) — повод предложить правила распределения. */
   onReceived?: (income: Income) => void
+  /** Месяц (`YYYY-MM`) для нового дохода по умолчанию. */
+  defaultPeriodMonth?: string
 }
 
 export function useIncomeForm({
   editingIncome = null,
   onComplete,
   onReceived,
+  defaultPeriodMonth,
 }: UseIncomeFormParams = {}) {
   const isEditing = editingIncome != null
   const editingIncomeId = editingIncome?.id ?? null
@@ -36,12 +39,14 @@ export function useIncomeForm({
   const updateMutation = useUpdateIncomeMutation()
 
   const { values, handleChange, patchValues, setValues } =
-    useForm<IncomeFormValues>(resolveIncomeFormValues(editingIncome))
+    useForm<IncomeFormValues>(
+      resolveIncomeFormValues(editingIncome, defaultPeriodMonth),
+    )
 
   const [validationError, setValidationError] = useState<string | null>(null)
 
   useEffect(() => {
-    setValues(resolveIncomeFormValues(editingIncome))
+    setValues(resolveIncomeFormValues(editingIncome, defaultPeriodMonth))
     setValidationError(null)
   }, [editingIncomeId, setValues])
 
@@ -76,7 +81,7 @@ export function useIncomeForm({
           user_id: DEV_USER_ID,
           ...result.payload,
         })
-        setValues(emptyIncomeFormValues())
+        setValues(emptyIncomeFormValues(defaultPeriodMonth))
       }
       onComplete?.()
       if (!wasReceived && isReceivedIncome(saved)) {

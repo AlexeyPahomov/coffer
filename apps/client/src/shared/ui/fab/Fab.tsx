@@ -1,4 +1,4 @@
-import { Plus } from 'lucide-react'
+import { Plus, type LucideIcon } from 'lucide-react'
 import type { ComponentProps } from 'react'
 
 import { cn } from '@/shared/lib/utils'
@@ -11,9 +11,17 @@ import { PortalFabToBody } from './portalFabToBody'
 export type FabProps = Omit<ComponentProps<typeof Button>, 'children' | 'size'> & {
   /** Подпись для `aria-label` и `title`. */
   label: string
+  /** Иконка вместо «+» — для действий, которые ничего не добавляют. */
+  icon?: LucideIcon
 }
 
-export function Fab({ label, className, type = 'button', ...props }: FabProps) {
+export function Fab({
+  label,
+  icon: Icon = Plus,
+  className,
+  type = 'button',
+  ...props
+}: FabProps) {
   return (
     <PortalFabToBody>
       <div className={fabWrapClassName}>
@@ -30,7 +38,7 @@ export function Fab({ label, className, type = 'button', ...props }: FabProps) {
           title={label}
           {...props}
         >
-          <Plus className="size-5" aria-hidden />
+          <Icon className="size-5" aria-hidden />
         </Button>
       </div>
     </PortalFabToBody>

@@ -1,32 +1,33 @@
 import type { Income } from '@/entities/income/model/types'
 import { IncomeEntryCard } from '@/entities/income/ui/IncomeEntryCard'
 import { useDeleteIncomeMutation } from '@/entities/income/api/useDeleteIncomeMutation'
-import {
-  incomePageListEmptyClassName,
-  incomePageListUlClassName,
-} from '@/pages/income-page/lib/incomePageLayout'
 import { getErrorMessage } from '@/shared/lib/errors'
 import { Button, ListEmpty, ListError, ListLoader } from '@/shared/ui'
 import { cn } from '@/shared/lib/utils'
 
-export type IncomePageCopyPreviousMonth = {
+import {
+  allocationPageListUlClassName,
+  budgetIncomeListEmptyClassName,
+} from '../lib/allocationPageLayout'
+
+export type BudgetCopyPreviousMonth = {
   count: number
   copy: () => void
   isCopying: boolean
   error: unknown
 }
 
-type IncomePageIncomeListProps = {
+type BudgetIncomeListProps = {
   items: Income[]
   isPending: boolean
   isError: boolean
   error: unknown
-  copyPreviousMonth: IncomePageCopyPreviousMonth
+  copyPreviousMonth: BudgetCopyPreviousMonth
   onEdit?: (income: Income) => void
   onReceive: (income: Income) => void
 }
 
-export function IncomePageIncomeList({
+export function BudgetIncomeList({
   items,
   isPending,
   isError,
@@ -34,7 +35,7 @@ export function IncomePageIncomeList({
   copyPreviousMonth,
   onEdit,
   onReceive,
-}: IncomePageIncomeListProps) {
+}: BudgetIncomeListProps) {
   const deleteMutation = useDeleteIncomeMutation()
 
   if (isPending) {
@@ -52,7 +53,7 @@ export function IncomePageIncomeList({
   if (items.length === 0) {
     return (
       <section className="flex min-h-0 flex-1 flex-col">
-        <div className={incomePageListEmptyClassName}>
+        <div className={budgetIncomeListEmptyClassName}>
           <ListEmpty
             message="Пока нет доходов за выбранный месяц. Добавьте первую запись."
             action={
@@ -93,7 +94,7 @@ export function IncomePageIncomeList({
       <ul
         className={cn(
           'coffer-scroll-list min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-y-auto',
-          incomePageListUlClassName,
+          allocationPageListUlClassName,
         )}
       >
         {items.map((income) => (

@@ -17,6 +17,8 @@ export type CreateIncomeFormDialogProps = {
   onClose: () => void
   editingIncome?: Income | null
   onReceived?: (income: Income) => void
+  /** Месяц (`YYYY-MM`) для нового дохода по умолчанию. */
+  defaultPeriodMonth?: string
 }
 
 export function CreateIncomeFormDialog({
@@ -26,9 +28,10 @@ export function CreateIncomeFormDialog({
   onClose,
   editingIncome = null,
   onReceived,
+  defaultPeriodMonth,
 }: CreateIncomeFormDialogProps) {
   const isMobile = useIsMobile()
-  const formKey = editingIncome?.id ?? 'new'
+  const formKey = editingIncome?.id ?? `new-${defaultPeriodMonth ?? ''}`
 
   return (
     <ResponsiveFormDialog
@@ -47,6 +50,7 @@ export function CreateIncomeFormDialog({
         onCancel={onClose}
         onComplete={onClose}
         onReceived={onReceived}
+        defaultPeriodMonth={defaultPeriodMonth}
       />
     </ResponsiveFormDialog>
   )

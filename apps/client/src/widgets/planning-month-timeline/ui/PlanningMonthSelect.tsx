@@ -2,7 +2,10 @@ import { useState } from 'react'
 
 import { CalendarIcon } from 'lucide-react'
 
-import { formatPlanningPeriodLabel } from '@/entities/budget/lib/periodLabels'
+import {
+  formatPeriodMonthLabel,
+  formatPlanningPeriodLabel,
+} from '@/entities/budget/lib/periodLabels'
 import { formatPlannedExpenseCount } from '@/entities/planned-expense/lib/formatPlannedExpenseCount'
 import { currentMonthInputValue } from '@/shared/lib/date'
 import { cn } from '@/shared/lib/utils'
@@ -15,7 +18,6 @@ import {
   SelectValue,
 } from '@/shared/ui/select/SelectPrimitives'
 
-const PAST_MONTHS = 1
 const FUTURE_MONTHS = 10
 
 export type PlanningMonthSelectProps = {
@@ -23,6 +25,8 @@ export type PlanningMonthSelectProps = {
   itemCounts?: Record<string, number>
   itemSwatches?: Record<string, string[]>
   onSelect: (periodMonth: string) => void
+  /** Сколько прошлых месяцев в списке. */
+  pastMonths?: number
 }
 
 /** Выпадающий выбор месяца (десктоп) с цветными метками планов у каждого месяца. */
@@ -31,19 +35,29 @@ export function PlanningMonthSelect({
   itemCounts = {},
   itemSwatches = {},
   onSelect,
+  pastMonths = 1,
 }: PlanningMonthSelectProps) {
   const [open, setOpen] = useState(false)
   const currentMonth = currentMonthInputValue()
 
-  // Опции симметричны вокруг текущего месяца — лишнее прошлое отрезаем.
-  const months = buildPeriodMonthSelectOptions(currentMonth, FUTURE_MONTHS)
+  // Опции симметричны вокруг текущего месяца — лишнее с обеих сторон отрезаем.
+  const span = Math.max(pastMonths, FUTURE_MONTHS)
+  const months = buildPeriodMonthSelectOptions(currentMonth, span)
     .map((option) => option.value)
-    .slice(FUTURE_MONTHS - PAST_MONTHS)
+    .slice(span - pastMonths, span + FUTURE_MONTHS + 1)
   // Месяц вне окна (выбран в мобильной ленте) — иначе кнопка окажется пустой.
   if (!months.includes(periodMonth)) {
     months.push(periodMonth)
     months.sort()
   }
+
+  // Названия месяцев повторяются — у чужого года подписываем год.
+  const showYear =
+    new Set(months.map((month) => month.slice(5))).size < months.length
+  const formatLabel = (month: string) =>
+    showYear && !month.startsWith(currentMonth.slice(0, 4))
+      ? formatPeriodMonthLabel(month)
+      : formatPlanningPeriodLabel(month)
 
   return (
     <SelectRoot
@@ -55,7 +69,7 @@ export function PlanningMonthSelect({
       <SelectTrigger
         showIcon={false}
         aria-label="Месяц"
-        className="min-w-36 justify-start gap-2 rounded-xl data-[size=default]:h-9 border-zinc-200 bg-white px-3 font-medium text-zinc-900 hover:bg-zinc-50 data-[state=open]:bg-zinc-100"
+        className="min-w-36 justify-start gap-2 rounded-xl data-[size=default]:h-9 border-zinc-200 bg-white px-3 font-medium text-zinc-900 hover:bg-zinc-50 data-[state=open]:bg-zinc-100 focus-visible:border-zinc-500 focus-visible:ring-0"
       >
         <CalendarIcon className="size-4 text-zinc-500" aria-hidden />
         <SelectValue />
@@ -79,7 +93,7 @@ export function PlanningMonthSelect({
               className={cn('min-h-9 py-0', month < currentMonth && 'text-zinc-400')}
             >
               <span className="flex items-center gap-2">
-                {formatPlanningPeriodLabel(month)}
+                {formatLabel(month)}
                 {planCount > 0 ? (
                   <span className="flex items-center gap-0.5" aria-hidden>
                     {swatches.map((swatchClassName, index) => (

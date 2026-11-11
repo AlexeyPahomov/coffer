@@ -8,8 +8,6 @@ export const allocationPageShellClassName = cn(
   'max-md:overflow-hidden max-md:overscroll-none',
 )
 
-export const allocationPageHeaderClassName = 'shrink-0 space-y-4'
-
 /** Область списка: скролл внутри ItemsList, не у оболочки (иначе обрезка карточек). */
 export const allocationPageListScrollClassName =
   'flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden'
@@ -21,21 +19,17 @@ export const allocationPageListUlClassName = cn(
   mobileFabScrollReserveClassName,
 )
 
-/** Блок «Осталось»: ниже 460px подпись справа — отдельной строкой на всю ширину. */
-export const remainingBalanceCardBodyClassName =
-  'grid grid-cols-[1fr_auto] items-center gap-4 max-[460px]:grid-rows-[auto_auto] max-[460px]:gap-3'
+/** Десктоп: доходы слева, распределение справа — каждая колонка со своим скроллом. */
+export const budgetPageColumnsClassName =
+  'grid min-h-0 flex-1 grid-cols-2 grid-rows-[minmax(0,1fr)] gap-6'
 
-export const remainingBalanceCardMetaRowClassName = 'flex items-center gap-3'
+export const budgetPageColumnClassName = 'flex h-full min-h-0 min-w-0 flex-col gap-2'
 
-export const remainingBalanceCardCaptionInlineClassName =
-  'shrink-0 space-y-0.5 text-right max-[460px]:hidden'
+/** Пустой список доходов: те же отступы, что у `<ul>`, без кольца фокуса. */
+/** Высота двух карточек дохода с зазором; отступ p-1 — как у списка. */
+export const budgetAllocationListEmptyClassName = 'm-1 h-[125px] flex-none'
 
-export const remainingBalanceCardCaptionStackedClassName =
-  'hidden max-[460px]:col-span-2 max-[460px]:flex max-[460px]:flex-wrap gap-x-1 text-sm'
-
-/** Карточка месяца в блоке «Доход по месяцам» (мобилка). */
-export const allocationIncomeMonthCardMobileClassName =
-  'max-md:h-11 max-md:min-h-11'
-
-export const allocationIncomeMonthCardContentClassName =
-  'max-md:flex max-md:h-full max-md:min-h-0 max-md:flex-col max-md:justify-center'
+export const budgetIncomeListEmptyClassName = cn(
+  'max-md:pe-2',
+  mobileFabScrollReserveClassName,
+)

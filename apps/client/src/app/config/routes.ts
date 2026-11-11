@@ -1,6 +1,5 @@
 /** Маршруты приложения (app shell): сегменты как `path` дочерних роутов layout и подписи для навигации. */
 export const APP_ROUTES = [
-  { id: 'income', label: 'Доход', segment: 'income' },
   { id: 'allocation', label: 'Бюджет', segment: 'allocation' },
   { id: 'expenses', label: 'Расход', segment: 'expenses' },
   { id: 'planning', label: 'Планирование', mobileLabel: 'План', segment: 'planning' },
@@ -44,7 +43,7 @@ export function appRouteMobileNavLabel(
     : appRouteNavLabel(route)
 }
 
-/** Полный путь: `/income`, `/allocation`, … */
+/** Полный путь: `/allocation`, `/planning`, … */
 export function appRouteHref(segment: AppRouteSegment): string {
   return `/${segment}`
 }

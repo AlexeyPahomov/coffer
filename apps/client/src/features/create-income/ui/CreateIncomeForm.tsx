@@ -13,6 +13,8 @@ export type CreateIncomeFormProps = {
   onCancel?: () => void
   onComplete?: () => void
   onReceived?: (income: Income) => void
+  /** Месяц (`YYYY-MM`) для нового дохода по умолчанию. */
+  defaultPeriodMonth?: string
   variant?: CreateIncomeFormVariant
   /** Полноширинные кнопки в колонку — для bottom sheet на мобилках. */
   stackActions?: boolean
@@ -24,11 +26,17 @@ export function CreateIncomeForm({
   onCancel,
   onComplete,
   onReceived,
+  defaultPeriodMonth,
   variant = 'card',
   stackActions = false,
   className,
 }: CreateIncomeFormProps) {
-  const form = useIncomeForm({ editingIncome, onComplete, onReceived })
+  const form = useIncomeForm({
+    editingIncome,
+    onComplete,
+    onReceived,
+    defaultPeriodMonth,
+  })
 
   const fields = (
     <IncomeFormFields

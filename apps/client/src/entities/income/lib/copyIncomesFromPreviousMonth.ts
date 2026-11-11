@@ -4,7 +4,7 @@ import type { CreateIncomePayload, Income } from '@/entities/income/model/types'
 import { toMoneyNumber } from '@/shared/lib/money'
 import { dateInputValueFromDate, isoToDateInputValue } from '@/shared/lib/date'
 
-import { filterIncomesByPeriodMonth } from './buildIncomeMonthCards'
+import { filterIncomesByPeriodMonth } from './filterIncomesByPeriodMonth'
 
 /** Та же дата в целевом месяце; день, которого там нет (31-е), — последний день месяца. */
 function shiftDateToMonth(isoDate: string, periodMonth: string): string {

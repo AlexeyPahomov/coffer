@@ -41,12 +41,6 @@ export const LazyExpensePage = lazy(() =>
   ),
 )
 
-export const LazyIncomePage = lazy(() =>
-  importWithReload(() =>
-    import('@/pages/income-page').then((m) => ({ default: m.IncomePage })),
-  ),
-)
-
 export const LazyPlanningPage = lazy(() =>
   importWithReload(() =>
     import('@/pages/planning-page').then((m) => ({ default: m.PlanningPage })),

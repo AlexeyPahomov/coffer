@@ -14,12 +14,10 @@ import {
   LazyAllocationRulesPage,
   LazyCategoryPage,
   LazyExpensePage,
-  LazyIncomePage,
   LazyPlanningPage,
 } from './lazyPages'
 
 const lazyPageByRouteId: Record<AppRouteId, LazyExoticComponent<ComponentType>> = {
-  income: LazyIncomePage,
   allocation: LazyAllocationPage,
   expenses: LazyExpensePage,
   planning: LazyPlanningPage,
@@ -35,6 +33,11 @@ export const router = createBrowserRouter([
       {
         index: true,
         element: <Navigate to={appRouteHref(APP_DEFAULT_SEGMENT)} replace />,
+      },
+      // Доходы переехали на страницу «Бюджет».
+      {
+        path: 'income',
+        element: <Navigate to={appRouteHref('allocation')} replace />,
       },
       ...APP_ROUTES.map((route) => {
         const Page = lazyPageByRouteId[route.id]

@@ -11,7 +11,6 @@ type AllocationListProps = {
   error: unknown
   allocations: Allocation[] | undefined
   isFetching: boolean
-  hasSelectedMonth: boolean
   incomeAmount?: number | null
   layout?: ItemsListLayout
   listClassName?: string
@@ -24,7 +23,6 @@ export function AllocationList({
   error,
   allocations,
   isFetching,
-  hasSelectedMonth,
   incomeAmount = null,
   layout = 'fill',
   listClassName,
@@ -37,14 +35,6 @@ export function AllocationList({
         : undefined,
     [allocations, incomeAmount],
   )
-
-  if (!hasSelectedMonth) {
-    return (
-      <p className="text-sm text-muted-foreground">
-        Выберите месяц, чтобы увидеть распределения.
-      </p>
-    )
-  }
 
   return (
     <ItemsList

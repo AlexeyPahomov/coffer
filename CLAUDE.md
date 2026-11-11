@@ -106,7 +106,7 @@ pnpm --filter @coffer/planning-core test
 - Данные — TanStack Query; ключи кэша вынесены в `entities/*/api/*QueryKeys.ts`.
 - HTTP — тонкий `shared/api/client.ts` (`apiGet/apiPost/apiPatch/apiDelete`, бросает `ApiError`).
 - В dev Vite проксирует `/api` → `http://localhost:3000` (с обрезкой `/api`). В prod базовый URL — `VITE_API_URL`.
-- Маршруты: `/income`, `/allocation`, `/expenses`, `/planning`, `/categories` (по умолчанию `/planning`).
+- Маршруты: `/allocation` (Бюджет: доходы + распределение; `/income` редиректит сюда), `/expenses`, `/planning`, `/categories` (по умолчанию `/planning`).
 - UI — Radix/shadcn в `shared/ui`, Tailwind CSS 4.
 
 ## Релизы

@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react'
-import { sumMoneyAmounts } from '@coffer/shared'
 
 import { useAllAllocationsQuery } from '@/entities/allocation/api/useAllAllocationsQuery'
 import { filterReceivedAllocations } from '@/entities/allocation/lib/filterReceivedAllocations'
@@ -7,30 +6,61 @@ import { pickIncomeWithMaxRemaining } from '@/entities/allocation/lib/pickIncome
 import { resolveAllocationsForPeriodMonth } from '@/entities/allocation/lib/filterAllocationsByPeriod'
 import { sumAllocatedByIncome } from '@/entities/allocation/lib/sumAllocatedByIncome'
 import { sumAllocationAmounts } from '@/entities/allocation/model/calculations'
+import { useAllocationRulesQuery } from '@/entities/allocation-rule/api/useAllocationRulesQuery'
 import { useCategoriesQuery } from '@/entities/category/api/useCategoriesQuery'
 import { isBudgetEnvelopeCategory } from '@/entities/category/lib/categoryKind'
 import { useIncomesQuery } from '@/entities/income/api/useIncomesQuery'
-import { filterReceivedIncomes } from '@/entities/income/lib/incomeStatus'
-import { buildAllocationIncomeCards } from '@/pages/allocation-page/lib/buildAllocationIncomeCards'
-import {
-  filterIncomesByPeriodMonth,
-  resolveSelectedAllocationPeriodMonth,
-} from '@/pages/allocation-page/lib/allocationPeriodMonth'
+import { filterIncomesByPeriodMonth } from '@/entities/income/lib/filterIncomesByPeriodMonth'
+import { resolveCurrentCalendarPeriodMonth } from '@/entities/income/lib/incomePeriodMonth'
+import type { Income } from '@/entities/income/model/types'
+import { useCopyPreviousMonthIncomes } from '@/features/create-income/model/useCopyPreviousMonthIncomes'
+import { useIncomeFormDialog } from '@/features/create-income/model/useIncomeFormDialog'
 import { combineAllocationListQuery } from '@/pages/allocation-page/lib/combineAllocationListQuery'
-import { formatMonthLabel } from '@/shared/lib/format'
+import { useCarouselTabs } from '@/shared/hooks/useCarouselTabs'
+import { buildCarouselPeriodLabels } from '@/widgets/planning-month-timeline/lib/buildCarouselPeriodLabels'
 
-export type { IncomeCardTone, IncomeCardView } from '@/pages/allocation-page/lib/allocationIncomeCard'
+import { BUDGET_TABS } from '../lib/budgetTabs'
+import { buildBudgetSummary } from '../lib/buildBudgetSummary'
+import { resolveDefaultBudgetPeriodMonth } from '../lib/resolveDefaultBudgetPeriodMonth'
+
+const EMPTY_INCOMES: Income[] = []
 
 export function useAllocationPage() {
   const [pickedPeriodMonth, setPickedPeriodMonth] = useState<string | null>(null)
+  const [editingIncome, setEditingIncome] = useState<Income | null>(null)
+  const [receivingIncome, setReceivingIncome] = useState<Income | null>(null)
+  const {
+    setCarouselApi: setTabsCarouselApi,
+    activeIndex: activeTabIndex,
+    selectSlide: selectTabSlide,
+  } = useCarouselTabs(BUDGET_TABS.length)
+  const activeTabId = BUDGET_TABS[activeTabIndex]?.id ?? BUDGET_TABS[0].id
 
   const incomesQuery = useIncomesQuery()
   const allAllocationsQuery = useAllAllocationsQuery({ enabled: true })
   const categoriesQuery = useCategoriesQuery()
+  const rulesQuery = useAllocationRulesQuery()
+  const incomeDialog = useIncomeFormDialog(editingIncome, () =>
+    setEditingIncome(null),
+  )
 
-  const incomes = useMemo(
-    () => filterReceivedIncomes(incomesQuery.data ?? []),
-    [incomesQuery.data],
+  const hasActiveRules = (rulesQuery.data ?? []).some((rule) => rule.is_active)
+  const incomes = incomesQuery.data ?? EMPTY_INCOMES
+  const defaultPeriodMonth = useMemo(
+    () =>
+      resolveDefaultBudgetPeriodMonth(incomes, resolveCurrentCalendarPeriodMonth()),
+    [incomes],
+  )
+  // Фиксируем месяц по умолчанию после загрузки: иначе получение или удаление
+  // дохода перебрасывало бы страницу на другой месяц.
+  if (pickedPeriodMonth === null && incomesQuery.isSuccess) {
+    setPickedPeriodMonth(defaultPeriodMonth)
+  }
+  const periodMonth = pickedPeriodMonth ?? defaultPeriodMonth
+
+  const monthIncomes = useMemo(
+    () => filterIncomesByPeriodMonth(incomes, periodMonth),
+    [incomes, periodMonth],
   )
 
   const allocatedByIncome = useMemo(
@@ -38,37 +68,19 @@ export function useAllocationPage() {
     [allAllocationsQuery.data],
   )
 
-  const incomeCards = useMemo(
-    () => buildAllocationIncomeCards(incomes, allocatedByIncome),
-    [allocatedByIncome, incomes],
-  )
-
-  const selectedPeriodMonth = useMemo(
-    () =>
-      resolveSelectedAllocationPeriodMonth(incomeCards, pickedPeriodMonth),
-    [incomeCards, pickedPeriodMonth],
-  )
-
-  const incomesInSelectedMonth = useMemo(
-    () => filterIncomesByPeriodMonth(incomes, selectedPeriodMonth),
-    [incomes, selectedPeriodMonth],
-  )
-
   const selectedAllocationIncomeId = useMemo(
-    () => pickIncomeWithMaxRemaining(incomesInSelectedMonth, allocatedByIncome),
-    [allocatedByIncome, incomesInSelectedMonth],
+    () => pickIncomeWithMaxRemaining(monthIncomes, allocatedByIncome),
+    [allocatedByIncome, monthIncomes],
   )
 
-  const monthAllocations = useMemo(() => {
-    if (selectedPeriodMonth === null) {
-      return []
-    }
-
-    return resolveAllocationsForPeriodMonth(
-      filterReceivedAllocations(allAllocationsQuery.data ?? []),
-      selectedPeriodMonth,
-    )
-  }, [allAllocationsQuery.data, selectedPeriodMonth])
+  const monthAllocations = useMemo(
+    () =>
+      resolveAllocationsForPeriodMonth(
+        filterReceivedAllocations(allAllocationsQuery.data ?? []),
+        periodMonth,
+      ),
+    [allAllocationsQuery.data, periodMonth],
+  )
 
   const allocationCategories = useMemo(
     () =>
@@ -78,28 +90,22 @@ export function useAllocationPage() {
     [categoriesQuery.data],
   )
 
-  const incomeAmount = useMemo(() => {
-    if (incomesInSelectedMonth.length === 0) {
-      return null
-    }
-    return sumMoneyAmounts(incomesInSelectedMonth.map((income) => income.amount))
-  }, [incomesInSelectedMonth])
-
-  const selectedPeriodMonthLabel = selectedPeriodMonth
-    ? formatMonthLabel(`${selectedPeriodMonth}-01`)
-    : 'Месяц'
-
   const allocatedTotal = useMemo(
     () => sumAllocationAmounts(monthAllocations),
     [monthAllocations],
   )
 
-  const remainingBalance = useMemo(() => {
-    if (incomeAmount === null) {
-      return 0
-    }
-    return incomeAmount - allocatedTotal
-  }, [incomeAmount, allocatedTotal])
+  const summary = useMemo(
+    () => buildBudgetSummary(monthIncomes, allocatedTotal),
+    [monthIncomes, allocatedTotal],
+  )
+
+  const periodLabels = useMemo(
+    () => buildCarouselPeriodLabels(periodMonth),
+    [periodMonth],
+  )
+
+  const copyPreviousMonth = useCopyPreviousMonthIncomes(incomes, periodMonth)
 
   const allocationsQuery = combineAllocationListQuery(
     monthAllocations,
@@ -108,17 +114,50 @@ export function useAllocationPage() {
   )
 
   return {
-    selectedPeriodMonth,
-    setPickedPeriodMonth,
+    periodMonth,
+    setPeriodMonth: setPickedPeriodMonth,
+    periodLabels,
+    activeTabId,
+    setTabsCarouselApi,
+    selectTabSlide,
+    summary,
+    incomesQuery,
+    monthIncomes,
+    copyPreviousMonth: {
+      ...copyPreviousMonth,
+      copy: () => void copyPreviousMonth.copy(),
+    },
     selectedAllocationIncomeId,
     allocationCategories,
-    incomeAmount,
-    selectedPeriodMonthLabel,
-    allocatedTotal,
-    remainingBalance,
-    incomeCards,
-    hasIncome: incomeCards.length > 0,
-    incomesQuery,
+    // null — в месяце ещё нет полученного дохода.
+    receivedAmount: summary.received > 0 ? summary.received : null,
     allocationsQuery,
+    onAddIncome: incomeDialog.openForAdd,
+    onEditIncome: setEditingIncome,
+    onReceiveIncome: setReceivingIncome,
+    incomeFormDialog: {
+      open: incomeDialog.isOpen,
+      onOpenChange: incomeDialog.onOpenChange,
+      isEditing: incomeDialog.isEditing,
+      onClose: incomeDialog.close,
+      editingIncome,
+      defaultPeriodMonth: periodMonth,
+      // Доход, полученный прямо через форму, минует кнопку «Получить» —
+      // предлагаем правила здесь, но только если они вообще есть.
+      onReceived: (income: Income) => {
+        if (hasActiveRules) {
+          setReceivingIncome(income)
+        }
+      },
+    },
+    receiveDialog: {
+      income: receivingIncome,
+      open: receivingIncome != null,
+      onOpenChange: (open: boolean) => {
+        if (!open) {
+          setReceivingIncome(null)
+        }
+      },
+    },
   }
 }

@@ -26,7 +26,6 @@ import { sidebarLogoClassName } from '../lib/sidebarLayout'
 import {
   CalendarDays,
   CreditCard,
-  DollarSign,
   PieChart,
   SlidersHorizontal,
   Tag,
@@ -35,7 +34,6 @@ import {
 type IconFn = (props: { className?: string }) => ReactNode
 
 const iconByRouteId: Record<AppRouteId, IconFn> = {
-  income: (props) => <DollarSign {...props} />,
   allocation: (props) => <PieChart {...props} />,
   expenses: (props) => <CreditCard {...props} />,
   planning: (props) => <CalendarDays {...props} />,
