@@ -15,10 +15,10 @@ describe('resolvePlannedExpenseSavingsAmountError', () => {
     ).toBeNull()
   })
 
-  it('конверт выбран, сумма не указана — просит указать', () => {
+  it('конверт выбран, сумма не указана — без текста ошибки', () => {
     expect(
       resolvePlannedExpenseSavingsAmountError({ ...base, savings_amount: '' }),
-    ).toMatch(/Укажите/)
+    ).toBeNull()
   })
 
   it('доля больше суммы плана', () => {

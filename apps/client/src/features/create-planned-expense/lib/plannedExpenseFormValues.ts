@@ -130,7 +130,7 @@ export function resolvePlannedExpenseSavingsAmountError(
   }
   const savingsAmount = parseMoneyInput(values.savings_amount)
   if (savingsAmount === null || savingsAmount <= 0) {
-    return 'Укажите, сколько взять из накоплений, или выберите «Не добавлять».'
+    return null
   }
   return 'Из накоплений нельзя взять больше суммы плана.'
 }

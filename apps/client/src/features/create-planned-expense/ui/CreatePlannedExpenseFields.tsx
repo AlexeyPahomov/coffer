@@ -3,6 +3,7 @@ import { useMemo } from 'react'
 
 import {
   Button,
+  Checkbox,
   DateRangePicker,
   InfoHint,
   Input,
@@ -12,6 +13,7 @@ import type { Category } from '@/entities/category/model/types'
 import { CategorySelect } from '@/entities/category/ui/CategorySelect'
 import { formLabelClassName } from '@/shared/config/formUi'
 import { bindMoneyAmountField } from '@/shared/lib/moneyInput'
+import { cn } from '@/shared/lib/utils'
 
 import { createPlannedExpenseInputChangeHandler } from '../lib/plannedExpenseFormFieldHandlers'
 import { resolvePlannedExpenseSavingsAmountError } from '../lib/plannedExpenseFormValues'
@@ -63,6 +65,7 @@ export function CreatePlannedExpenseFields({
     [editingPlanId, planPeriodMonth, resolveAvailableFunds],
   )
   const savingsAmountError = resolvePlannedExpenseSavingsAmountError(values)
+  const isFromSavings = Boolean(values.savings_category_id)
 
   return (
     <>
@@ -140,37 +143,49 @@ export function CreatePlannedExpenseFields({
         />
       </div>
       {savingsCategories.length > 0 ? (
-        <div className="space-y-2">
-          <label
-            htmlFor="planned-expense-savings-category"
-            className={formLabelClassName}
-          >
+        <div>
+          <label className="flex items-start gap-2 text-sm font-medium text-zinc-800">
+            <Checkbox
+              id="planned-expense-from-savings"
+              className="mt-0.5"
+              checked={isFromSavings}
+              disabled={isPending}
+              onCheckedChange={(checked) =>
+                onChange(
+                  'savings_category_id',
+                  checked === true ? savingsCategories[0].id : '',
+                )
+              }
+            />
             Добавить из накоплений
           </label>
-          <CategorySelect
-            id="planned-expense-savings-category"
-            value={values.savings_category_id}
-            onValueChange={(value) => onChange('savings_category_id', value)}
-            categories={savingsCategories}
-            optional
-            optionalLabel="Не добавлять"
-            placeholder="Не добавлять"
-            disabled={isPending}
-          />
-          {values.savings_category_id ? (
-            <MoneyInput
-              name="savings_amount"
-              placeholder="Сколько из накоплений"
-              {...bindMoneyAmountField(values.savings_amount, (amount) =>
-                onChange('savings_amount', amount),
-              )}
-            />
-          ) : null}
-          {savingsAmountError ? (
-            <p className="text-xs text-amber-700 dark:text-amber-400">
-              {savingsAmountError}
-            </p>
-          ) : null}
+          <div
+            className={cn(
+              'coffer-collapse grid',
+              isFromSavings
+                ? 'grid-rows-[1fr] opacity-100'
+                : 'grid-rows-[0fr] opacity-0',
+            )}
+            inert={!isFromSavings}
+          >
+            {/* -m-1 p-1: не обрезать focus-ring инпута */}
+            <div className="-m-1 min-h-0 overflow-hidden p-1">
+              <div className="space-y-2 pt-2">
+                <MoneyInput
+                  name="savings_amount"
+                  placeholder="Сколько из накоплений"
+                  {...bindMoneyAmountField(values.savings_amount, (amount) =>
+                    onChange('savings_amount', amount),
+                  )}
+                />
+                {savingsAmountError ? (
+                  <p className="text-xs text-amber-700 dark:text-amber-400">
+                    {savingsAmountError}
+                  </p>
+                ) : null}
+              </div>
+            </div>
+          </div>
         </div>
       ) : null}
       {availableFunds ? (
