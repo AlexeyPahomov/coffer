@@ -13,9 +13,11 @@ import { resolveEnvelopeForecastInputs } from '@/entities/budget/lib/resolveEnve
 import { filterExpenseCategories } from '@/entities/category/lib/filterExpenseCategories'
 import { isSavingsCategory } from '@/entities/category/lib/categoryKind'
 import { buildProjectedIncomes } from '@/entities/income/lib/projectRecurringIncome'
+import { useIsMobile } from '@/shared/hooks/use-mobile'
 import { useCarouselTabs } from '@/shared/hooks/useCarouselTabs'
 import {
-  DEFAULT_OUTCOME_HORIZON,
+  DEFAULT_OUTCOME_HORIZON_DESKTOP,
+  DEFAULT_OUTCOME_HORIZON_MOBILE,
   OUTCOME_HORIZONS,
   type OutcomeHorizon,
   type PlanningOutcome,
@@ -70,9 +72,12 @@ function forecastMonthToProjection(
 
 export function usePlanningPage() {
   const [pickedPeriodMonth, setPickedPeriodMonth] = useState<string | null>(null)
-  const [outcomeHorizon, setOutcomeHorizon] = useState<OutcomeHorizon>(
-    DEFAULT_OUTCOME_HORIZON,
-  )
+  const isMobile = useIsMobile()
+  const [pickedOutcomeHorizon, setOutcomeHorizon] =
+    useState<OutcomeHorizon | null>(null)
+  const outcomeHorizon =
+    pickedOutcomeHorizon ??
+    (isMobile ? DEFAULT_OUTCOME_HORIZON_MOBILE : DEFAULT_OUTCOME_HORIZON_DESKTOP)
   const {
     setCarouselApi: setTabsCarouselApi,
     activeIndex: activeTabIndex,
