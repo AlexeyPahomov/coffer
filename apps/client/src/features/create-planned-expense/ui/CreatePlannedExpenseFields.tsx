@@ -1,6 +1,12 @@
 import { useMemo } from 'react'
 
-import { Button, DateRangePicker, Input, MoneyInput } from '@/shared/ui'
+import {
+  Button,
+  DateRangePicker,
+  InfoHint,
+  Input,
+  MoneyInput,
+} from '@/shared/ui'
 import type { Category } from '@/entities/category/model/types'
 import { CategorySelect } from '@/entities/category/ui/CategorySelect'
 import { formLabelClassName } from '@/shared/config/formUi'
@@ -81,6 +87,15 @@ export function CreatePlannedExpenseFields({
         disabled={isPending}
         onChange={onFieldChange}
       />
+      <DateRangePicker
+        emptyLabel="Когда?"
+        from={values.planned_date}
+        to={values.planned_date_end}
+        onChange={(from, to) =>
+          patchValues({ planned_date: from, planned_date_end: to })
+        }
+        disabled={isPending}
+      />
       <MoneyInput
         name="amount"
         placeholder="Сумма"
@@ -89,12 +104,18 @@ export function CreatePlannedExpenseFields({
         )}
       />
       <div className="space-y-2">
-        <label
-          htmlFor="planned-expense-category"
-          className={formLabelClassName}
-        >
-          Источник
-        </label>
+        <div className="flex items-start gap-1">
+          <label
+            htmlFor="planned-expense-category"
+            className={formLabelClassName}
+          >
+            Источник
+          </label>
+          <InfoHint label="Источник">
+            Без категории план списывается из свободного пула. С категорией — из
+            конверта при проведении, если в нём есть лимит.
+          </InfoHint>
+        </div>
         <CategorySelect
           id="planned-expense-category"
           value={values.category_id}
@@ -109,10 +130,6 @@ export function CreatePlannedExpenseFields({
           }
           disabled={isPending}
         />
-        <p className="text-xs text-zinc-500">
-          Без категории план списывается из свободного пула. С категорией — из
-          конверта при проведении, если в нём есть лимит.
-        </p>
       </div>
       {savingsCategories.length > 0 ? (
         <div className="space-y-2">
@@ -148,15 +165,6 @@ export function CreatePlannedExpenseFields({
           ) : null}
         </div>
       ) : null}
-      <DateRangePicker
-        emptyLabel="Когда?"
-        from={values.planned_date}
-        to={values.planned_date_end}
-        onChange={(from, to) =>
-          patchValues({ planned_date: from, planned_date_end: to })
-        }
-        disabled={isPending}
-      />
       {availableFunds ? (
         <PlannedExpenseFundsHint
           values={values}
