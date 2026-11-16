@@ -56,6 +56,8 @@ const statusBadgeStaticClassName = 'rounded-md bg-zinc-100 text-zinc-600'
 export type PlannedExpenseCardProps = {
   item: PlannedExpense
   category?: Category | null
+  /** Конверт накоплений, если часть суммы берётся из него. */
+  savingsCategory?: Category | null
   onReserve?: (id: string) => void
   onDeletePlan?: (id: string) => void
   onUnreserve?: (id: string) => void
@@ -71,6 +73,7 @@ export type PlannedExpenseCardProps = {
 export function PlannedExpenseCard({
   item,
   category = null,
+  savingsCategory = null,
   onReserve,
   onDeletePlan,
   onUnreserve,
@@ -263,7 +266,12 @@ export function PlannedExpenseCard({
   return (
     <article className={cn(plannedExpenseCardClassName, className)}>
       <div className={plannedExpenseCardSourceMobileClassName}>
-        <PlannedExpenseSourceIcon category={category} />
+        <PlannedExpenseSourceIcon
+          category={category}
+          savingsCategory={savingsCategory}
+          amount={item.amount}
+          savingsAmount={item.savings_amount}
+        />
       </div>
 
       <div className={plannedExpenseCardRowClassName}>
@@ -285,7 +293,12 @@ export function PlannedExpenseCard({
 
         <div className={plannedExpenseCardDetailsClassName}>
           <div className={plannedExpenseCardSourceClassName}>
-            <PlannedExpenseSourceIcon category={category} />
+            <PlannedExpenseSourceIcon
+              category={category}
+              savingsCategory={savingsCategory}
+              amount={item.amount}
+              savingsAmount={item.savings_amount}
+            />
           </div>
 
           <div className={plannedExpenseCardFinanceClassName}>

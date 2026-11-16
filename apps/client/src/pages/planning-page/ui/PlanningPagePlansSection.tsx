@@ -42,6 +42,9 @@ export function PlanningPagePlansSection({
                 item,
                 page.expenseCategories,
               )}
+              savingsCategory={page.savingsCategories.find(
+                (category) => category.id === item.savings_category_id,
+              )}
               onReserve={(id) => page.reserve(id, item.amount)}
               onDeletePlan={page.deletePlan}
               onUnreserve={page.unreserve}
