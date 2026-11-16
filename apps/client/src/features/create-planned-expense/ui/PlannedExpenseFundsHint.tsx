@@ -2,6 +2,8 @@ import { parseMoneyInput } from '@coffer/shared'
 
 import { formatPlanningPeriodLabel } from '@/entities/budget'
 import { formatMoneyWithRub } from '@/shared/lib/format'
+import { cn } from '@/shared/lib/utils'
+import { InfoHint } from '@/shared/ui'
 
 import type {
   CreatePlannedExpenseFormValues,
@@ -29,47 +31,74 @@ export function PlannedExpenseFundsHint({
     : 0
   const mainAmount = Math.max(0, amount - savingsAmount)
 
-  const warnings: string[] = []
-  if (savingsAmount > funds.savings) {
-    warnings.push(
-      `В накоплениях не хватит: доступно ${formatMoneyWithRub(Math.max(0, funds.savings))}.`,
-    )
-  }
-  if (!values.category_id && mainAmount > funds.pool) {
-    warnings.push(
-      `В пуле не хватит ${formatMoneyWithRub(mainAmount - Math.max(0, funds.pool))} — добавьте из накоплений.`,
-    )
-  }
+  const hasAmount = amount > 0
 
   return (
     <div className="space-y-1 rounded-lg bg-zinc-50 px-3 py-2 text-xs text-zinc-600 dark:bg-zinc-900 dark:text-zinc-400">
-      <p className="font-medium text-zinc-700 dark:text-zinc-300">
-        {formatPlanningPeriodLabel(periodMonth)}: можно потратить из пула{' '}
-        {formatMoneyWithRub(funds.pool)} · из накоплений{' '}
-        {formatMoneyWithRub(funds.savings)}
-      </p>
-      <p>
-        С учётом остальных планов — так, чтобы прогноз не ушёл в минус в
-        следующие 12 месяцев.
-      </p>
+      <div className="flex items-start gap-1">
+        <p className="font-medium text-zinc-700 dark:text-zinc-300">
+          {formatPlanningPeriodLabel(periodMonth)}
+        </p>
+        <InfoHint label="Доступные средства" className="-my-0.5">
+          Доступно — с учётом остальных планов, так, чтобы прогноз не ушёл в
+          минус в следующие 12 месяцев.
+        </InfoHint>
+      </div>
+      <FundsRow
+        label="Накопления"
+        used={hasAmount ? savingsAmount : null}
+        available={funds.savings}
+      />
+      {values.category_id ? (
+        hasAmount ? (
+          <FundsRow label="Конверт" used={mainAmount} available={null} />
+        ) : null
+      ) : (
+        <FundsRow
+          label="Пул"
+          used={hasAmount ? mainAmount : null}
+          available={funds.pool}
+        />
+      )}
       {hasSeveralSavingsEnvelopes ? (
         <p>
           Накопления — по всем конвертам; при проведении сумма должна быть в
           выбранном.
         </p>
       ) : null}
-      {savingsAmount > 0 && savingsAmount <= amount ? (
-        <p>
-          Из накоплений {formatMoneyWithRub(savingsAmount)}, остальное{' '}
-          {formatMoneyWithRub(mainAmount)} —{' '}
-          {values.category_id ? 'из конверта' : 'из пула'}.
-        </p>
-      ) : null}
-      {warnings.map((warning) => (
-        <p key={warning} className="text-amber-700 dark:text-amber-400">
-          {warning}
-        </p>
-      ))}
     </div>
+  )
+}
+
+/** Строка источника: «сколько берём из сколько доступно»; превышение — янтарным. */
+function FundsRow({
+  label,
+  used,
+  available,
+}: {
+  label: string
+  /** null — сумма плана не введена, показываем только доступное. */
+  used: number | null
+  /** null — доступное неизвестно (конверт), показываем только сумму. */
+  available: number | null
+}) {
+  const isOver = used !== null && available !== null && used > available
+
+  return (
+    <p
+      className={cn(
+        'flex justify-between gap-3 tabular-nums',
+        isOver && 'text-amber-700 dark:text-amber-400',
+      )}
+    >
+      <span>{label}</span>
+      <span>
+        {used === null
+          ? `доступно ${formatMoneyWithRub(available ?? 0)}`
+          : available === null
+            ? formatMoneyWithRub(used)
+            : `${formatMoneyWithRub(used)} из ${formatMoneyWithRub(available)}`}
+      </span>
+    </p>
   )
 }
