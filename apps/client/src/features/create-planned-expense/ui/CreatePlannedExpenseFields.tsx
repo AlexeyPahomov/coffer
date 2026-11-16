@@ -1,3 +1,4 @@
+import { Wallet } from 'lucide-react'
 import { useMemo } from 'react'
 
 import {
@@ -123,6 +124,13 @@ export function CreatePlannedExpenseFields({
           categories={categories}
           optional
           optionalLabel="Свободный пул"
+          optionalIcon={
+            <Wallet
+              className="size-4 shrink-0 text-teal"
+              strokeWidth={2}
+              aria-hidden
+            />
+          }
           placeholder={
             noCategories
               ? 'Нет категорий расходов'

@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react'
+
 import type { Category } from '../model/types'
 import { CategoryNameWithIcon } from './CategoryNameWithIcon'
 import {
@@ -18,6 +20,8 @@ export type CategorySelectProps = {
   /** Разрешить сброс выбора (value → ''). */
   optional?: boolean
   optionalLabel?: string
+  /** Иконка пункта сброса — в тон иконкам категорий. */
+  optionalIcon?: ReactNode
 }
 
 const EMPTY_CATEGORY_VALUE = '__category_none__'
@@ -31,6 +35,7 @@ export function CategorySelect({
   disabled,
   optional = false,
   optionalLabel = 'Не выбрано',
+  optionalIcon,
 }: CategorySelectProps) {
   const selectedCategory = categories.find((category) => category.id === value)
   const selectValue = value || (optional ? EMPTY_CATEGORY_VALUE : value)
@@ -60,7 +65,14 @@ export function CategorySelect({
             value={EMPTY_CATEGORY_VALUE}
             className="min-h-9 py-1.5 text-zinc-500"
           >
-            {optionalLabel}
+            {optionalIcon ? (
+              <span className="flex min-w-0 items-center gap-2">
+                {optionalIcon}
+                <span className="truncate">{optionalLabel}</span>
+              </span>
+            ) : (
+              optionalLabel
+            )}
           </SelectItem>
         ) : null}
         {categories.map((category) => (
