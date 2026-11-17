@@ -36,6 +36,7 @@ type PlanningPageMonthViewsProps = {
   onEditPlanned: (item: PlannedExpense) => void
   onFinishPlanned: (item: PlannedExpense) => void
   onEditEvent: (event: PlannedEvent) => void
+  onDeleteEvent: (event: PlannedEvent) => void
 }
 
 export function PlanningPageMonthMobileHeader({
@@ -75,6 +76,7 @@ export function PlanningPageMonthBody({
   onEditPlanned,
   onFinishPlanned,
   onEditEvent,
+  onDeleteEvent,
 }: PlanningPageMonthViewsProps) {
   const plansPanel = (
     <div className="flex min-h-0 flex-col gap-4 md:gap-6">
@@ -136,8 +138,7 @@ export function PlanningPageMonthBody({
         />
       }
       onEditEvent={onEditEvent}
-      onDeleteEvent={page.deleteEvent}
-      pendingDeleteEventId={page.pendingDeleteEventId}
+      onDeleteEvent={onDeleteEvent}
       isEventsLoading={page.isEventsLoading}
       eventsError={page.eventsError}
     />

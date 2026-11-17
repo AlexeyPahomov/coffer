@@ -31,7 +31,6 @@ import {
 import { sumEnvelopeCommitments } from '@/entities/planned-expense/lib/plannedExpenseCommitmentRows'
 import { useAllocationRulesQuery } from '@/entities/allocation-rule/api/useAllocationRulesQuery'
 import { usePlannedExpensesQuery } from '@/entities/planned-expense/api/usePlannedExpensesQuery'
-import { useDeletePlannedEventMutation } from '@/entities/planned-event/api/useDeletePlannedEventMutation'
 import { usePlannedEventsQuery } from '@/entities/planned-event/api/usePlannedEventsQuery'
 import { useDeletePlannedExpenseMutation } from '@/entities/planned-expense/api/useDeletePlannedExpenseMutation'
 import { usePlannedExpenseStatusMutation } from '@/entities/planned-expense/api/usePlannedExpenseStatusMutation'
@@ -109,7 +108,6 @@ export function usePlanningPage() {
   const deletePlanMutation = useDeletePlannedExpenseMutation()
   const unfinishMutation = useUnfinishPlannedExpenseMutation()
   const eventsQuery = usePlannedEventsQuery()
-  const deleteEventMutation = useDeletePlannedEventMutation()
 
   const allPlanned = plannedQuery.data ?? EMPTY_PLANNED_EXPENSES
 
@@ -377,16 +375,10 @@ export function usePlanningPage() {
     summaryHorizon,
     setSummaryHorizon,
     events: eventsQuery.data ?? EMPTY_EVENTS,
-    deleteEvent: (id: string) => deleteEventMutation.mutate(id),
-    pendingDeleteEventId: deleteEventMutation.isPending
-      ? deleteEventMutation.variables
-      : undefined,
     isEventsLoading: eventsQuery.isPending,
     eventsError: eventsQuery.isError
       ? getErrorMessage(eventsQuery.error, 'Не удалось загрузить события')
-      : deleteEventMutation.isError
-        ? getErrorMessage(deleteEventMutation.error, 'Не удалось удалить событие')
-        : null,
+      : null,
     setTabsCarouselApi,
     activeTabId,
     selectTabSlide,

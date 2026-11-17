@@ -15,8 +15,7 @@ export type PlanningSummaryProps = {
   /** Переключатель горизонта сводки (свой, не связан с вкладкой «Прогноз»). */
   horizonControl: ReactNode
   onEditEvent: (event: PlannedEvent) => void
-  onDeleteEvent: (id: string) => void
-  pendingDeleteEventId?: string
+  onDeleteEvent: (event: PlannedEvent) => void
   isEventsLoading?: boolean
   eventsError?: string | null
   className?: string
@@ -31,7 +30,6 @@ export function PlanningSummary({
   horizonControl,
   onEditEvent,
   onDeleteEvent,
-  pendingDeleteEventId,
   isEventsLoading,
   eventsError,
   className,
@@ -73,7 +71,6 @@ export function PlanningSummary({
             events={summary.events}
             onEditEvent={onEditEvent}
             onDeleteEvent={onDeleteEvent}
-            pendingDeleteEventId={pendingDeleteEventId}
             isLoading={isEventsLoading}
             error={eventsError}
           />

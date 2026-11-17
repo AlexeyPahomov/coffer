@@ -3,6 +3,7 @@ import { useState } from 'react'
 import type { PlannedEvent } from '@/entities/planned-event/model/types'
 import type { PlannedExpense } from '@/entities/planned-expense/model/types'
 import { EditPlannedExpenseDialog } from '@/features/create-planned-expense/ui/EditPlannedExpenseDialog'
+import { DeletePlannedEventDialog } from '@/features/delete-planned-event/ui/DeletePlannedEventDialog'
 import { EditPlannedEventDialog } from '@/features/edit-planned-event/ui/EditPlannedEventDialog'
 import { FinishPlannedExpenseDialog } from '@/features/finish-planned-expense/ui/FinishPlannedExpenseDialog'
 import { useDesktopPageSectionTitle } from '@/shared/hooks/use-desktop-page-section-title'
@@ -37,6 +38,7 @@ export function PlanningPage() {
   const [finishingPlanned, setFinishingPlanned] =
     useState<PlannedExpense | null>(null)
   const [editingEvent, setEditingEvent] = useState<PlannedEvent | null>(null)
+  const [deletingEvent, setDeletingEvent] = useState<PlannedEvent | null>(null)
 
   return (
     <PageSection
@@ -65,6 +67,7 @@ export function PlanningPage() {
               onEditPlanned={setEditingPlanned}
               onFinishPlanned={setFinishingPlanned}
               onEditEvent={setEditingEvent}
+              onDeleteEvent={setDeletingEvent}
             />
           </div>
         </PlanningPageMonthTransition>
@@ -102,6 +105,16 @@ export function PlanningPage() {
           }
         }}
         event={editingEvent}
+      />
+
+      <DeletePlannedEventDialog
+        open={deletingEvent != null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeletingEvent(null)
+          }
+        }}
+        event={deletingEvent}
       />
     </PageSection>
   )

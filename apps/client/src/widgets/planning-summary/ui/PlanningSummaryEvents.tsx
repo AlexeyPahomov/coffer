@@ -26,8 +26,7 @@ import {
 type PlanningSummaryEventsProps = {
   events: readonly PlanningSummaryEvent[]
   onEditEvent: (event: PlannedEvent) => void
-  onDeleteEvent: (id: string) => void
-  pendingDeleteEventId?: string
+  onDeleteEvent: (event: PlannedEvent) => void
   isLoading?: boolean
   error?: string | null
 }
@@ -45,7 +44,6 @@ export function PlanningSummaryEvents({
   events,
   onEditEvent,
   onDeleteEvent,
-  pendingDeleteEventId,
   isLoading,
   error,
 }: PlanningSummaryEventsProps) {
@@ -95,7 +93,6 @@ export function PlanningSummaryEvents({
                     variant="ghost"
                     size="icon-sm"
                     aria-label="Действия с событием"
-                    disabled={pendingDeleteEventId === event.id}
                   >
                     <MoreVertical />
                   </Button>
@@ -107,7 +104,7 @@ export function PlanningSummaryEvents({
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     variant="destructive"
-                    onSelect={() => onDeleteEvent(event.id)}
+                    onSelect={() => onDeleteEvent(event)}
                   >
                     <Trash2 />
                     Удалить событие
