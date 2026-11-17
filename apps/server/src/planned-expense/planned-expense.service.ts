@@ -60,6 +60,21 @@ export class PlannedExpenseService {
     }
   }
 
+  private async assertEventOwned(
+    eventId: string | null | undefined,
+    userId: string,
+  ) {
+    if (!eventId) {
+      return;
+    }
+    const event = await this.prisma.plannedEvent.findFirst({
+      where: { id: eventId, user_id: userId },
+    });
+    if (!event) {
+      throw new BadRequestException('Planned event not found');
+    }
+  }
+
   /** Доля из накоплений: 0 ≤ savings_amount ≤ amount, источник — конверт накоплений. */
   private async resolveSavingsSplit(
     amount: number,
@@ -197,6 +212,7 @@ export class PlannedExpenseService {
 
   async create(userId: string, dto: CreatePlannedExpenseDto) {
     await this.assertCategoryExists(dto.category_id);
+    await this.assertEventOwned(dto.event_id, userId);
 
     const plannedDate = new Date(dto.planned_date);
     const plannedDateEnd = parseOptionalIsoDate(dto.planned_date_end);
@@ -222,6 +238,7 @@ export class PlannedExpenseService {
         planned_date_end: plannedDateEnd,
         category_id: dto.category_id ?? null,
         ...savingsSplit,
+        event_id: dto.event_id ?? null,
         budget_month_id: budgetMonthId,
       },
     });
@@ -294,6 +311,7 @@ export class PlannedExpenseService {
     if (dto.category_id !== undefined) {
       await this.assertCategoryExists(dto.category_id ?? undefined);
     }
+    await this.assertEventOwned(dto.event_id, userId);
 
     const amount =
       dto.amount !== undefined ? dto.amount : Number(before.amount.toString());
@@ -386,6 +404,7 @@ export class PlannedExpenseService {
         category_id:
           dto.category_id === undefined ? undefined : dto.category_id,
         ...savingsSplit,
+        event_id: dto.event_id === undefined ? undefined : dto.event_id,
         budget_month_id: periodChanged ? budgetMonthId : undefined,
       },
     });

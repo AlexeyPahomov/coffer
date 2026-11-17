@@ -195,11 +195,28 @@ model PlannedExpense {
   /** Перевод доли из накоплений, созданный при проведении плана. */
   completed_transfer_id String?             @unique @db.Uuid
   completedTransfer    Transfer?            @relation(fields: [completed_transfer_id], references: [id], onDelete: SetNull)
+  /** Событие (поездка, праздник), объединяющее несколько планов. */
+  event_id             String?
+  event                PlannedEvent?        @relation(fields: [event_id], references: [id], onDelete: SetNull)
   created_at           DateTime             @default(now())
   updated_at           DateTime             @updatedAt
 
   @@index([user_id, budget_month_id])
+  @@index([event_id])
   @@index([budget_month_id, status])
+}
+
+model PlannedEvent {
+  id         String   @id @default(uuid())
+  user_id    String
+  title      String
+  icon_name  String   @default("gift")
+  icon_color String   @default("purple")
+  created_at DateTime @default(now())
+
+  plannedExpenses PlannedExpense[]
+
+  @@index([user_id])
 }
 
 model CategoryMonthSnapshot {

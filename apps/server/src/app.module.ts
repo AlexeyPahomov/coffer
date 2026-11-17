@@ -6,6 +6,7 @@ import { AllocationModule } from './allocation/allocation.module';
 import { CategoryModule } from './category/category.module';
 import { ExpenseModule } from './expense/expense.module';
 import { PlannedExpenseModule } from './planned-expense/planned-expense.module';
+import { PlannedEventModule } from './planned-event/planned-event.module';
 import { PlanningModule } from './planning/planning.module';
 import { BudgetModule } from './budget/budget.module';
 import { AllocationRuleModule } from './allocation-rule/allocation-rule.module';
@@ -20,6 +21,7 @@ import { TransferModule } from './transfer/transfer.module';
     CategoryModule,
     ExpenseModule,
     PlannedExpenseModule,
+    PlannedEventModule,
     PlanningModule,
     BudgetModule,
     AllocationRuleModule,

@@ -21,6 +21,7 @@ describe('PlannedExpenseService — доля из накоплений', () => {
       update: AsyncMock;
     };
     expense: { create: AsyncMock; delete: AsyncMock };
+    plannedEvent: { findFirst: AsyncMock };
   };
   let transferCreate: AsyncMock;
   let transferRemove: AsyncMock;
@@ -51,6 +52,7 @@ describe('PlannedExpenseService — доля из накоплений', () => {
         update: asyncMock(),
       },
       expense: { create: asyncMock(), delete: asyncMock() },
+      plannedEvent: { findFirst: asyncMock() },
     };
     prisma.category.findUnique.mockImplementation((args) => {
       const id = (args as { where: { id: string } }).where.id;
@@ -99,6 +101,27 @@ describe('PlannedExpenseService — доля из накоплений', () => {
         savings_amount: 30_000,
       }) as unknown,
     });
+  });
+
+  it('привязывает план к событию пользователя', async () => {
+    prisma.plannedEvent.findFirst.mockResolvedValue({ id: 'event-1' });
+
+    await service.create('user-1', { ...createDto, event_id: 'event-1' });
+
+    expect(prisma.plannedEvent.findFirst).toHaveBeenCalledWith({
+      where: { id: 'event-1', user_id: 'user-1' },
+    });
+    expect(prisma.plannedExpense.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ event_id: 'event-1' }) as unknown,
+    });
+  });
+
+  it('отклоняет чужое или несуществующее событие', async () => {
+    prisma.plannedEvent.findFirst.mockResolvedValue(null);
+
+    await expect(
+      service.create('user-1', { ...createDto, event_id: 'event-x' }),
+    ).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('отклоняет долю больше суммы плана', async () => {

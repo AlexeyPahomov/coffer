@@ -11,4 +11,5 @@ export class UpdatePlannedExpenseDto {
   category_id?: string | null;
   savings_category_id?: string | null;
   savings_amount?: number;
+  event_id?: string | null;
 }

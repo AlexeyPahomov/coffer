@@ -9,4 +9,5 @@ export class CreatePlannedExpenseDto {
   category_id?: string;
   savings_category_id?: string;
   savings_amount?: number;
+  event_id?: string;
 }
