@@ -17,6 +17,8 @@ export type PlanningSummaryProps = {
   onEditEvent: (event: PlannedEvent) => void
   onDeleteEvent: (id: string) => void
   pendingDeleteEventId?: string
+  isEventsLoading?: boolean
+  eventsError?: string | null
   className?: string
 }
 
@@ -30,6 +32,8 @@ export function PlanningSummary({
   onEditEvent,
   onDeleteEvent,
   pendingDeleteEventId,
+  isEventsLoading,
+  eventsError,
   className,
 }: PlanningSummaryProps) {
   return (
@@ -70,6 +74,8 @@ export function PlanningSummary({
             onEditEvent={onEditEvent}
             onDeleteEvent={onDeleteEvent}
             pendingDeleteEventId={pendingDeleteEventId}
+            isLoading={isEventsLoading}
+            error={eventsError}
           />
         </section>
         <section className={cardClassName}>

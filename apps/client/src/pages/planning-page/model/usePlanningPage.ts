@@ -43,6 +43,7 @@ import {
   filterPlannedExpensesByPeriodMonth,
 } from '@/entities/planned-expense/lib/groupPlannedExpensesByPeriodMonth'
 import { currentMonthInputValue } from '@/shared/lib/date'
+import { getErrorMessage } from '@/shared/lib/errors'
 
 import { buildPlanningForecast } from '../lib/buildPlanningForecast'
 import { buildForecastHorizonMonths } from '../lib/buildForecastHorizonMonths'
@@ -380,6 +381,12 @@ export function usePlanningPage() {
     pendingDeleteEventId: deleteEventMutation.isPending
       ? deleteEventMutation.variables
       : undefined,
+    isEventsLoading: eventsQuery.isPending,
+    eventsError: eventsQuery.isError
+      ? getErrorMessage(eventsQuery.error, 'Не удалось загрузить события')
+      : deleteEventMutation.isError
+        ? getErrorMessage(deleteEventMutation.error, 'Не удалось удалить событие')
+        : null,
     setTabsCarouselApi,
     activeTabId,
     selectTabSlide,

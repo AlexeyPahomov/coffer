@@ -138,6 +138,8 @@ export function PlanningPageMonthBody({
       onEditEvent={onEditEvent}
       onDeleteEvent={page.deleteEvent}
       pendingDeleteEventId={page.pendingDeleteEventId}
+      isEventsLoading={page.isEventsLoading}
+      eventsError={page.eventsError}
     />
   )
 
