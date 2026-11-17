@@ -1,4 +1,7 @@
-export { PlanningOutcomeForecast } from './ui/PlanningOutcomeForecast'
+export {
+  OutcomeHorizonSelector,
+  PlanningOutcomeForecast,
+} from './ui/PlanningOutcomeForecast'
 export type { PlanningOutcomeForecastProps } from './ui/PlanningOutcomeForecast'
 export {
   DEFAULT_OUTCOME_HORIZON_DESKTOP,

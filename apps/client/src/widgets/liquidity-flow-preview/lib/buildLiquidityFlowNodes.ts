@@ -6,10 +6,6 @@ import {
   type LiquidityFlowNodeKind,
 } from './liquidityFlowLayout'
 
-export type LiquidityFlowNodeData = LiquidityFlowNodeConfig & {
-  amount: number
-}
-
 export type LiquidityFlowRailNodeKind = Exclude<
   LiquidityFlowNodeKind,
   'income' | 'envelopeAllocation'
@@ -34,19 +30,6 @@ function liquidityFlowAmounts(
   }
 }
 
-function resolveFlowNodeKinds(
-  amounts: Record<LiquidityFlowNodeKind, number>,
-): LiquidityFlowNodeKind[] {
-  const kinds: LiquidityFlowNodeKind[] = ['income']
-
-  if (amounts.envelopeAllocation > 0) {
-    kinds.push('envelopeAllocation')
-  }
-
-  kinds.push('pool', 'planned', 'reserved', 'forecast')
-  return kinds
-}
-
 function buildNodes<K extends LiquidityFlowNodeKind>(
   kinds: readonly K[],
   amounts: Record<LiquidityFlowNodeKind, number>,
@@ -59,14 +42,6 @@ function buildNodes<K extends LiquidityFlowNodeKind>(
       amount: amounts[kind],
     }
   })
-}
-
-export function buildLiquidityFlowNodes(
-  projection: MonthBudgetProjection,
-  expectedIncomeTotal = 0,
-): LiquidityFlowNodeData[] {
-  const amounts = liquidityFlowAmounts(projection, expectedIncomeTotal)
-  return buildNodes(resolveFlowNodeKinds(amounts), amounts)
 }
 
 export function buildLiquidityFlowRailNodes(

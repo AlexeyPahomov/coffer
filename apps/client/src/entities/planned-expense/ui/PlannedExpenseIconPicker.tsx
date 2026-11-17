@@ -10,7 +10,7 @@ import { createElement } from 'react'
 import {
   getPlannedExpenseLucideIcon,
   resolvePlannedExpenseIconKey,
-} from '@/entities/planned-expense/lib/plannedExpenseIcons'
+} from '../lib/plannedExpenseIcons'
 import { buildIconColorPickerOptions } from '@/shared/lib/iconColorPicker'
 import { IconPicker } from '@/shared/ui'
 

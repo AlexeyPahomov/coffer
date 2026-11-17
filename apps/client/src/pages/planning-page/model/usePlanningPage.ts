@@ -3,13 +3,11 @@ import { getNextPeriodMonth } from '@coffer/shared'
 import type { ForecastMonth, MonthBudgetProjection } from '@/processes/forecasting'
 
 import { formatPlanningPeriodLabel } from '@/entities/budget'
-import { useBudgetLedgerEventsQuery } from '@/entities/budget/model/useBudgetLedgerEventsQuery'
 import { usePrefetchBudgetMonth } from '@/entities/budget-month/api/usePrefetchBudgetMonth'
 import {
   usePeriodLedgerSummaryQuery,
   usePrefetchPeriodLedgerSummary,
 } from '@/entities/period-ledger-summary'
-import { resolveEnvelopeForecastInputs } from '@/entities/budget/lib/resolveEnvelopeForecastInputs'
 import { filterExpenseCategories } from '@/entities/category/lib/filterExpenseCategories'
 import { isSavingsCategory } from '@/entities/category/lib/categoryKind'
 import { buildProjectedIncomes } from '@/entities/income/lib/projectRecurringIncome'
@@ -23,12 +21,18 @@ import {
   type PlanningOutcome,
 } from '@/widgets/planning-outcome-forecast'
 import {
+  buildPlanningSummary,
+  DEFAULT_SUMMARY_HORIZON,
+} from '@/widgets/planning-summary'
+import {
   fullReserveMutationArgs,
   unreservePlannedExpenseMutationArgs,
 } from '@/entities/planned-expense/lib/fullReserveMutationArgs'
 import { sumEnvelopeCommitments } from '@/entities/planned-expense/lib/plannedExpenseCommitmentRows'
 import { useAllocationRulesQuery } from '@/entities/allocation-rule/api/useAllocationRulesQuery'
 import { usePlannedExpensesQuery } from '@/entities/planned-expense/api/usePlannedExpensesQuery'
+import { useDeletePlannedEventMutation } from '@/entities/planned-event/api/useDeletePlannedEventMutation'
+import { usePlannedEventsQuery } from '@/entities/planned-event/api/usePlannedEventsQuery'
 import { useDeletePlannedExpenseMutation } from '@/entities/planned-expense/api/useDeletePlannedExpenseMutation'
 import { usePlannedExpenseStatusMutation } from '@/entities/planned-expense/api/usePlannedExpenseStatusMutation'
 import { useUnfinishPlannedExpenseMutation } from '@/entities/planned-expense/api/useUnfinishPlannedExpenseMutation'
@@ -41,7 +45,6 @@ import {
 import { currentMonthInputValue } from '@/shared/lib/date'
 
 import { buildPlanningForecast } from '../lib/buildPlanningForecast'
-import { buildEnvelopeForecastChain } from '../lib/buildEnvelopeForecast'
 import { buildForecastHorizonMonths } from '../lib/buildForecastHorizonMonths'
 import {
   buildForecastLeadInMonths,
@@ -55,6 +58,7 @@ import { PLANNING_TABS } from '../lib/planningTabs'
 import { usePlanningPeriodBudget } from './usePlanningPeriodBudget'
 
 const EMPTY_PLANNED_EXPENSES: readonly [] = []
+const EMPTY_EVENTS: readonly [] = []
 
 function forecastMonthToProjection(
   month: ForecastMonth,
@@ -75,6 +79,9 @@ export function usePlanningPage() {
   const isMobile = useIsMobile()
   const [pickedOutcomeHorizon, setOutcomeHorizon] =
     useState<OutcomeHorizon | null>(null)
+  const [summaryHorizon, setSummaryHorizon] = useState<OutcomeHorizon>(
+    DEFAULT_SUMMARY_HORIZON,
+  )
   const outcomeHorizon =
     pickedOutcomeHorizon ??
     (isMobile ? DEFAULT_OUTCOME_HORIZON_MOBILE : DEFAULT_OUTCOME_HORIZON_DESKTOP)
@@ -95,12 +102,13 @@ export function usePlanningPage() {
   usePrefetchPeriodLedgerSummary(
     nextPeriodMonth && getNextPeriodMonth(nextPeriodMonth),
   )
-  const ledgerEvents = useBudgetLedgerEventsQuery(true)
   const plannedQuery = usePlannedExpensesQuery()
   const allocationRulesQuery = useAllocationRulesQuery()
   const statusMutation = usePlannedExpenseStatusMutation()
   const deletePlanMutation = useDeletePlannedExpenseMutation()
   const unfinishMutation = useUnfinishPlannedExpenseMutation()
+  const eventsQuery = usePlannedEventsQuery()
+  const deleteEventMutation = useDeletePlannedEventMutation()
 
   const allPlanned = plannedQuery.data ?? EMPTY_PLANNED_EXPENSES
 
@@ -114,7 +122,7 @@ export function usePlanningPage() {
     [periodPlanned],
   )
 
-  const { core, periodBudget, budgetCycle, isBudgetLoading, isBudgetError } =
+  const { core, periodBudget, isBudgetLoading, isBudgetError } =
     usePlanningPeriodBudget(periodMonth, periodPlanned)
 
   const operationalSummary = periodBudget.operationalSummary
@@ -235,53 +243,6 @@ export function usePlanningPage() {
     () => filterExpenseCategories(core.categories),
     [core.categories],
   )
-  const envelopeForecastInputs = useMemo(
-    () =>
-      resolveEnvelopeForecastInputs({
-        periodMonth,
-        forecastMonths,
-        categories: core.categories,
-        allocations: ledgerEvents.allocations,
-        expenses: ledgerEvents.expenses,
-        incomes: core.incomes,
-        periodBudgetItems: periodBudget.allBudgetItems,
-        budgetCycle,
-      }),
-    [
-      budgetCycle,
-      ledgerEvents.allocations,
-      core.categories,
-      ledgerEvents.expenses,
-      core.incomes,
-      forecastMonths,
-      periodBudget.allBudgetItems,
-      periodMonth,
-    ],
-  )
-  const envelopeForecast = useMemo(
-    () =>
-      buildEnvelopeForecastChain({
-        months: envelopeForecastInputs.months,
-        selectedPeriodMonth: periodMonth,
-        incomes: projectedIncomes,
-        rules: allocationRulesQuery.data ?? [],
-        initialBudgetItems: envelopeForecastInputs.initialBudgetItems,
-        // Цепочка конвертов стартует с месяца якоря — и накопления от его факта.
-        savingsReserveBalance: anchorInReserve,
-        plannedExpenses: allPlanned,
-        expenseCategories,
-      }),
-    [
-      allPlanned,
-      allocationRulesQuery.data,
-      anchorInReserve,
-      envelopeForecastInputs,
-      expenseCategories,
-      periodMonth,
-      projectedIncomes,
-    ],
-  )
-
   const savingsCategories = useMemo(
     () => core.categories.filter((category) => isSavingsCategory(category.type)),
     [core.categories],
@@ -326,52 +287,84 @@ export function usePlanningPage() {
     ],
   )
 
-  const outcome = useMemo<PlanningOutcome>(() => {
-    const horizonMonths = buildForecastHorizonMonths(periodMonth, outcomeHorizon)
-    const rules = allocationRulesQuery.data ?? []
+  // «Прогноз» и «Сводка» — одна цепочка, но у каждой вкладки свой горизонт.
+  const buildOutcome = useCallback(
+    (horizon: OutcomeHorizon): PlanningOutcome => {
+      const horizonMonths = buildForecastHorizonMonths(periodMonth, horizon)
+      const rules = allocationRulesQuery.data ?? []
 
-    const outcomeForecast = buildPlanningForecast({
-      months: horizonMonths,
+      const outcomeForecast = buildPlanningForecast({
+        months: horizonMonths,
+        leadInMonths,
+        incomes: projectedIncomes,
+        plannedExpenses: allPlanned,
+        rules,
+        initialAvailable: anchorAvailable,
+      })
+      const savingsTrajectory = buildSavingsTrajectory({
+        months: horizonMonths,
+        leadInMonths,
+        incomes: projectedIncomes,
+        rules,
+        plannedExpenses: allPlanned,
+        savingsCategoryIds,
+        initialBalance: anchorInReserve,
+      })
+
+      const months = outcomeForecast.months.map((forecastMonthPoint, index) => ({
+        month: forecastMonthPoint.month,
+        label: formatPlanningPeriodLabel(forecastMonthPoint.month),
+        income: forecastMonthPoint.income,
+        projectedFree: forecastMonthPoint.projectedFree,
+        savingsBalance: savingsTrajectory[index]?.balance ?? 0,
+        deficit: forecastMonthPoint.deficit,
+      }))
+
+      return {
+        horizon,
+        hasDeficit: outcomeForecast.metadata.hasDeficit,
+        months,
+      }
+    },
+    [
+      allPlanned,
+      allocationRulesQuery.data,
+      anchorAvailable,
+      anchorInReserve,
       leadInMonths,
-      incomes: projectedIncomes,
-      plannedExpenses: allPlanned,
-      rules,
-      initialAvailable: anchorAvailable,
-    })
-    const savingsTrajectory = buildSavingsTrajectory({
-      months: horizonMonths,
-      leadInMonths,
-      incomes: projectedIncomes,
-      rules,
-      plannedExpenses: allPlanned,
+      periodMonth,
+      projectedIncomes,
       savingsCategoryIds,
-      initialBalance: anchorInReserve,
-    })
+    ],
+  )
+  const outcome = useMemo(
+    () => buildOutcome(outcomeHorizon),
+    [buildOutcome, outcomeHorizon],
+  )
+  const summaryOutcome = useMemo(
+    () => buildOutcome(summaryHorizon),
+    [buildOutcome, summaryHorizon],
+  )
 
-    const months = outcomeForecast.months.map((forecastMonthPoint, index) => ({
-      month: forecastMonthPoint.month,
-      label: formatPlanningPeriodLabel(forecastMonthPoint.month),
-      projectedFree: forecastMonthPoint.projectedFree,
-      savingsBalance: savingsTrajectory[index]?.balance ?? 0,
-      deficit: forecastMonthPoint.deficit,
-    }))
-
-    return {
-      horizon: outcomeHorizon,
-      hasDeficit: outcomeForecast.metadata.hasDeficit,
-      months,
-    }
-  }, [
-    allPlanned,
-    allocationRulesQuery.data,
-    anchorAvailable,
-    anchorInReserve,
-    leadInMonths,
-    outcomeHorizon,
-    periodMonth,
-    projectedIncomes,
-    savingsCategoryIds,
-  ])
+  const summary = useMemo(
+    () =>
+      buildPlanningSummary({
+        // Горизонт прогноза — «через N» (N + 1 месяц), сводка — ровно N, с текущим.
+        outcomeMonths: summaryOutcome.months.slice(0, summaryHorizon),
+        plannedExpenses: allPlanned,
+        events: eventsQuery.data ?? EMPTY_EVENTS,
+        savingsCategoryIds,
+        initialSavingsBalance: anchorInReserve,
+      }),
+    [
+      allPlanned,
+      anchorInReserve,
+      eventsQuery.data,
+      savingsCategoryIds,
+      summaryHorizon,
+      summaryOutcome.months,
+    ],
+  )
 
   return {
     periodMonth,
@@ -379,6 +372,14 @@ export function usePlanningPage() {
       setPickedPeriodMonth(nextPeriodMonth),
     outcome,
     setOutcomeHorizon,
+    summary,
+    summaryHorizon,
+    setSummaryHorizon,
+    events: eventsQuery.data ?? EMPTY_EVENTS,
+    deleteEvent: (id: string) => deleteEventMutation.mutate(id),
+    pendingDeleteEventId: deleteEventMutation.isPending
+      ? deleteEventMutation.variables
+      : undefined,
     setTabsCarouselApi,
     activeTabId,
     selectTabSlide,
@@ -395,7 +396,6 @@ export function usePlanningPage() {
     forecast,
     forecastMonth,
     forecastMetadata: forecast.metadata,
-    envelopeForecast,
     expectedIncomeTotal: forecastMonth?.income ?? 0,
     periodLabels,
     itemCounts,
@@ -432,7 +432,6 @@ export function usePlanningPage() {
         : undefined,
     isForecastLoading:
       isAnyBudgetLoading ||
-      ledgerEvents.isLedgerLoading ||
       (allocationRulesQuery.isPending &&
         allocationRulesQuery.data === undefined),
     isLoading:

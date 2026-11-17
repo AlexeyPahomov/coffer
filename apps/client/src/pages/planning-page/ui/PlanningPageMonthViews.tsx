@@ -1,3 +1,4 @@
+import type { PlannedEvent } from '@/entities/planned-event/model/types'
 import type { PlannedExpense } from '@/entities/planned-expense/model/types'
 import { PeriodLedgerSummaryError } from '@/entities/period-ledger-summary'
 import {
@@ -16,21 +17,25 @@ import {
   SectionLoader,
   SegmentedSwitcher,
 } from '@/shared/ui'
-import { MonthLiquidityFlow, PlanningMobileLiquidityHeader } from '@/widgets/liquidity-flow-preview'
+import { PlanningMobileLiquidityHeader } from '@/widgets/liquidity-flow-preview'
 import { PlanningMonthMetrics } from '@/widgets/planning-month-metrics'
-import { PlanningOutcomeForecast } from '@/widgets/planning-outcome-forecast'
+import {
+  OutcomeHorizonSelector,
+  PlanningOutcomeForecast,
+} from '@/widgets/planning-outcome-forecast'
+import { PlanningSummary } from '@/widgets/planning-summary'
 
 import { planningPageTabPanelScrollClassName } from '../lib/planningPageLayout'
 import { PLANNING_TABS } from '../lib/planningTabs'
 import type { usePlanningPage } from '../model/usePlanningPage'
 
-import { PlanningEnvelopeForecastSection } from './PlanningEnvelopeForecastSection'
 import { PlanningPagePlansSection } from './PlanningPagePlansSection'
 
 type PlanningPageMonthViewsProps = {
   page: ReturnType<typeof usePlanningPage>
   onEditPlanned: (item: PlannedExpense) => void
   onFinishPlanned: (item: PlannedExpense) => void
+  onEditEvent: (event: PlannedEvent) => void
 }
 
 export function PlanningPageMonthMobileHeader({
@@ -69,12 +74,8 @@ export function PlanningPageMonthBody({
   page,
   onEditPlanned,
   onFinishPlanned,
+  onEditEvent,
 }: PlanningPageMonthViewsProps) {
-  const liquidityFlowProps = {
-    projection: page.projection,
-    expectedIncomeTotal: page.expectedIncomeTotal,
-  }
-
   const plansPanel = (
     <div className="flex min-h-0 flex-col gap-4 md:gap-6">
       {page.isBudgetLoading ? (
@@ -120,36 +121,27 @@ export function PlanningPageMonthBody({
     />
   )
 
-  const overviewPanel = (
-    <div className="flex min-h-0 flex-col gap-4 md:gap-6">
-      {page.isBudgetLoading ? (
-        <SectionLoader
-          label="Загрузка ликвидности"
-          className="hidden md:flex"
+  const summaryPanel = page.isForecastLoading ? (
+    <SectionLoader label="Загрузка сводки планов" />
+  ) : page.isBudgetError ? (
+    <PeriodLedgerSummaryError message={page.budgetErrorMessage} />
+  ) : (
+    <PlanningSummary
+      summary={page.summary}
+      events={page.events}
+      horizonControl={
+        <OutcomeHorizonSelector
+          value={page.summaryHorizon}
+          onChange={page.setSummaryHorizon}
         />
-      ) : page.isBudgetError ? (
-        <PeriodLedgerSummaryError
-          className="hidden md:block"
-          message={page.budgetErrorMessage}
-        />
-      ) : (
-        <MonthLiquidityFlow className="hidden md:flex" {...liquidityFlowProps} />
-      )}
-
-      {page.isForecastLoading ? (
-        <SectionLoader label="Загрузка прогноза конвертов" />
-      ) : page.isBudgetError ? (
-        <PeriodLedgerSummaryError message={page.budgetErrorMessage} />
-      ) : (
-        <PlanningEnvelopeForecastSection
-          forecast={page.envelopeForecast}
-          isFuturePeriod={page.isFuturePeriod}
-        />
-      )}
-    </div>
+      }
+      onEditEvent={onEditEvent}
+      onDeleteEvent={page.deleteEvent}
+      pendingDeleteEventId={page.pendingDeleteEventId}
+    />
   )
 
-  const panels = [plansPanel, forecastPanel, overviewPanel]
+  const panels = [plansPanel, forecastPanel, summaryPanel]
 
   return (
     <div className={cn(carouselTabsRootClassName, 'md:grid-rows-[minmax(0,1fr)]')}>

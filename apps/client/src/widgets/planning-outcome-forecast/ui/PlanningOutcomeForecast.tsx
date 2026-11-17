@@ -14,7 +14,7 @@ export type PlanningOutcomeForecastProps = {
   className?: string
 }
 
-function HorizonSelector({
+export function OutcomeHorizonSelector({
   value,
   onChange,
 }: {
@@ -106,7 +106,7 @@ export function PlanningOutcomeForecast({
         <h3 className="text-sm font-semibold text-zinc-800">
           Прогноз по месяцам
         </h3>
-        <HorizonSelector value={outcome.horizon} onChange={onHorizonChange} />
+        <OutcomeHorizonSelector value={outcome.horizon} onChange={onHorizonChange} />
       </header>
 
       {outcome.hasDeficit ? (

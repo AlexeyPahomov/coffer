@@ -8,6 +8,8 @@ export const DEFAULT_OUTCOME_HORIZON_MOBILE: OutcomeHorizon = 6
 export type PlanningOutcomeMonth = {
   month: string
   label: string
+  /** Ожидаемый доход месяца (факт/EXPECTED или шаблон повторяющихся). */
+  income: number
   projectedFree: number
   savingsBalance: number
   /** Сумма дефицита свободного пула в этом месяце (0, если пул неотрицателен). */

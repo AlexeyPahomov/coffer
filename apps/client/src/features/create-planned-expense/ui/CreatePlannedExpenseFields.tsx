@@ -11,6 +11,9 @@ import {
 } from '@/shared/ui'
 import type { Category } from '@/entities/category/model/types'
 import { CategorySelect } from '@/entities/category/ui/CategorySelect'
+import { usePlannedEventsQuery } from '@/entities/planned-event/api/usePlannedEventsQuery'
+import { NEW_PLANNED_EVENT_VALUE } from '@/entities/planned-event/lib/plannedEventSelectValue'
+import { PlannedEventSelect } from '@/entities/planned-event/ui/PlannedEventSelect'
 import { formLabelClassName } from '@/shared/config/formUi'
 import { bindMoneyAmountField } from '@/shared/lib/moneyInput'
 import { cn } from '@/shared/lib/utils'
@@ -18,7 +21,7 @@ import { cn } from '@/shared/lib/utils'
 import { createPlannedExpenseInputChangeHandler } from '../lib/plannedExpenseFormFieldHandlers'
 import { resolvePlannedExpenseSavingsAmountError } from '../lib/plannedExpenseFormValues'
 import { PlannedExpenseFundsHint } from './PlannedExpenseFundsHint'
-import { PlannedExpenseIconPicker } from './PlannedExpenseIconPicker'
+import { PlannedExpenseIconPicker } from '@/entities/planned-expense/ui/PlannedExpenseIconPicker'
 import type {
   CreatePlannedExpenseFormValues,
   ResolvePlannedExpenseAvailableFunds,
@@ -66,6 +69,8 @@ export function CreatePlannedExpenseFields({
   )
   const savingsAmountError = resolvePlannedExpenseSavingsAmountError(values)
   const isFromSavings = Boolean(values.savings_category_id)
+  const eventsQuery = usePlannedEventsQuery()
+  const isNewEvent = values.event_id === NEW_PLANNED_EVENT_VALUE
 
   return (
     <>
@@ -100,6 +105,33 @@ export function CreatePlannedExpenseFields({
         }
         disabled={isPending}
       />
+      <div className="space-y-2">
+        <div className="flex items-start gap-1">
+          <label htmlFor="planned-expense-event" className={formLabelClassName}>
+            Событие
+          </label>
+          <InfoHint label="Событие">
+            Объединяет планы одной поездки или праздника: билеты, жильё,
+            аренду. В сводке событие показывается одной суммой.
+          </InfoHint>
+        </div>
+        <PlannedEventSelect
+          id="planned-expense-event"
+          value={values.event_id}
+          onValueChange={(value) => onChange('event_id', value)}
+          events={eventsQuery.data ?? []}
+          disabled={isPending}
+        />
+        {isNewEvent ? (
+          <Input
+            name="new_event_title"
+            placeholder="Название события (Греция, майские…)"
+            value={values.new_event_title}
+            disabled={isPending}
+            onChange={onFieldChange}
+          />
+        ) : null}
+      </div>
       <MoneyInput
         name="amount"
         placeholder="Сумма"

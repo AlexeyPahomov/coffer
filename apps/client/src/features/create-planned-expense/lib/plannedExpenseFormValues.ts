@@ -29,6 +29,8 @@ export function emptyPlannedExpenseFormValues(): CreatePlannedExpenseFormValues 
     category_id: '',
     savings_category_id: '',
     savings_amount: '',
+    event_id: '',
+    new_event_title: '',
   }
 }
 
@@ -49,6 +51,8 @@ export function plannedExpenseToFormValues(
     savings_category_id: item.savings_category_id ?? '',
     savings_amount:
       item.savings_amount > 0 ? moneyAmountToFormValue(item.savings_amount) : '',
+    event_id: item.event_id ?? '',
+    new_event_title: '',
   }
 }
 

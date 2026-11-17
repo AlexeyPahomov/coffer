@@ -62,7 +62,6 @@ export function usePlanningPeriodBudget(
   return {
     core,
     periodBudget,
-    budgetCycle: budgetCycleQuery.data,
     isBudgetLoading,
     isBudgetError,
   }

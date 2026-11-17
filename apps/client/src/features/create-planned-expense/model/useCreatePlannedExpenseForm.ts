@@ -1,6 +1,8 @@
 import { parseMoneyInput } from '@coffer/shared'
 import { useEffect, useState } from 'react'
 
+import { useCreatePlannedEventMutation } from '@/entities/planned-event/api/useCreatePlannedEventMutation'
+import { NEW_PLANNED_EVENT_VALUE } from '@/entities/planned-event/lib/plannedEventSelectValue'
 import { useCreatePlannedExpenseMutation } from '@/entities/planned-expense/api/useCreatePlannedExpenseMutation'
 import { useUpdatePlannedExpenseMutation } from '@/entities/planned-expense/api/useUpdatePlannedExpenseMutation'
 import type { PlannedExpense } from '@/entities/planned-expense/model/types'
@@ -31,6 +33,7 @@ export function useCreatePlannedExpenseForm(
 
   const createMutation = useCreatePlannedExpenseMutation()
   const updateMutation = useUpdatePlannedExpenseMutation()
+  const createEventMutation = useCreatePlannedEventMutation()
   const [values, setValues] = useState(() =>
     resolvePlannedExpenseFormValues(editingPlannedExpense),
   )
@@ -58,14 +61,18 @@ export function useCreatePlannedExpenseForm(
     values,
     parsedAmount,
   )
+  const isNewEvent = values.event_id === NEW_PLANNED_EVENT_VALUE
+  const isPending = activeMutation.isPending || createEventMutation.isPending
   const isSubmitDisabled =
-    activeMutation.isPending ||
+    isPending ||
+    (isNewEvent && !values.new_event_title.trim()) ||
     !values.title.trim() ||
     parsedAmount === null ||
     parsedSavingsAmount === null ||
     !values.planned_date.trim()
 
   const submit = async () => {
+    createEventMutation.reset()
     const amount = parseMoneyInput(values.amount)
     const savingsAmount = parsePlannedExpenseSavingsAmount(values, amount)
     if (
@@ -75,6 +82,22 @@ export function useCreatePlannedExpenseForm(
       !values.planned_date.trim()
     ) {
       return
+    }
+    if (isNewEvent && !values.new_event_title.trim()) {
+      return
+    }
+    let eventId = values.event_id
+    if (isNewEvent) {
+      // Новое событие наследует иконку плана — поправить можно в сводке.
+      eventId = (
+        await createEventMutation.mutateAsync({
+          title: values.new_event_title.trim(),
+          icon_name: values.icon_name,
+          icon_color: values.icon_color,
+        })
+      ).id
+      // Если план не сохранится, повторная отправка не создаст дубль события.
+      patchValues({ event_id: eventId, new_event_title: '' })
     }
     const dateFields = buildPlannedExpenseDatePayload(
       values.planned_date,
@@ -91,6 +114,7 @@ export function useCreatePlannedExpenseForm(
         category_id: values.category_id || null,
         savings_category_id: values.savings_category_id || null,
         savings_amount: savingsAmount,
+        event_id: eventId || null,
         ...buildPlannedExpenseDateUpdatePatch(
           dateFields.planned_date,
           values.planned_date_end,
@@ -112,6 +136,7 @@ export function useCreatePlannedExpenseForm(
         category_id: values.category_id || undefined,
         savings_category_id: values.savings_category_id || undefined,
         savings_amount: savingsAmount,
+        event_id: eventId || undefined,
         ...dateFields,
       })
       reset()
@@ -125,9 +150,9 @@ export function useCreatePlannedExpenseForm(
     handleChange,
     patchValues,
     submit,
-    isPending: activeMutation.isPending,
+    isPending,
     isSubmitDisabled,
-    error: activeMutation.error,
+    error: activeMutation.error ?? createEventMutation.error,
     isEditing,
   }
 }

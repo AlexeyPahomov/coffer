@@ -1,7 +1,9 @@
 import { useState } from 'react'
 
+import type { PlannedEvent } from '@/entities/planned-event/model/types'
 import type { PlannedExpense } from '@/entities/planned-expense/model/types'
 import { EditPlannedExpenseDialog } from '@/features/create-planned-expense/ui/EditPlannedExpenseDialog'
+import { EditPlannedEventDialog } from '@/features/edit-planned-event/ui/EditPlannedEventDialog'
 import { FinishPlannedExpenseDialog } from '@/features/finish-planned-expense/ui/FinishPlannedExpenseDialog'
 import { useDesktopPageSectionTitle } from '@/shared/hooks/use-desktop-page-section-title'
 import { useIsMobile } from '@/shared/hooks/use-mobile'
@@ -34,6 +36,7 @@ export function PlanningPage() {
   )
   const [finishingPlanned, setFinishingPlanned] =
     useState<PlannedExpense | null>(null)
+  const [editingEvent, setEditingEvent] = useState<PlannedEvent | null>(null)
 
   return (
     <PageSection
@@ -61,6 +64,7 @@ export function PlanningPage() {
               page={page}
               onEditPlanned={setEditingPlanned}
               onFinishPlanned={setFinishingPlanned}
+              onEditEvent={setEditingEvent}
             />
           </div>
         </PlanningPageMonthTransition>
@@ -88,6 +92,16 @@ export function PlanningPage() {
         }}
         item={finishingPlanned}
         categories={page.expenseCategories}
+      />
+
+      <EditPlannedEventDialog
+        open={editingEvent != null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setEditingEvent(null)
+          }
+        }}
+        event={editingEvent}
       />
     </PageSection>
   )

@@ -20,6 +20,8 @@ export type PlannedExpense = {
   /** Конверт накоплений, из которого берётся savings_amount (остальное — из category_id или пула). */
   savings_category_id: string | null
   savings_amount: number
+  /** Событие, к которому относится план. */
+  event_id: string | null
   budget_month_id: string
   /** Якорь планирования — `BudgetMonth` (YYYY-MM). */
   period_month: string
@@ -39,6 +41,7 @@ export type CreatePlannedExpensePayload = {
   category_id?: string
   savings_category_id?: string
   savings_amount?: number
+  event_id?: string
 }
 
 export type UpdatePlannedExpensePayload = {
@@ -54,6 +57,7 @@ export type UpdatePlannedExpensePayload = {
   category_id?: string | null
   savings_category_id?: string | null
   savings_amount?: number
+  event_id?: string | null
 }
 
 export type FinishPlannedExpensePayload = {

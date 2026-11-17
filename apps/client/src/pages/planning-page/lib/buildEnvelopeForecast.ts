@@ -1,5 +1,4 @@
 import type { AllocationRule } from '@/entities/allocation-rule/model/types'
-import type { CategoryBudgetItem } from '@/entities/budget/model/types'
 import type { Category } from '@/entities/category/model/types'
 import { isSavingsCategory } from '@/entities/category/lib/categoryKind'
 import type { Income } from '@/entities/income/model/types'
@@ -8,53 +7,6 @@ import type { PlannedExpense } from '@/entities/planned-expense/model/types'
 import { getIncomePeriodMonth } from '@/entities/income/lib/incomePeriodMonth'
 import { toMoneyNumber } from '@/shared/lib/money'
 import { sumPlannedCommitmentsByCategoryId } from '@coffer/planning-core'
-
-export type EnvelopeForecastItem = {
-  category: Category
-  currentRemaining: number
-  forecastAmount: number
-  /** Сумма планов с этой категорией за месяц. */
-  plannedAmount: number
-  projectedRemaining: number
-}
-
-export type EnvelopeForecastIncomeWarning = {
-  incomeId: string
-  ruleName: string
-  incomeAmount: number
-  rawRuleAmount: number
-}
-
-export type EnvelopeForecast = {
-  items: EnvelopeForecastItem[]
-  expectedIncomeCount: number
-  matchedIncomeCount: number
-  unmatchedIncomeCount: number
-  warnings: EnvelopeForecastIncomeWarning[]
-}
-
-type BuildEnvelopeForecastInput = {
-  periodMonth: string
-  incomes: readonly Income[]
-  rules: readonly AllocationRule[]
-  budgetItems: readonly CategoryBudgetItem[]
-}
-
-type BuildEnvelopeForecastChainInput = {
-  months: readonly string[]
-  selectedPeriodMonth: string
-  incomes: readonly Income[]
-  rules: readonly AllocationRule[]
-  initialBudgetItems: readonly CategoryBudgetItem[]
-  /**
-   * Остаток накоплений на начало первого месяца цепочки (все распределения − все траты).
-   * Дальше savings-конверт копится по цепочке: + аллокация − планы.
-   */
-  savingsReserveBalance?: number
-  plannedExpenses?: readonly PlannedExpense[]
-  /** Все категории расходов — для планов по конвертам без остатка. */
-  expenseCategories?: readonly Category[]
-}
 
 type CategoryForecastAmounts = Map<
   string,
@@ -144,43 +96,27 @@ function lineForecastAmount(
   return toMoneyNumber(line.amount ?? 0)
 }
 
-function emptyEnvelopeForecast(): EnvelopeForecast {
-  return {
-    items: [],
-    expectedIncomeCount: 0,
-    matchedIncomeCount: 0,
-    unmatchedIncomeCount: 0,
-    warnings: [],
-  }
-}
-
 function buildForecastAmountsForMonth({
   periodMonth,
   incomes,
   rules,
-}: Pick<
-  BuildEnvelopeForecastInput,
-  'periodMonth' | 'incomes' | 'rules'
->): Omit<EnvelopeForecast, 'items'> & {
-  forecastByCategoryId: CategoryForecastAmounts
-} {
+}: {
+  periodMonth: string
+  incomes: readonly Income[]
+  rules: readonly AllocationRule[]
+}): { forecastByCategoryId: CategoryForecastAmounts } {
   const forecastByCategoryId: CategoryForecastAmounts = new Map()
-  const warnings: EnvelopeForecastIncomeWarning[] = []
-  let expectedIncomeCount = 0
-  let matchedIncomeCount = 0
 
   for (const income of incomes) {
     if (!isExpectedIncomeInPeriod(income, periodMonth)) {
       continue
     }
 
-    expectedIncomeCount += 1
     const rule = pickAllocationRuleForIncome(income, rules)
     if (!rule) {
       continue
     }
 
-    matchedIncomeCount += 1
     const incomeAmount = toMoneyNumber(income.amount)
     const rawLines = rule.lines.map((line) => ({
       line,
@@ -191,15 +127,6 @@ function buildForecastAmountsForMonth({
       rawRuleAmount > incomeAmount && rawRuleAmount > 0
         ? incomeAmount / rawRuleAmount
         : 1
-
-    if (scale < 1) {
-      warnings.push({
-        incomeId: income.id,
-        ruleName: rule.name,
-        incomeAmount,
-        rawRuleAmount,
-      })
-    }
 
     for (const { line, amount } of rawLines) {
       const forecastAmount = amount * scale
@@ -215,13 +142,7 @@ function buildForecastAmountsForMonth({
     }
   }
 
-  return {
-    expectedIncomeCount,
-    matchedIncomeCount,
-    unmatchedIncomeCount: expectedIncomeCount - matchedIncomeCount,
-    warnings,
-    forecastByCategoryId,
-  }
+  return { forecastByCategoryId }
 }
 
 /** Сумма прогнозного распределения ожидаемых доходов по конвертам за месяц. */
@@ -259,105 +180,6 @@ export function sumSavingsAllocationForMonth(
     .reduce((sum, item) => sum + item.amount, 0)
 }
 
-function resolveEnvelopeRemaining(
-  item: CategoryBudgetItem,
-  savingsReserveBalance: number | undefined,
-): number {
-  if (
-    savingsReserveBalance != null &&
-    isSavingsCategory(item.category.type)
-  ) {
-    return savingsReserveBalance
-  }
-
-  return item.remaining
-}
-
-function buildEnvelopeForecastItems(
-  forecastByCategoryId: CategoryForecastAmounts,
-  getCurrentRemaining: (category: Category) => number,
-  plannedByCategoryId: Map<string, number>,
-  categoriesById: Map<string, Category>,
-): EnvelopeForecastItem[] {
-  const categoryIds = new Set([
-    ...forecastByCategoryId.keys(),
-    ...plannedByCategoryId.keys(),
-  ])
-
-  return [...categoryIds]
-    .map((categoryId) => {
-      const forecastEntry = forecastByCategoryId.get(categoryId)
-      const category =
-        forecastEntry?.category ?? categoriesById.get(categoryId)
-      if (!category) {
-        return null
-      }
-
-      const currentRemaining = getCurrentRemaining(category)
-      const forecastAmount = forecastEntry?.amount ?? 0
-      const plannedAmount = plannedByCategoryId.get(categoryId) ?? 0
-
-      // В следующий период переносится реальный остаток конверта.
-      // Расходный конверт: аллокация месяца считается потраченной (базовое
-      // потребление = аллокация, ADR 003), поэтому в перенос она НЕ копится.
-      // Планы конверта тратят эту же аллокацию, а не идут сверх неё: остаток
-      // уменьшает только превышение планов над аллокацией месяца.
-      // Savings-конверт копит аллокацию как накопление.
-      const projectedRemaining = isSavingsCategory(category.type)
-        ? currentRemaining + forecastAmount - plannedAmount
-        : currentRemaining - Math.max(0, plannedAmount - forecastAmount)
-
-      return {
-        category,
-        currentRemaining,
-        forecastAmount,
-        plannedAmount,
-        projectedRemaining,
-      }
-    })
-    .filter((item): item is EnvelopeForecastItem => item != null)
-    .sort((a, b) => {
-      const aIsSavings = isSavingsCategory(a.category.type)
-      const bIsSavings = isSavingsCategory(b.category.type)
-      if (aIsSavings !== bIsSavings) {
-        return aIsSavings ? 1 : -1
-      }
-      const aTotal = a.forecastAmount + a.plannedAmount
-      const bTotal = b.forecastAmount + b.plannedAmount
-      return bTotal - aTotal
-    })
-}
-
-function buildMonthEnvelopeForecast(
-  periodMonth: string,
-  incomes: readonly Income[],
-  rules: readonly AllocationRule[],
-  getCurrentRemaining: (category: Category) => number,
-  plannedByCategoryId: Map<string, number>,
-  categoriesById: Map<string, Category>,
-): EnvelopeForecast {
-  const {
-    forecastByCategoryId,
-    expectedIncomeCount,
-    matchedIncomeCount,
-    unmatchedIncomeCount,
-    warnings,
-  } = buildForecastAmountsForMonth({ periodMonth, incomes, rules })
-
-  return {
-    items: buildEnvelopeForecastItems(
-      forecastByCategoryId,
-      getCurrentRemaining,
-      plannedByCategoryId,
-      categoriesById,
-    ),
-    expectedIncomeCount,
-    matchedIncomeCount,
-    unmatchedIncomeCount,
-    warnings,
-  }
-}
-
 export function plannedCommitmentsForMonth(
   plannedExpenses: readonly PlannedExpense[],
   periodMonth: string,
@@ -371,85 +193,3 @@ export function plannedCommitmentsForMonth(
   )
 }
 
-export function buildEnvelopeForecast({
-  periodMonth,
-  incomes,
-  rules,
-  budgetItems,
-}: BuildEnvelopeForecastInput): EnvelopeForecast {
-  return buildEnvelopeForecastChain({
-    months: [periodMonth],
-    selectedPeriodMonth: periodMonth,
-    incomes,
-    rules,
-    initialBudgetItems: budgetItems,
-  })
-}
-
-export function buildEnvelopeForecastChain({
-  months,
-  selectedPeriodMonth,
-  incomes,
-  rules,
-  initialBudgetItems,
-  savingsReserveBalance,
-  plannedExpenses = [],
-  expenseCategories = [],
-}: BuildEnvelopeForecastChainInput): EnvelopeForecast {
-  if (months.length === 0 || !months.includes(selectedPeriodMonth)) {
-    return emptyEnvelopeForecast()
-  }
-
-  const categoriesById = new Map<string, Category>([
-    ...initialBudgetItems.map((item) => [item.category.id, item.category] as const),
-    ...expenseCategories.map((category) => [category.id, category] as const),
-  ])
-
-  const balanceByCategoryId = new Map<
-    string,
-    { category: Category; remaining: number }
-  >(
-    initialBudgetItems.map((item) => [
-      item.category.id,
-      {
-        category: item.category,
-        remaining: resolveEnvelopeRemaining(item, savingsReserveBalance),
-      },
-    ]),
-  )
-
-  let selectedForecast: EnvelopeForecast | null = null
-
-  for (const month of months) {
-    const plannedByCategoryId = plannedCommitmentsForMonth(
-      plannedExpenses,
-      month,
-    )
-    const monthForecast = buildMonthEnvelopeForecast(
-      month,
-      incomes,
-      rules,
-      // Savings-конверт без снапшота (новый) стартует с полного остатка накоплений.
-      (category) =>
-        balanceByCategoryId.get(category.id)?.remaining ??
-        (savingsReserveBalance != null && isSavingsCategory(category.type)
-          ? savingsReserveBalance
-          : 0),
-      plannedByCategoryId,
-      categoriesById,
-    )
-
-    for (const item of monthForecast.items) {
-      balanceByCategoryId.set(item.category.id, {
-        category: item.category,
-        remaining: item.projectedRemaining,
-      })
-    }
-
-    if (month === selectedPeriodMonth) {
-      selectedForecast = monthForecast
-    }
-  }
-
-  return selectedForecast ?? emptyEnvelopeForecast()
-}
