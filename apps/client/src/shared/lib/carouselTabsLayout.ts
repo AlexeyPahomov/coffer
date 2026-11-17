@@ -2,11 +2,15 @@ import type { CarouselOptions } from '@/shared/ui/carousel/carousel-context'
 
 import { cn } from '@/shared/lib/utils'
 
-/** Свайп-карусель вкладок: слайды одинаковой ширины, без «резинки» по краям. */
+/**
+ * Свайп-карусель вкладок: слайды одинаковой ширины, без «резинки» по краям.
+ * Тянем только пальцем: перетаскивание мышью мешало выделять текст на десктопе.
+ */
 export const carouselTabsOptions: CarouselOptions = {
   align: 'start',
   containScroll: 'trimSnaps',
   skipSnaps: false,
+  watchDrag: (_api, evt) => evt.type === 'touchstart',
 }
 
 /** Корень области: шапка вкладок (auto) + карусель (оставшаяся высота). */
