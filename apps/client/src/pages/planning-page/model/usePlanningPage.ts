@@ -343,7 +343,7 @@ export function usePlanningPage() {
   const summary = useMemo(
     () =>
       buildPlanningSummary({
-        outcomeMonths: outcomeChainMonths.slice(0, summaryHorizon),
+        outcomeMonths: outcomeChainMonths.slice(0, summaryHorizon + 1),
         plannedExpenses: allPlanned,
         events: eventsQuery.data ?? EMPTY_EVENTS,
         savingsCategoryIds,

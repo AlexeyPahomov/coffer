@@ -120,13 +120,15 @@ export function PlanningSummaryHeadline({
   summary: PlanningSummary
 }) {
   const facts = buildFacts(summary)
+  // Как в «Прогнозе»: текущий месяц + N следующих.
+  const nextMonthCount = Math.max(0, summary.months.length - 1)
 
   return (
     <div className="grid gap-5 md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] md:gap-8">
       <div className="min-w-0">
         <p className="text-sm text-zinc-500">
-          Запланировано на {summary.months.length}{' '}
-          {pluralRu(summary.months.length, 'месяц', 'месяца', 'месяцев')}
+          Запланировано на следующие {nextMonthCount}{' '}
+          {pluralRu(nextMonthCount, 'месяц', 'месяца', 'месяцев')}
         </p>
         <p className="mt-1 text-3xl font-semibold tracking-tight text-zinc-900 tabular-nums">
           {formatMoneyWithRub(summary.total)}
