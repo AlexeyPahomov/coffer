@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import type { Income } from '@/entities/income/model/types'
 import type { PlannedExpense } from '@/entities/planned-expense/model/types'
 
+import { buildForecastHorizonMonths } from './buildForecastHorizonMonths'
 import { buildPlanningForecast } from './buildPlanningForecast'
 
 function income(month: string, amount: string): Income {
@@ -83,6 +84,26 @@ describe('buildPlanningForecast', () => {
     })
 
     expect(fromJanuary.months[0]).toEqual(fromDecember.months[1])
+  })
+
+  it('короткий горизонт совпадает с началом длинного', () => {
+    const input = {
+      incomes,
+      plannedExpenses: [poolPlan('2026-12', 15000), poolPlan('2027-01', 40000)],
+      leadInMonths: ['2026-11'],
+      rules: [],
+      initialAvailable: 6000,
+    }
+    const short = buildPlanningForecast({
+      ...input,
+      months: buildForecastHorizonMonths('2026-12', 3),
+    })
+    const long = buildPlanningForecast({
+      ...input,
+      months: buildForecastHorizonMonths('2026-12', 12),
+    })
+
+    expect(long.months.slice(0, short.months.length)).toEqual(short.months)
   })
 
   it('план с долей из накоплений списывает из пула только остаток', () => {

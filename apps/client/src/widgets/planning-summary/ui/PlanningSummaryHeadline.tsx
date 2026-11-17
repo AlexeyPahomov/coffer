@@ -10,12 +10,12 @@ import type { ReactNode } from 'react'
 
 import { formatPeriodMonthGenitive } from '@/entities/budget/lib/periodLabels'
 import { formatMoneyWithRub } from '@/shared/lib/format'
+import { pluralRu } from '@/shared/lib/plural'
 import { cn } from '@/shared/lib/utils'
 
 import type { PlanningSummary } from '../lib/buildPlanningSummary'
 import {
   FUNDING_SOURCES,
-  pluralRu,
   sharePercent,
 } from '../lib/planningSummaryFormat'
 

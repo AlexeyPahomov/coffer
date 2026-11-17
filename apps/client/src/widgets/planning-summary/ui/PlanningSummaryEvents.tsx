@@ -8,6 +8,7 @@ import {
   formatDateRangeLabelWithoutYear,
 } from '@/shared/lib/date'
 import { formatMoneyWithRub } from '@/shared/lib/format'
+import { pluralRu } from '@/shared/lib/plural'
 import {
   Button,
   DropdownMenu,
@@ -19,7 +20,6 @@ import {
 import type { PlanningSummaryEvent } from '../lib/buildPlanningSummary'
 import {
   formatCompactAmount,
-  pluralRu,
   sharePercent,
 } from '../lib/planningSummaryFormat'
 

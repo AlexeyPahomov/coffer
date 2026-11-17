@@ -19,6 +19,7 @@ import {
   OUTCOME_HORIZONS,
   type OutcomeHorizon,
   type PlanningOutcome,
+  type PlanningOutcomeMonth,
 } from '@/widgets/planning-outcome-forecast'
 import {
   buildPlanningSummary,
@@ -286,70 +287,63 @@ export function usePlanningPage() {
     ],
   )
 
-  // «Прогноз» и «Сводка» — одна цепочка, но у каждой вкладки свой горизонт.
-  const buildOutcome = useCallback(
-    (horizon: OutcomeHorizon): PlanningOutcome => {
-      const horizonMonths = buildForecastHorizonMonths(periodMonth, horizon)
-      const rules = allocationRulesQuery.data ?? []
+  // «Прогноз» и «Сводка» — одна цепочка на больший из горизонтов, каждая
+  // вкладка берёт свой префикс: текущий месяц + N следующих.
+  const chainHorizon = Math.max(outcomeHorizon, summaryHorizon)
+  const outcomeChainMonths = useMemo((): PlanningOutcomeMonth[] => {
+    const horizonMonths = buildForecastHorizonMonths(periodMonth, chainHorizon)
+    const rules = allocationRulesQuery.data ?? []
 
-      const outcomeForecast = buildPlanningForecast({
-        months: horizonMonths,
-        leadInMonths,
-        incomes: projectedIncomes,
-        plannedExpenses: allPlanned,
-        rules,
-        initialAvailable: anchorAvailable,
-      })
-      const savingsTrajectory = buildSavingsTrajectory({
-        months: horizonMonths,
-        leadInMonths,
-        incomes: projectedIncomes,
-        rules,
-        plannedExpenses: allPlanned,
-        savingsCategoryIds,
-        initialBalance: anchorInReserve,
-      })
-
-      const months = outcomeForecast.months.map((forecastMonthPoint, index) => ({
-        month: forecastMonthPoint.month,
-        label: formatPlanningPeriodLabel(forecastMonthPoint.month),
-        income: forecastMonthPoint.income,
-        projectedFree: forecastMonthPoint.projectedFree,
-        savingsBalance: savingsTrajectory[index]?.balance ?? 0,
-        deficit: forecastMonthPoint.deficit,
-      }))
-
-      return {
-        horizon,
-        hasDeficit: outcomeForecast.metadata.hasDeficit,
-        months,
-      }
-    },
-    [
-      allPlanned,
-      allocationRulesQuery.data,
-      anchorAvailable,
-      anchorInReserve,
+    const outcomeForecast = buildPlanningForecast({
+      months: horizonMonths,
       leadInMonths,
-      periodMonth,
-      projectedIncomes,
+      incomes: projectedIncomes,
+      plannedExpenses: allPlanned,
+      rules,
+      initialAvailable: anchorAvailable,
+    })
+    const savingsTrajectory = buildSavingsTrajectory({
+      months: horizonMonths,
+      leadInMonths,
+      incomes: projectedIncomes,
+      rules,
+      plannedExpenses: allPlanned,
       savingsCategoryIds,
-    ],
-  )
-  const outcome = useMemo(
-    () => buildOutcome(outcomeHorizon),
-    [buildOutcome, outcomeHorizon],
-  )
-  const summaryOutcome = useMemo(
-    () => buildOutcome(summaryHorizon),
-    [buildOutcome, summaryHorizon],
-  )
+      initialBalance: anchorInReserve,
+    })
+
+    return outcomeForecast.months.map((forecastMonthPoint, index) => ({
+      month: forecastMonthPoint.month,
+      label: formatPlanningPeriodLabel(forecastMonthPoint.month),
+      income: forecastMonthPoint.income,
+      projectedFree: forecastMonthPoint.projectedFree,
+      savingsBalance: savingsTrajectory[index]?.balance ?? 0,
+      deficit: forecastMonthPoint.deficit,
+    }))
+  }, [
+    allPlanned,
+    allocationRulesQuery.data,
+    anchorAvailable,
+    anchorInReserve,
+    chainHorizon,
+    leadInMonths,
+    periodMonth,
+    projectedIncomes,
+    savingsCategoryIds,
+  ])
+  const outcome = useMemo((): PlanningOutcome => {
+    const months = outcomeChainMonths.slice(0, outcomeHorizon + 1)
+    return {
+      horizon: outcomeHorizon,
+      hasDeficit: months.some((month) => month.deficit > 0),
+      months,
+    }
+  }, [outcomeChainMonths, outcomeHorizon])
 
   const summary = useMemo(
     () =>
       buildPlanningSummary({
-        // Горизонт прогноза — «через N» (N + 1 месяц), сводка — ровно N, с текущим.
-        outcomeMonths: summaryOutcome.months.slice(0, summaryHorizon),
+        outcomeMonths: outcomeChainMonths.slice(0, summaryHorizon),
         plannedExpenses: allPlanned,
         events: eventsQuery.data ?? EMPTY_EVENTS,
         savingsCategoryIds,
@@ -360,8 +354,8 @@ export function usePlanningPage() {
       anchorInReserve,
       eventsQuery.data,
       savingsCategoryIds,
+      outcomeChainMonths,
       summaryHorizon,
-      summaryOutcome.months,
     ],
   )
 
