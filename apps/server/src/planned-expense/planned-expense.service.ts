@@ -13,6 +13,7 @@ import { awaitBudgetProjection } from '../lib/budget-projection';
 import { indexRelatedByIds } from '../lib/attach-relation';
 import { toMoneyNumber } from '../lib/money';
 import { withTransientDbRetry } from '../prisma/db-retry';
+import { PlannedEventService } from '../planned-event/planned-event.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { TransferService } from '../transfer/transfer.service';
 import { CreatePlannedExpenseDto } from './dto/create-planned-expense.dto';
@@ -38,6 +39,7 @@ export class PlannedExpenseService {
     private readonly budgetMonthService: BudgetMonthService,
     private readonly budgetProjector: BudgetProjectorService,
     private readonly transferService: TransferService,
+    private readonly plannedEventService: PlannedEventService,
   ) {}
 
   private parsePeriodOrThrow(periodMonth: string) {
@@ -57,21 +59,6 @@ export class PlannedExpenseService {
     });
     if (!category) {
       throw new BadRequestException('Category not found');
-    }
-  }
-
-  private async assertEventOwned(
-    eventId: string | null | undefined,
-    userId: string,
-  ) {
-    if (!eventId) {
-      return;
-    }
-    const event = await this.prisma.plannedEvent.findFirst({
-      where: { id: eventId, user_id: userId },
-    });
-    if (!event) {
-      throw new BadRequestException('Planned event not found');
     }
   }
 
@@ -212,7 +199,9 @@ export class PlannedExpenseService {
 
   async create(userId: string, dto: CreatePlannedExpenseDto) {
     await this.assertCategoryExists(dto.category_id);
-    await this.assertEventOwned(dto.event_id, userId);
+    if (dto.event_id) {
+      await this.plannedEventService.assertOwned(dto.event_id, userId);
+    }
 
     const plannedDate = new Date(dto.planned_date);
     const plannedDateEnd = parseOptionalIsoDate(dto.planned_date_end);
@@ -311,7 +300,9 @@ export class PlannedExpenseService {
     if (dto.category_id !== undefined) {
       await this.assertCategoryExists(dto.category_id ?? undefined);
     }
-    await this.assertEventOwned(dto.event_id, userId);
+    if (dto.event_id) {
+      await this.plannedEventService.assertOwned(dto.event_id, userId);
+    }
 
     const amount =
       dto.amount !== undefined ? dto.amount : Number(before.amount.toString());

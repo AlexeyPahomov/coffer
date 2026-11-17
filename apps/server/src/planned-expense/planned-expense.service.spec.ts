@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { BudgetMonthService } from '../budget/budget-month.service';
 import { BudgetProjectorService } from '../budget/budget-projector.service';
+import { PlannedEventService } from '../planned-event/planned-event.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { TransferService } from '../transfer/transfer.service';
 import { PlannedExpenseService } from './planned-expense.service';
@@ -73,6 +74,7 @@ describe('PlannedExpenseService — доля из накоплений', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         PlannedExpenseService,
+        PlannedEventService,
         { provide: PrismaService, useValue: prisma },
         {
           provide: BudgetMonthService,
@@ -121,7 +123,7 @@ describe('PlannedExpenseService — доля из накоплений', () => {
 
     await expect(
       service.create('user-1', { ...createDto, event_id: 'event-x' }),
-    ).rejects.toBeInstanceOf(BadRequestException);
+    ).rejects.toBeInstanceOf(NotFoundException);
   });
 
   it('отклоняет долю больше суммы плана', async () => {
