@@ -60,7 +60,7 @@ function MonthBar({
           </span>
         ) : null}
         <div
-          className="flex w-full max-w-8 flex-col-reverse gap-0.5 overflow-hidden rounded-t-md"
+          className="flex w-full max-w-8 flex-col-reverse gap-0.5 overflow-hidden rounded-t-md transition-[height] duration-300 ease-out motion-reduce:transition-none"
           style={{
             height:
               max > 0 ? (month.total / max) * (BAR_AREA_HEIGHT_PX - 20) : 0,
@@ -69,7 +69,7 @@ function MonthBar({
           {segments.map(({ key, className }) => (
             <span
               key={key}
-              className={className}
+              className={cn(className, 'transition-[flex-grow] duration-300 ease-out motion-reduce:transition-none')}
               style={{ flexGrow: month.sources[key] }}
             />
           ))}
@@ -109,7 +109,7 @@ export function PlanningSummaryTimeline({
 
   return (
     <div className="space-y-4">
-      <div className="-mx-1 overflow-x-auto">
+      <div className="-mx-1 overflow-x-auto" data-carousel-no-swipe>
         <div className="flex min-w-max gap-0.5 px-1 md:min-w-0">
           {summary.months.map((month) => (
             <MonthBar
@@ -125,7 +125,10 @@ export function PlanningSummaryTimeline({
       </div>
 
       {selected ? (
-        <div className="space-y-1 border-t border-zinc-100 pt-3">
+        <div
+          key={selected.month}
+          className="space-y-1 border-t border-zinc-100 pt-3 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-300"
+        >
           <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
             <h4 className="text-sm font-semibold text-zinc-800">
               {selected.label} ·{' '}

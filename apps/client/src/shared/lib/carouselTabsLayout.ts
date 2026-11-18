@@ -5,12 +5,16 @@ import { cn } from '@/shared/lib/utils'
 /**
  * Свайп-карусель вкладок: слайды одинаковой ширины, без «резинки» по краям.
  * Тянем только пальцем: перетаскивание мышью мешало выделять текст на десктопе.
+ * Внутри `[data-carousel-no-swipe]` (горизонтально прокручиваемые графики)
+ * свайп отдаём нативному скроллу, иначе вместе с графиком едет вкладка.
  */
 export const carouselTabsOptions: CarouselOptions = {
   align: 'start',
   containScroll: 'trimSnaps',
   skipSnaps: false,
-  watchDrag: (_api, evt) => evt.type === 'touchstart',
+  watchDrag: (_api, evt) =>
+    evt.type === 'touchstart' &&
+    !(evt.target as Element | null)?.closest('[data-carousel-no-swipe]'),
 }
 
 /** Корень области: шапка вкладок (auto) + карусель (оставшаяся высота). */

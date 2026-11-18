@@ -1,3 +1,5 @@
+import { useMemo } from 'react'
+
 import type { PlannedEvent } from '@/entities/planned-event/model/types'
 import type { PlannedExpense } from '@/entities/planned-expense/model/types'
 import { PeriodLedgerSummaryError } from '@/entities/period-ledger-summary'
@@ -123,6 +125,17 @@ export function PlanningPageMonthBody({
     />
   )
 
+  // Стабильный элемент, чтобы memo у PlanningSummary срабатывал.
+  const summaryHorizonControl = useMemo(
+    () => (
+      <OutcomeHorizonSelector
+        value={page.summaryHorizon}
+        onChange={page.setSummaryHorizon}
+      />
+    ),
+    [page.summaryHorizon, page.setSummaryHorizon],
+  )
+
   const summaryPanel = page.isForecastLoading ? (
     <SectionLoader label="Загрузка сводки планов" />
   ) : page.isBudgetError ? (
@@ -131,12 +144,7 @@ export function PlanningPageMonthBody({
     <PlanningSummary
       summary={page.summary}
       events={page.events}
-      horizonControl={
-        <OutcomeHorizonSelector
-          value={page.summaryHorizon}
-          onChange={page.setSummaryHorizon}
-        />
-      }
+      horizonControl={summaryHorizonControl}
       onEditEvent={onEditEvent}
       onDeleteEvent={onDeleteEvent}
       isEventsLoading={page.isEventsLoading}

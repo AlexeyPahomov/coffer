@@ -138,7 +138,7 @@ export function PlanningSummaryHeadline({
             ({ key, label, className }) => (
               <span
                 key={key}
-                className={className}
+                className={cn(className, 'transition-[flex-grow] duration-300 ease-out motion-reduce:transition-none')}
                 style={{ flexGrow: summary.sources[key] }}
                 title={label}
               />

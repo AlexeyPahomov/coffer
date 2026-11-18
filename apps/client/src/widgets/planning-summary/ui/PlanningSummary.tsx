@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { memo, type ReactNode } from 'react'
 
 import type { PlannedEvent } from '@/entities/planned-event/model/types'
 import { cn } from '@/shared/lib/utils'
@@ -24,7 +24,11 @@ export type PlanningSummaryProps = {
 const cardClassName =
   'space-y-4 rounded-2xl border border-zinc-200 bg-white p-4 sm:p-5'
 
-export function PlanningSummary({
+/**
+ * memo: смена вкладки перерисовывает всю страницу, а сводка — самая тяжёлая
+ * панель; без него свайп к «Сводке» начинается с лишнего рендера.
+ */
+export const PlanningSummary = memo(function PlanningSummary({
   summary,
   events,
   horizonControl,
@@ -75,7 +79,7 @@ export function PlanningSummary({
             error={eventsError}
           />
         </section>
-        <section className={cardClassName}>
+        <section className={cn(cardClassName, 'flex flex-col')}>
           <header className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
             <h3 className="text-sm font-semibold text-zinc-800">
               Накопления после планов
@@ -87,4 +91,4 @@ export function PlanningSummary({
       </div>
     </div>
   )
-}
+})
