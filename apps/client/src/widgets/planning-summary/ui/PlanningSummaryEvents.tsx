@@ -3,10 +3,7 @@ import { MoreVertical, Pencil, Trash2 } from 'lucide-react'
 import { formatPlanningPeriodLabel } from '@/entities/budget'
 import type { PlannedEvent } from '@/entities/planned-event/model/types'
 import { PlannedExpenseIconAvatar } from '@/entities/planned-expense/ui/PlannedExpenseIconAvatar'
-import {
-  currentMonthInputValue,
-  formatDateRangeLabelWithoutYear,
-} from '@/shared/lib/date'
+import { formatDateRangeLabelWithoutYear } from '@/shared/lib/date'
 import { formatMoneyWithRub } from '@/shared/lib/format'
 import { pluralRu } from '@/shared/lib/plural'
 import {
@@ -31,13 +28,9 @@ type PlanningSummaryEventsProps = {
   error?: string | null
 }
 
-/** «ноя», а для другого года — «ноя 27», чтобы не путать одноимённые месяцы. */
+/** «ноя» — краткое название месяца плана. */
 function formatPlanMonth(periodMonth: string): string {
-  const month = formatPlanningPeriodLabel(periodMonth).slice(0, 3).toLowerCase()
-  const year = periodMonth.slice(0, 4)
-  return year === currentMonthInputValue().slice(0, 4)
-    ? month
-    : `${month} ${year.slice(2)}`
+  return formatPlanningPeriodLabel(periodMonth).slice(0, 3).toLowerCase()
 }
 
 export function PlanningSummaryEvents({
@@ -107,7 +100,7 @@ export function PlanningSummaryEvents({
                     onSelect={() => onDeleteEvent(event)}
                   >
                     <Trash2 />
-                    Удалить событие
+                    Удалить
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
