@@ -21,11 +21,12 @@ describe('PlannedExpenseService — доля из накоплений', () => {
       findMany: AsyncMock;
       update: AsyncMock;
     };
-    expense: { create: AsyncMock; delete: AsyncMock };
+    expense: { create: AsyncMock; delete: AsyncMock; findFirst: AsyncMock };
     plannedEvent: { findFirst: AsyncMock };
   };
   let transferCreate: AsyncMock;
   let transferRemove: AsyncMock;
+  let onExpenseRemoved: AsyncMock;
 
   const budgetMonth = { id: 'bm-1', year: 2026, month: 7, status: 'OPEN' };
   const categories: Record<string, { id: string; type: string }> = {
@@ -52,7 +53,11 @@ describe('PlannedExpenseService — доля из накоплений', () => {
         findMany: asyncMock(),
         update: asyncMock(),
       },
-      expense: { create: asyncMock(), delete: asyncMock() },
+      expense: {
+        create: asyncMock(),
+        delete: asyncMock(),
+        findFirst: asyncMock(),
+      },
       plannedEvent: { findFirst: asyncMock() },
     };
     prisma.category.findUnique.mockImplementation((args) => {
@@ -70,6 +75,7 @@ describe('PlannedExpenseService — доля из накоплений', () => {
     transferCreate = asyncMock();
     transferCreate.mockResolvedValue({ id: 'transfer-1' });
     transferRemove = asyncMock();
+    onExpenseRemoved = asyncMock();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -82,7 +88,7 @@ describe('PlannedExpenseService — доля из накоплений', () => {
         },
         {
           provide: BudgetProjectorService,
-          useValue: { onExpenseCreated: asyncMock() },
+          useValue: { onExpenseCreated: asyncMock(), onExpenseRemoved },
         },
         {
           provide: TransferService,
@@ -265,6 +271,23 @@ describe('PlannedExpenseService — доля из накоплений', () => {
       where: { id: 'expense-1' },
     });
     expect(transferRemove).toHaveBeenCalledWith('transfer-1', 'user-1');
+  });
+
+  it('отмена проведения удаляет расход до проекции (каскад читает леджер из БД)', async () => {
+    const expense = { id: 'expense-1', category_id: 'trip' };
+    prisma.plannedExpense.findFirst.mockResolvedValue({
+      ...completedPlan,
+      completed_expense_id: 'expense-1',
+    });
+    prisma.expense.findFirst.mockResolvedValue(expense);
+    transferRemove.mockResolvedValue({ id: 'transfer-1' });
+
+    await service.unfinish('plan-1', 'user-1');
+
+    expect(onExpenseRemoved).toHaveBeenCalledWith(prisma, expense);
+    expect(prisma.expense.delete.mock.invocationCallOrder[0]).toBeLessThan(
+      onExpenseRemoved.mock.invocationCallOrder[0],
+    );
   });
 
   it('расход в сам конверт накоплений проводится без перевода', async () => {

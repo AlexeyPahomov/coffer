@@ -11,6 +11,7 @@ describe('BudgetProjectorService', () => {
   type AsyncMock = jest.Mock<(...args: unknown[]) => Promise<unknown>>;
   let projector: BudgetProjectorService;
   let requireOpenMonth: AsyncMock;
+  let rebuildFrom: AsyncMock;
   let snapshot: { findUnique: AsyncMock; update: AsyncMock; create: AsyncMock };
   let budgetMonth: { findUnique: AsyncMock };
   let db: {
@@ -32,6 +33,7 @@ describe('BudgetProjectorService', () => {
 
   beforeEach(() => {
     requireOpenMonth = jest.fn<(...args: unknown[]) => Promise<unknown>>();
+    rebuildFrom = jest.fn<(...args: unknown[]) => Promise<unknown>>();
     snapshot = {
       findUnique: jest.fn<(...args: unknown[]) => Promise<unknown>>(),
       update: jest.fn<(...args: unknown[]) => Promise<unknown>>(),
@@ -44,6 +46,7 @@ describe('BudgetProjectorService', () => {
 
     projector = new BudgetProjectorService({
       requireOpenMonth,
+      rebuildFrom,
     } as never);
   });
 
@@ -279,6 +282,61 @@ describe('BudgetProjectorService', () => {
         closing_balance: -1_000,
         version: { increment: 1 },
       },
+    });
+  });
+
+  // Регрессия: дельта в ноябре оставляла входящий остаток декабря устаревшим.
+  describe('carry-over cascade', () => {
+    beforeEach(() => {
+      requireOpenMonth.mockResolvedValue({ id: 'bm-1' });
+      snapshot.findUnique.mockResolvedValue(snapshotState({ id: 'snap-1' }));
+    });
+
+    it('onExpenseCreated rebuilds the chain from the next month', async () => {
+      await projector.onExpenseCreated(db as never, expense);
+
+      expect(rebuildFrom).toHaveBeenCalledTimes(1);
+      expect(rebuildFrom).toHaveBeenCalledWith('user-1', '2026-07');
+    });
+
+    it('onExpenseRemoved rebuilds the chain from the next month', async () => {
+      budgetMonth.findUnique.mockResolvedValue({ id: 'bm-1', status: 'OPEN' });
+
+      await projector.onExpenseRemoved(db as never, expense);
+
+      expect(rebuildFrom).toHaveBeenCalledWith('user-1', '2026-07');
+    });
+
+    it('onExpenseUpdated rebuilds once from the month after the earlier date', async () => {
+      budgetMonth.findUnique.mockResolvedValue({ id: 'bm-1', status: 'OPEN' });
+
+      await projector.onExpenseUpdated(db as never, expense, {
+        ...expense,
+        date: new Date('2026-04-10T00:00:00.000Z'),
+      });
+
+      expect(rebuildFrom).toHaveBeenCalledTimes(1);
+      expect(rebuildFrom).toHaveBeenCalledWith('user-1', '2026-05');
+    });
+
+    it('onAllocationCreated rebuilds the chain across the year boundary', async () => {
+      await projector.onAllocationCreated(db as never, {
+        user_id: 'user-1',
+        category_id: 'food',
+        amount: { toString: () => '68000' },
+        period_month: new Date('2026-12-01T00:00:00.000Z'),
+      });
+
+      expect(rebuildFrom).toHaveBeenCalledWith('user-1', '2027-01');
+    });
+
+    it('onTransferCreated to the free pool still rebuilds the chain', async () => {
+      await projector.onTransferCreated(db as never, {
+        ...transfer,
+        to_category_id: null,
+      });
+
+      expect(rebuildFrom).toHaveBeenCalledWith('user-1', '2026-07');
     });
   });
 });

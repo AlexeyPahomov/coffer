@@ -52,6 +52,8 @@ describe('ExpenseService.remove — расход проведённого пла
   it('возвращает перевод из накоплений и план в резерв', async () => {
     const transferRemove = jest.fn(() => Promise.resolve({}));
     const planUpdate = jest.fn(() => Promise.resolve({}));
+    const expenseDelete = jest.fn(() => Promise.resolve({}));
+    const onExpenseRemoved = jest.fn(() => Promise.resolve());
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ExpenseService,
@@ -62,7 +64,7 @@ describe('ExpenseService.remove — расход проведённого пла
               findFirst: jest.fn(() =>
                 Promise.resolve({ id: 'expense-1', category_id: 'trip' }),
               ),
-              delete: jest.fn(() => Promise.resolve({})),
+              delete: expenseDelete,
             },
             plannedExpense: {
               findFirst: jest.fn(() =>
@@ -79,7 +81,7 @@ describe('ExpenseService.remove — расход проведённого пла
         { provide: BudgetMonthService, useValue: {} },
         {
           provide: BudgetProjectorService,
-          useValue: { onExpenseRemoved: jest.fn(() => Promise.resolve()) },
+          useValue: { onExpenseRemoved },
         },
         { provide: TransferService, useValue: { remove: transferRemove } },
       ],
@@ -95,5 +97,9 @@ describe('ExpenseService.remove — расход проведённого пла
         completed_transfer_id: null,
       }) as unknown,
     });
+    // Проекция каскадно пересобирает леджер из БД — строка уже должна быть удалена.
+    expect(expenseDelete.mock.invocationCallOrder[0]).toBeLessThan(
+      onExpenseRemoved.mock.invocationCallOrder[0],
+    );
   });
 });

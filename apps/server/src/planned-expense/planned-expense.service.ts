@@ -581,13 +581,14 @@ export class PlannedExpenseService {
     const plannedExpense = await this.revertPlanToReserved(id, plan.amount);
 
     if (expense) {
+      // Сначала удаляем: каскадный rebuild читает леджер из БД.
+      await this.prisma.expense.delete({ where: { id: expense.id } });
+
       await awaitBudgetProjection(
         this.logger,
         'planned expense unfinish',
         this.budgetProjector.onExpenseRemoved(this.prisma, expense),
       );
-
-      await this.prisma.expense.delete({ where: { id: expense.id } });
     }
 
     return plannedExpense;

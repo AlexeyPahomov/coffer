@@ -222,12 +222,13 @@ export class ExpenseService {
       });
     }
 
+    // Сначала удаляем: каскадный rebuild читает леджер из БД.
+    await this.prisma.expense.delete({ where: { id } });
+
     await awaitBudgetProjection(
       this.logger,
       'remove',
       this.budgetProjector.onExpenseRemoved(this.prisma, expense),
     );
-
-    await this.prisma.expense.delete({ where: { id } });
   }
 }

@@ -30,6 +30,8 @@ describe('BudgetMonthService', () => {
   };
   let rebuildService: {
     computeForPeriod: AsyncMock;
+    loadRebuildInputs: AsyncMock;
+    computeFromInputs: jest.Mock;
   };
   let tx: {
     monthCloseReport: { deleteMany: jest.Mock; create: jest.Mock };
@@ -66,6 +68,8 @@ describe('BudgetMonthService', () => {
     );
     rebuildService = {
       computeForPeriod: jest.fn<(...args: unknown[]) => Promise<unknown>>(),
+      loadRebuildInputs: jest.fn<(...args: unknown[]) => Promise<unknown>>(),
+      computeFromInputs: jest.fn(),
     };
 
     service = new BudgetMonthService(prisma as never, rebuildService as never);
@@ -155,8 +159,10 @@ describe('BudgetMonthService', () => {
         { id: 'bm-6', year: 2026, month: 6 },
         { id: 'bm-7', year: 2026, month: 7 },
       ]);
-      rebuildService.computeForPeriod
-        .mockResolvedValueOnce([
+      const inputs = { categories: [] };
+      rebuildService.loadRebuildInputs.mockResolvedValue(inputs);
+      rebuildService.computeFromInputs
+        .mockReturnValueOnce([
           {
             categoryId: 'food',
             openingBalance: 0,
@@ -165,18 +171,20 @@ describe('BudgetMonthService', () => {
             closingBalance: 15_000,
           },
         ])
-        .mockResolvedValueOnce([]); // июль: пусто → createMany не вызывается
+        .mockReturnValueOnce([]); // июль: пусто → createMany не вызывается
 
       await service.rebuildFrom('user-1', '2026-06');
 
-      expect(rebuildService.computeForPeriod).toHaveBeenNthCalledWith(
+      // Леджер грузится один раз на всю цепочку месяцев.
+      expect(rebuildService.loadRebuildInputs).toHaveBeenCalledTimes(1);
+      expect(rebuildService.computeFromInputs).toHaveBeenNthCalledWith(
         1,
-        'user-1',
+        inputs,
         '2026-06',
       );
-      expect(rebuildService.computeForPeriod).toHaveBeenNthCalledWith(
+      expect(rebuildService.computeFromInputs).toHaveBeenNthCalledWith(
         2,
-        'user-1',
+        inputs,
         '2026-07',
       );
       expect(prisma.categoryMonthSnapshot.deleteMany).toHaveBeenCalledWith({

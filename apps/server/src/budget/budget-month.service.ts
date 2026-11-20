@@ -617,12 +617,16 @@ export class BudgetMonthService {
       orderBy: [{ year: 'asc' }, { month: 'asc' }],
     });
 
+    if (openMonths.length === 0) {
+      return;
+    }
+
+    // Леджер грузим один раз на всю цепочку: rebuild идёт после каждой мутации события.
+    const inputs = await this.rebuildService.loadRebuildInputs(userId);
+
     for (const monthRow of openMonths) {
       const period = `${monthRow.year}-${String(monthRow.month).padStart(2, '0')}`;
-      const rebuilt = await this.rebuildService.computeForPeriod(
-        userId,
-        period,
-      );
+      const rebuilt = this.rebuildService.computeFromInputs(inputs, period);
 
       await this.prisma.categoryMonthSnapshot.deleteMany({
         where: { budget_month_id: monthRow.id },

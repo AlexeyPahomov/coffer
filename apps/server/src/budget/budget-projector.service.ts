@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import {
   computeClosing,
+  getNextPeriodMonth,
   monthValueFromDate,
   parsePeriodMonthKey,
 } from '@coffer/shared';
@@ -98,7 +99,34 @@ export class BudgetProjectorService {
     return created.id;
   }
 
+  /**
+   * Входящие остатки следующих месяцев зависят от closing месяца события, а
+   * дельта правит только его. Поэтому цепочку с N+1 пересобираем из событий.
+   */
+  private async rebuildAfter(userId: string, periodMonth: string) {
+    const next = getNextPeriodMonth(periodMonth);
+    if (next) {
+      await this.budgetMonthService.rebuildFrom(userId, next);
+    }
+  }
+
   async onExpenseCreated(
+    db: BudgetDbClient,
+    expense: {
+      user_id: string;
+      category_id: string;
+      amount: { toString(): string };
+      date: Date;
+    },
+  ): Promise<void> {
+    await this.projectExpenseCreated(db, expense);
+    await this.rebuildAfter(
+      expense.user_id,
+      this.periodFromExpenseDate(expense.date),
+    );
+  }
+
+  private async projectExpenseCreated(
     db: BudgetDbClient,
     expense: {
       user_id: string;
@@ -136,16 +164,39 @@ export class BudgetProjectorService {
       date: Date;
     },
   ): Promise<void> {
-    await this.onExpenseRemoved(db, before);
-    await this.onExpenseCreated(db, {
+    await this.projectExpenseRemoved(db, before);
+    await this.projectExpenseCreated(db, {
       user_id: before.user_id,
       category_id: after.category_id,
       amount: after.amount,
       date: after.date,
     });
+    // Каскад от более раннего месяца покрывает оба (rebuildFrom идёт вперёд).
+    const beforeMonth = this.periodFromExpenseDate(before.date);
+    const afterMonth = this.periodFromExpenseDate(after.date);
+    await this.rebuildAfter(
+      before.user_id,
+      beforeMonth < afterMonth ? beforeMonth : afterMonth,
+    );
   }
 
   async onExpenseRemoved(
+    db: BudgetDbClient,
+    expense: {
+      user_id: string;
+      category_id: string;
+      amount: { toString(): string };
+      date: Date;
+    },
+  ): Promise<void> {
+    await this.projectExpenseRemoved(db, expense);
+    await this.rebuildAfter(
+      expense.user_id,
+      this.periodFromExpenseDate(expense.date),
+    );
+  }
+
+  private async projectExpenseRemoved(
     db: BudgetDbClient,
     expense: {
       user_id: string;
@@ -204,6 +255,22 @@ export class BudgetProjectorService {
       period_month: Date;
     },
   ): Promise<void> {
+    await this.projectAllocationCreated(db, allocation);
+    await this.rebuildAfter(
+      allocation.user_id,
+      monthValueFromDate(allocation.period_month),
+    );
+  }
+
+  private async projectAllocationCreated(
+    db: BudgetDbClient,
+    allocation: {
+      user_id: string;
+      category_id: string;
+      amount: { toString(): string };
+      period_month: Date;
+    },
+  ): Promise<void> {
     const periodMonth = monthValueFromDate(allocation.period_month);
     const snapshotId = await this.resolveSnapshotId(
       db,
@@ -220,6 +287,22 @@ export class BudgetProjectorService {
   }
 
   async onAllocationRemoved(
+    db: BudgetDbClient,
+    allocation: {
+      user_id: string;
+      category_id: string;
+      amount: { toString(): string };
+      period_month: Date;
+    },
+  ): Promise<void> {
+    await this.projectAllocationRemoved(db, allocation);
+    await this.rebuildAfter(
+      allocation.user_id,
+      monthValueFromDate(allocation.period_month),
+    );
+  }
+
+  private async projectAllocationRemoved(
     db: BudgetDbClient,
     allocation: {
       user_id: string;
@@ -258,8 +341,14 @@ export class BudgetProjectorService {
       period_month: Date;
     },
   ): Promise<void> {
-    await this.onAllocationRemoved(db, before);
-    await this.onAllocationCreated(db, after);
+    await this.projectAllocationRemoved(db, before);
+    await this.projectAllocationCreated(db, after);
+    const beforeMonth = monthValueFromDate(before.period_month);
+    const afterMonth = monthValueFromDate(after.period_month);
+    await this.rebuildAfter(
+      before.user_id,
+      beforeMonth < afterMonth ? beforeMonth : afterMonth,
+    );
   }
 
   /**
@@ -290,17 +379,17 @@ export class BudgetProjectorService {
     );
     await this.applySnapshotDeltas(db, fromSnapshotId, -amount, 0);
 
-    if (transfer.to_category_id == null) {
-      return;
+    if (transfer.to_category_id != null) {
+      const toSnapshotId = await this.resolveSnapshotId(
+        db,
+        transfer.user_id,
+        periodMonth,
+        transfer.to_category_id,
+      );
+      await this.applySnapshotDeltas(db, toSnapshotId, amount, 0);
     }
 
-    const toSnapshotId = await this.resolveSnapshotId(
-      db,
-      transfer.user_id,
-      periodMonth,
-      transfer.to_category_id,
-    );
-    await this.applySnapshotDeltas(db, toSnapshotId, amount, 0);
+    await this.rebuildAfter(transfer.user_id, periodMonth);
   }
 
   async onTransferRemoved(
@@ -324,16 +413,16 @@ export class BudgetProjectorService {
     );
     await this.applySnapshotDeltas(db, fromSnapshotId, amount, 0);
 
-    if (transfer.to_category_id == null) {
-      return;
+    if (transfer.to_category_id != null) {
+      const toSnapshotId = await this.resolveSnapshotId(
+        db,
+        transfer.user_id,
+        periodMonth,
+        transfer.to_category_id,
+      );
+      await this.applySnapshotDeltas(db, toSnapshotId, -amount, 0);
     }
 
-    const toSnapshotId = await this.resolveSnapshotId(
-      db,
-      transfer.user_id,
-      periodMonth,
-      transfer.to_category_id,
-    );
-    await this.applySnapshotDeltas(db, toSnapshotId, -amount, 0);
+    await this.rebuildAfter(transfer.user_id, periodMonth);
   }
 }
